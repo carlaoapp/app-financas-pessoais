@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APP Finanças Pessoais - Computador & Mobbi</title>
+    
+    <!-- PWA e Metas Mobile -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <meta name="theme-color" content="#2563EB">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Finanças">
+    
+    <!-- Dexie IndexedDB -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+    
+    <!-- Apache ECharts para Dashboards Power BI -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="lucide.min.js"></script>
+    
+    <!-- Estilos -->
+    <link rel="stylesheet" href="finance-style.css">
+    <link rel="stylesheet" href="app-custom.css">
+</head>
+<body class="mode-desktop">
+
+    <!-- BARRA SUPERIOR DO APLICATIVO -->
+    <header class="top-navbar">
+        <div class="brand-section">
+            <div class="brand-logo">💰</div>
+            <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="brand-title">Finanças Pessoais</span>
+                    <span class="brand-badge">SISTEMA COMPLETO</span>
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary);">Controle financeiro para Computador e Mobbi</div>
+            </div>
+        </div>
+
+        <!-- SELETOR DE MODO: COMPUTADOR vs MOBBI -->
+        <div class="mode-toggle">
+            <button class="mode-btn active" id="btnModeDesktop" onclick="setAppMode('desktop')">
+                <i data-lucide="monitor" style="width: 15px; height: 15px;"></i>
+                <span>Computador</span>
+            </button>
+            <button class="mode-btn" id="btnModeMobbi" onclick="setAppMode('mobbi')">
+                <i data-lucide="smartphone" style="width: 15px; height: 15px;"></i>
+                <span>Mobbi</span>
+            </button>
+        </div>
+
+        <!-- CLUSTER DE AÇÕES E CONTROLES -->
+        <div class="actions-cluster">
+            <!-- Modo Privacidade -->
+            <button class="btn-action-icon" onclick="togglePrivacyMode()" title="Ocultar / Mostrar Valores">
+                <i data-lucide="eye" id="iconPrivacyOn" style="width: 18px; height: 18px; display: none;"></i>
+                <i data-lucide="eye-off" id="iconPrivacyOff" style="width: 18px; height: 18px; display: block;"></i>
+            </button>
+
+            <!-- Zoom -->
+            <button class="btn-action-icon" onclick="zoomFinance(-0.1)" title="Diminuir Zoom">
+                <i data-lucide="zoom-out" style="width: 16px; height: 16px;"></i>
+            </button>
+            <button class="btn-action-icon" onclick="zoomFinance(0.1)" title="Aumentar Zoom">
+                <i data-lucide="zoom-in" style="width: 16px; height: 16px;"></i>
+            </button>
+
+            <!-- Forçar Sincronização -->
+            <button class="btn-action-icon" onclick="forceSync()" title="Sincronizar com Servidor">
+                <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
+            </button>
+
+            <!-- Botão de Instalar App (PWA) -->
+            <button class="btn-action-icon" id="btnInstallPwa" onclick="triggerPwaInstall()" title="Baixar / Instalar App no Celular ou Computador" style="border-color: #3B82F6; color: #60A5FA;">
+                <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+            </button>
+
+            <!-- Botão Novo Lançamento -->
+            <button class="btn-primary-new" onclick="abrirModalLancamento()">
+                <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
+                <span>Novo Lançamento</span>
+            </button>
+        </div>
+    </header>
+
+    <!-- WRAPPER PRINCIPAL (ADAPTÁVEL DESKTOP / MOBBI) -->
+    <div class="app-wrapper">
+        <main id="finance-view" style="padding: 10px 0; overflow-y: auto;">
+
+            <!-- BARRA DE CONTROLE: ANO BASE, MÊS E NAVEGAÇÃO ENTRE ABAS -->
+            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 18px; margin-bottom: 16px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
+                    
+                    <!-- Seletor de Ano -->
+                    <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;">Ano Base:</span>
+                        <select id="anoBaseSelector" onchange="selecionarAno(this.value)" style="background: #0F172A; color: white; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 8px; font-weight: bold; outline: none; cursor: pointer;">
+                            <!-- Injetado via JS -->
+                        </select>
+                    </div>
+
+                    <!-- Navegação entre Abas Principais -->
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button class="nav-btn active" id="navPainel" onclick="switchFinanceTab('Painel')" style="padding: 8px 16px; border-radius: 8px; background: #2563EB; color: white; border: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                            <span>📊 Painel Resumo</span>
+                        </button>
+                        <button class="nav-btn" id="navPowerBI" onclick="exibirAbaPowerBI()" style="padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                            <span>📈 Dashboard Power BI</span>
+                        </button>
+                        <button class="nav-btn" id="navAPagar" onclick="switchFinanceTab('APagar')" style="padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                            <span>📉 Contas a Pagar</span>
+                        </button>
+                        <button class="nav-btn" id="navDesejos" onclick="switchFinanceTab('Desejos')" style="padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
+                            <span>🎁 Lista de Desejos</span>
+                        </button>
+                    </div>
+
+                    <!-- Status de Conexão -->
+                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem;" id="statusContainer">
+                        <span id="statusDot" style="width: 8px; height: 8px; border-radius: 50%; background: #10B981;"></span>
+                        <span id="syncStatusIndicator" style="color: #10B981; font-weight: 600;">Sincronizado</span>
+                    </div>
+                </div>
+
+                <!-- GRADE DOS 12 MESES -->
+                <div class="month-grid" id="monthGrid">
+                    <!-- Injetado via JS -->
+                </div>
+            </div>
+
+            <!-- ABA 1: PAINEL PRINCIPAL -->
+            <div id="tabPainel" class="tab-content" style="display: block;">
+                
+                <!-- Resumo Geral do Mês (Tabela Orçado vs Realizado) -->
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);">
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; font-weight: 700; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px; font-size: 0.85rem; text-transform: uppercase;">
+                        <div>Categoria</div>
+                        <div style="text-align: right;">Orçado</div>
+                        <div style="text-align: right;">Realizado</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; margin-bottom: 12px; font-size: 0.95rem;">
+                        <div style="color: #10B981; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981;"></span> Receitas
+                        </div>
+                        <div id="valReceitaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                        <div id="valReceitaRealizado" style="text-align: right; font-weight: bold; color: #10B981;">R$ 0,00</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; margin-bottom: 12px; font-size: 0.95rem;">
+                        <div style="color: #EF4444; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#EF4444;"></span> Despesas
+                        </div>
+                        <div id="valDespesaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                        <div id="valDespesaRealizado" style="text-align: right; font-weight: bold; color: #EF4444;">R$ 0,00</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; margin-bottom: 12px; font-size: 0.95rem;">
+                        <div style="color: #8B5CF6; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#8B5CF6;"></span> Investimentos
+                        </div>
+                        <div id="valInvestimentoOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                        <div id="valInvestimentoRealizado" style="text-align: right; font-weight: bold; color: #8B5CF6;">R$ 0,00</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; margin-bottom: 12px; font-size: 0.95rem;">
+                        <div style="color: #F59E0B; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#F59E0B;"></span> Reserva de Emergência
+                        </div>
+                        <div id="valReservaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                        <div id="valReservaRealizado" style="text-align: right; font-weight: bold; color: #F59E0B;">R$ 0,00</div>
+                    </div>
+                    
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-color); font-size: 1.05rem;">
+                        <div style="color: #3B82F6; font-weight: 700;">Saldo Livre</div>
+                        <div id="valSaldoOrcado" style="text-align: right; font-weight: bold; color: #60A5FA;">R$ 0,00</div>
+                        <div id="valSaldoRealizado" style="text-align: right; font-weight: 800; color: #3B82F6;">R$ 0,00</div>
+                    </div>
+                </div>
+
+                <!-- COLUNAS DE ENTRADAS E SAÍDAS -->
+                <div class="desktop-columns">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h3 style="font-size: 1.1rem; color: #10B981; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                                <span>📥</span> Entradas (Receitas)
+                            </h3>
+                        </div>
+                        <div class="card-list" id="listaEntradas">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                            <h3 style="font-size: 1.1rem; color: #EF4444; font-weight: 700; display: flex; align-items: center; gap: 8px;">
+                                <span>📤</span> Contas a Pagar / Saídas
+                            </h3>
+                        </div>
+                        <div class="card-list" id="listaMovimentacoes">
+                            <!-- Preenchido via JS -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABA 2: POWER BI DASHBOARD -->
+            <div id="tabPowerBI" class="tab-content powerbi-container" style="display: none;">
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                    <div style="font-size: 1.1rem; font-weight: 700; color: #60A5FA; display: flex; align-items: center; gap: 8px;">
+                        <span>📊</span> DASHBOARD POWER BI DE FINANÇAS PESSOAIS
+                    </div>
+                    <button onclick="renderPowerBIDashboard()" style="background: #2563EB; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+                        Atualizar Gráficos
+                    </button>
+                </div>
+
+                <div class="powerbi-grid">
+                    <!-- Top Chart: Diff -->
+                    <div class="powerbi-card pbi-diff">
+                        <div class="pbi-card-title">DIFERENÇA ENTRE RECEITA E DESPESA</div>
+                        <div id="pbiChartDiff" style="width: 100%; height: 260px;"></div>
+                    </div>
+
+                    <!-- KPI Cards -->
+                    <div style="display: flex; flex-direction: column; gap: 14px;">
+                        <div class="powerbi-card pbi-receitas">
+                            <div class="pbi-card-title">TOTAL DE RECEITAS</div>
+                            <div class="pbi-value" id="pbiValReceitas">R$ 0</div>
+                        </div>
+                        <div class="powerbi-card pbi-despesas">
+                            <div class="pbi-card-title">TOTAL DE DESPESAS</div>
+                            <div class="pbi-value" id="pbiValDespesas">R$ 0</div>
+                        </div>
+                        <div class="powerbi-card pbi-saldo">
+                            <div class="pbi-card-title">SALDO DO PERÍODO</div>
+                            <div class="pbi-value" id="pbiValSaldo">R$ 0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Segunda Linha de Gráficos -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px;">
+                    <div class="powerbi-card">
+                        <div class="pbi-card-title">FONTES DE RECEITAS</div>
+                        <div id="pbiChartFontesRec" style="width: 100%; height: 220px;"></div>
+                    </div>
+                    <div class="powerbi-card">
+                        <div class="pbi-card-title">FONTES DE DESPESAS</div>
+                        <div id="pbiChartFontesDes" style="width: 100%; height: 220px;"></div>
+                    </div>
+                    <div class="powerbi-card">
+                        <div class="pbi-card-title">RESERVA DE EMERGÊNCIA</div>
+                        <div id="pbiChartGauge" style="width: 100%; height: 220px;"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ABA 3: CONTAS A PAGAR (GAVETA) -->
+            <div id="tabAPagar" class="tab-content" style="display: none;">
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <h2 style="font-size: 1.2rem; color: #F59E0B; margin-bottom: 4px;">Contas a Pagar (Gaveta)</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">Contas que vencem este mês ou despesas fixas para monitoramento contínuo</p>
+
+                    <!-- Formulário Rápido -->
+                    <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+                        <input type="text" id="novaContaDesc" placeholder="Descrição da Conta (Ex: IPTU, Seguro)" style="flex: 2; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white;">
+                        <input type="number" step="0.01" id="novaContaValor" placeholder="R$ Valor" style="flex: 1; min-width: 120px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white;">
+                        <button onclick="adicionarContaRapida()" style="background: #F59E0B; color: #0F172A; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                            + Adicionar Conta
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Card de Fatura do Cartão de Crédito -->
+                <div id="cardFaturaCartao" class="card" style="margin-bottom: 16px; cursor: pointer; display: none; background: #1E293B; border-left: 5px solid #10B981; padding: 16px; border-radius: 10px;" onclick="abrirModalFatura()">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 style="color: #34D399; font-weight: 600; margin: 0; font-size: 1.1rem;">💳 Fatura Atual do Cartão</h3>
+                            <div id="lblFaturaMes" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">Carregando...</div>
+                        </div>
+                        <div style="color: #34D399; font-weight: bold; display: flex; align-items: center; gap: 6px;">
+                            <span>Ver Detalhes</span>
+                            <i data-lucide="chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-list" id="listaAPagarContainer">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+
+            <!-- ABA 4: LISTA DE DESEJOS -->
+            <div id="tabDesejos" class="tab-content" style="display: none;">
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <h2 style="font-size: 1.2rem; color: #8B5CF6; margin-bottom: 4px;">🎁 Lista de Desejos e Objetivos</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">Seus sonhos, projetos e metas financeiras para planejar e conquistar</p>
+
+                    <!-- Formulário Rápido de Desejo -->
+                    <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
+                        <input type="text" id="novoDesejoDesc" placeholder="O que você quer conquistar? (Ex: Viagem, Notebook)" style="flex: 2; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white;">
+                        <input type="number" step="0.01" id="novoDesejoValor" placeholder="R$ Estimado" style="flex: 1; min-width: 120px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white;">
+                        <button onclick="adicionarDesejoRapido()" style="background: #8B5CF6; color: white; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">
+                            + Salvar Desejo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card-list" id="listaDesejosContainer">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL DE NOVO LANÇAMENTO / EDIÇÃO -->
+    <div id="modalLancamento" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="background: #1E293B; color: white; border: 1px solid var(--border-color); border-radius: 16px; max-width: 500px; width: 90%;">
+            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="font-size: 1.2rem; margin: 0;">Lançamento Financeiro</h3>
+                <button class="close-btn" onclick="fecharModalLancamento()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.3rem; cursor: pointer;">✕</button>
+            </div>
+            <form id="formLancamento" onsubmit="salvarLancamento(event)" style="padding-top: 16px;">
+                <input type="hidden" id="inputIdMovimentacao" value="">
+                
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label>Tipo de Movimentação</label>
+                    <select id="inputTipoGasto" required onchange="if(typeof atualizarTextoStatus === 'function') atualizarTextoStatus()">
+                        <option value="Despesa Variável">Despesa Variável</option>
+                        <option value="Despesa Fixa">Despesa Fixa</option>
+                        <option value="Conta a Pagar">Conta a Pagar (Gaveta)</option>
+                        <option value="Receita">Receita</option>
+                        <option value="Investimento">Investimento</option>
+                        <option value="Reserva de Emergência">Reserva de Emergência (Guardar)</option>
+                        <option value="Resgate de Reserva">Resgate de Reserva (Usar)</option>
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Empréstimo">Empréstimo</option>
+                        <option value="Lista de Desejos">Lista de Desejos</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label>Descrição</label>
+                    <input type="text" id="inputDescricao" placeholder="Ex: Salário, Mercado, Aluguel" required>
+                </div>
+
+                <div class="form-group-row" style="display: flex; gap: 12px; margin-bottom: 14px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Valor Orçado (R$)</label>
+                        <input type="number" step="0.01" id="inputValor" placeholder="0,00" required>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Valor Realizado (R$)</label>
+                        <input type="number" step="0.01" id="inputValorRealizado" placeholder="0,00" value="0">
+                    </div>
+                </div>
+
+                <div class="form-group-row" style="display: flex; gap: 12px; margin-bottom: 14px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Data</label>
+                        <input type="date" id="inputData">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Status</label>
+                        <select id="inputStatus" required>
+                            <option value="Pendente">Pendente</option>
+                            <option value="Pago">Pago</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group-row" style="display: flex; gap: 12px; align-items: center; margin-bottom: 14px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="checkbox-label" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="inputParcelado" onchange="toggleParcelas()"> 🔄 Parcelado?
+                        </label>
+                    </div>
+                    <div class="form-group" style="flex: 1; display: none;" id="divParcelas">
+                        <label>Total de Parcelas</label>
+                        <input type="number" id="inputTotalParcelas" placeholder="Ex: 10" min="2" value="2">
+                    </div>
+                </div>
+
+                <div class="form-group-row" style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Recorrência (Mensal)</label>
+                        <select id="inputRecorrencia" onchange="if(typeof toggleRecorrencia === 'function') toggleRecorrencia()">
+                            <option value="Unica">Única (Não se repete)</option>
+                            <option value="Continua">Contínua (Repete todo mês)</option>
+                            <option value="DataFinal">Repetir até uma data</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1; display: none;" id="divDataFim">
+                        <label>Até qual mês/ano?</label>
+                        <input type="month" id="inputDataFim">
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 18px;">
+                    <button type="button" class="close-btn" style="flex: 1; padding: 10px; border-radius: 8px; background: #334155; color: white; border: none; cursor: pointer;" onclick="fecharModalLancamento()">Cancelar</button>
+                    <button type="button" id="btnExcluir" style="display: none; flex: 1; padding: 10px; border-radius: 8px; background: #7F1D1D; color: #FCA5A5; border: none; cursor: pointer; font-weight: bold;" onclick="excluirLancamentoAtual()">Excluir</button>
+                    <button type="submit" class="primary-button" style="flex: 2; padding: 10px; border-radius: 8px; background: #2563EB; color: white; border: none; font-weight: bold; cursor: pointer;" id="btnSalvar">Salvar Lançamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE FATURA DO CARTÃO -->
+    <div id="modalFatura" class="modal-overlay" style="display: none;">
+        <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column; background: #1E293B; color: white; border-radius: 16px; border: 1px solid var(--border-color); max-width: 520px; width: 90%;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
+                <h3 style="color: var(--text-secondary); margin: 0; font-size: 1.1rem;">Fatura do Cartão</h3>
+                <button onclick="fecharModalFatura()" style="background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer;">✕</button>
+            </div>
+            
+            <h2 id="lblFaturaTituloMes" style="font-size: 1.6rem; margin: 0 0 4px 0;">Mês</h2>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 15px 0;">Fatura consolidada para este mês</p>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #0F172A; padding: 14px; border-radius: 10px;">
+                <div id="valTotalFatura" style="color: #34D399; font-size: 1.8rem; font-weight: 700;">R$ 0,00</div>
+                <button class="primary-button" style="padding: 8px 16px; border-radius: 8px; width: auto; font-size: 0.9rem; background: #10B981; border: none; color: white; font-weight: bold; cursor: pointer;" onclick="pagarFaturaCompleta()">Pagar Fatura</button>
+            </div>
+
+            <div id="listaFaturaItens" style="flex: 1; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Itens injetados via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS DA APLICAÇÃO -->
+    <script src="finance-db.js"></script>
+    <script src="finance-sync.js"></script>
+    <script src="finance-powerbi.js"></script>
+    <script src="finance-dashboard.js"></script>
+
+    <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
+    <script>
+        function setAppMode(mode) {
+            const body = document.body;
+            const btnDesk = document.getElementById('btnModeDesktop');
+            const btnMobbi = document.getElementById('btnModeMobbi');
+
+            if (mode === 'mobbi') {
+                body.classList.remove('mode-desktop');
+                body.classList.add('mode-mobbi');
+                btnMobbi.classList.add('active');
+                btnDesk.classList.remove('active');
+                localStorage.setItem('app_view_mode', 'mobbi');
+            } else {
+                body.classList.remove('mode-mobbi');
+                body.classList.add('mode-desktop');
+                btnDesk.classList.add('active');
+                btnMobbi.classList.remove('active');
+                localStorage.setItem('app_view_mode', 'desktop');
+            }
+            if (typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI').style.display !== 'none') {
+                setTimeout(renderPowerBIDashboard, 150);
+            }
+        }
+
+        function exibirAbaPowerBI() {
+            document.getElementById('tabPainel').style.display = 'none';
+            document.getElementById('tabAPagar').style.display = 'none';
+            document.getElementById('tabDesejos').style.display = 'none';
+            document.getElementById('tabPowerBI').style.display = 'block';
+
+            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+            document.getElementById('navPowerBI').classList.add('active');
+
+            if (typeof renderPowerBIDashboard === 'function') {
+                renderPowerBIDashboard();
+            }
+        }
+
+        // Registro do Service Worker (PWA)
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('PWA Service Worker registrado com sucesso:', reg.scope))
+                    .catch(err => console.log('Erro ao registrar Service Worker:', err));
+            });
+        }
+
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const btn = document.getElementById('btnInstallPwa');
+            if (btn) btn.style.background = 'rgba(59, 130, 246, 0.2)';
+        });
+
+        function triggerPwaInstall() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                deferredInstallPrompt.userChoice.then(choiceResult => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Usuário aceitou instalar o APP Finanças Pessoais');
+                    }
+                    deferredInstallPrompt = null;
+                });
+            } else {
+                alert('Para baixar/instalar o aplicativo:\n\n📱 No Android (Chrome): Toque nos 3 pontinhos e selecione "Instalar aplicativo" ou "Adicionar à tela inicial".\n🍎 No iPhone (Safari): Toque no ícone Compartilhar e selecione "Adicionar à Tela de Início".\n💻 No Computador (Chrome/Edge): Clique no ícone de instalar (computador/seta) ao lado da barra de endereços.');
+            }
+        }
+
+        // Recupera preferência salva
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedMode = localStorage.getItem('app_view_mode') || 'desktop';
+            setAppMode(savedMode);
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>
