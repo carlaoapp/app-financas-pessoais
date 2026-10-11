@@ -1,77 +1,63 @@
 ﻿@echo off
-title Enviar para o GitHub - APP Finanças Pessoais
+title Publicar e Atualizar APP Finanças Pessoais
 chcp 65001 > nul
 cd /d "%~dp0"
 color 0A
 
 echo ================================================================
-echo       ENVIAR APP FINANÇAS PESSOAIS PARA O GITHUB
+echo    PUBLICAR ATUALIZAÇÃO AUTOMÁTICA - APP FINANÇAS PESSOAIS
 echo ================================================================
 echo.
 
-:: 1. Verifica se o Git foi inicializado nesta pasta
-if not exist ".git\" (
-    echo [*] Primeira configuracao detectada!
-    echo.
-    echo Por favor, crie primeiro o repositorio no seu GitHub (ex: app-financas-pessoais)
-    echo em: https://github.com/new (deixe como Publico ou Privado, sem README).
-    echo.
-    set /p REPO_URL="Cole o link do seu repositorio GitHub (ou aperte ENTER para usar https://github.com/carlaoapp/app-financas-pessoais.git): "
-    
-    if "%REPO_URL%"=="" (
-        set "REPO_URL=https://github.com/carlaoapp/app-financas-pessoais.git"
-    )
-    
-    echo [*] Inicializando Git e conectando a %REPO_URL%...
-    git init
-    git branch -M main
-    git remote add origin %REPO_URL%
-    echo [+] Conexao com o GitHub configurada!
-    echo.
+:: 1. Incrementa versão para disparar notificação no celular e computador
+echo [*] Incrementando versão do aplicativo...
+node increment_version.js
+
+:: 2. Configura remote do repositório no GitHub se necessário
+git remote get-url origin >nul 2>&1
+if errorlevel 1 (
+    echo [*] Configurando conexao com o GitHub carlaoapp/app-financas-pessoais...
+    git remote add origin https://github.com/carlaoapp/app-financas-pessoais.git
 )
 
-:: 2. Identifica e adiciona todos os arquivos
-echo [*] Mapeando arquivos do projeto...
+:: 3. Adiciona todos os arquivos
+echo [*] Mapeando arquivos atualizados...
 git add -A
 
-:: 3. Verifica se ha alteracoes para enviar
-git status --porcelain > "%temp%\git_status_financas.txt"
-set /p TEM_ALTERACOES=<"%temp%\git_status_financas.txt"
-
-if "%TEM_ALTERACOES%"=="" (
-    echo.
-    echo ================================================================
-    echo   TUDO ATUALIZADO! Nao ha nenhum arquivo modificado para subir.
-    echo   Seu GitHub ja esta 100%% em dia com o seu computador!
-    echo ================================================================
-    echo.
-    pause
-    exit /b 0
-)
-
-:: 4. Cria o commit com data e hora
+:: 4. Grava commit com data e hora
 set "DATA_HORA=%date% as %time:~0,5%"
-echo [*] Gravando alteracoes: %DATA_HORA%...
-git commit -m "Atualizacao APP Financas Pessoais: %DATA_HORA%"
+echo [*] Gravando alteracoes no Git (%DATA_HORA%)...
+git commit -m "Auto-Deploy: Versao atualizada em %DATA_HORA%"
 
-:: 5. Envia para o GitHub na branch main
-echo [*] Enviando arquivos para o GitHub na nuvem...
+:: 5. Envia para o GitHub na nuvem
 echo.
+echo [*] Enviando para o GitHub na nuvem...
 git push -u origin main
 
-echo.
 if %errorlevel% equ 0 (
+    echo.
     echo ================================================================
     echo   [SUCESSO TOTAL!]
-    echo   Todos os arquivos foram enviados para o GitHub com sucesso!
-    echo   O Render ira atualizar o site automaticamente em minutos.
+    echo   1. Arquivos enviados para o GitHub!
+    echo   2. O Render ja detectou o envio e esta atualizando o site na nuvem!
+    echo   3. Todos os celulares e computadores com o app aberto receberao
+    echo      a mensagem: "Nova Versao Disponivel! [Atualizar App Agora]"
     echo ================================================================
 ) else (
+    echo.
     echo ================================================================
-    echo   [AUTENTICACAO OU REPOSITORIO NOVO]
-    echo   Se for a primeira vez, certifique-se de ter criado o repositorio
-    echo   vazio no GitHub com o mesmo nome e autorize o login no navegador.
+    echo   [PRIMEIRO ENVIO OU REPOSITORIO AINDA NAO CRIADO NO GITHUB]
+    echo.
+    echo   Se o repositorio ainda nao foi criado na sua conta do GitHub:
+    echo   1. Estamos abrindo o GitHub no seu navegador agora...
+    echo   2. Basta clicar no botao verde "Create repository" (sem alterar nada).
     echo ================================================================
+    start "" "https://github.com/new?name=app-financas-pessoais"
+    echo.
+    echo Apois clicar em "Create repository", aperte qualquer tecla aqui para tentar o envio novamente:
+    pause
+    echo [*] Tentando envio novamente...
+    git push -u origin main
 )
 
 echo.

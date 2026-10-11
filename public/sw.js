@@ -1,4 +1,4 @@
-﻿// Service Worker - APP Finanças Pessoais
+// Service Worker - APP Finanças Pessoais
 const CACHE_NAME = 'financas-pessoais-v1';
 const ASSETS_TO_CACHE = [
     '/',
@@ -9,6 +9,8 @@ const ASSETS_TO_CACHE = [
     '/finance-powerbi.js',
     '/finance-db.js',
     '/finance-sync.js',
+    '/auth.js',
+    '/auto-update.js',
     '/lucide.min.js',
     '/manifest.json',
     '/icon-192.png',

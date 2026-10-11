@@ -15,6 +15,19 @@ app.get('/api/status', (req, res) => {
     res.json({ status: 'online', app: 'Finanças Pessoais', timestamp: Date.now() });
 });
 
+// Versão do Aplicativo (Auto-Update)
+const fs = require('fs');
+app.get('/api/version', (req, res) => {
+    try {
+        const verPath = path.join(__dirname, 'public', 'version.json');
+        if (fs.existsSync(verPath)) {
+            const data = JSON.parse(fs.readFileSync(verPath, 'utf8'));
+            return res.json(data);
+        }
+    } catch (e) {}
+    res.json({ version: '1.0.0', updatedAt: Date.now() });
+});
+
 const crypto = require('crypto');
 function hashPassword(pwd) {
     return crypto.createHash('sha256').update(pwd + 'financas_salt').digest('hex');
