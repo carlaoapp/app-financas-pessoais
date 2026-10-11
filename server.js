@@ -15,6 +15,78 @@ app.get('/api/status', (req, res) => {
     res.json({ status: 'online', app: 'Finanças Pessoais', timestamp: Date.now() });
 });
 
+const crypto = require('crypto');
+function hashPassword(pwd) {
+    return crypto.createHash('sha256').update(pwd + 'financas_salt').digest('hex');
+}
+
+// Autenticação: Registrar Novo Usuário
+app.post('/api/auth/register', (req, res) => {
+    const { name, email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ error: 'E-mail e senha são obrigatórios.' });
+    }
+
+    const userId = 'usr_' + Date.now();
+    const pwdHash = hashPassword(password);
+    const createdAt = Date.now();
+    const userName = name || email.split('@')[0];
+
+    db.run(
+        'INSERT INTO users (id, name, email, password, created_at) VALUES (?, ?, ?, ?, ?)',
+        [userId, userName, email.toLowerCase().trim(), pwdHash, createdAt],
+        function(err) {
+            if (err) {
+                if (err.message.includes('UNIQUE')) {
+                    return res.status(400).json({ error: 'Este e-mail já está cadastrado. Faça login.' });
+                }
+                return res.status(500).json({ error: err.message });
+            }
+
+            const token = 'token_' + Buffer.from(userId + ':' + createdAt).toString('base64');
+            res.json({
+                success: true,
+                token,
+                user: { id: userId, name: userName, email: email.toLowerCase().trim() }
+            });
+        }
+    );
+});
+
+// Autenticação: Login
+app.post('/api/auth/login', (req, res) => {
+    const { email, password } = req.body;
+    if (!email || !password) {
+        return res.status(400).json({ error: 'E-mail e senha são obrigatórios.' });
+    }
+
+    const pwdHash = hashPassword(password);
+    db.get(
+        'SELECT id, name, email FROM users WHERE email = ? AND password = ?',
+        [email.toLowerCase().trim(), pwdHash],
+        (err, row) => {
+            if (err) return res.status(500).json({ error: err.message });
+            if (!row) {
+                return res.status(401).json({ error: 'E-mail ou senha incorretos.' });
+            }
+
+            const token = 'token_' + Buffer.from(row.id + ':' + Date.now()).toString('base64');
+            res.json({
+                success: true,
+                token,
+                user: row
+            });
+        }
+    );
+});
+
+// Autenticação: Dados do usuário
+app.get('/api/auth/me', (req, res) => {
+    const authHeader = req.headers['authorization'];
+    if (!authHeader) return res.json({ loggedIn: false });
+    res.json({ loggedIn: true });
+});
+
 // Sync PULL: busca registros atualizados apos lastSync
 app.get('/api/sync/pull', (req, res) => {
     const lastSync = parseInt(req.query.lastSync) || 0;

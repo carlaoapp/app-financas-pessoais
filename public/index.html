@@ -80,6 +80,15 @@
                 <i data-lucide="download" style="width: 16px; height: 16px;"></i>
             </button>
 
+            <!-- Perfil do Usuário e Logout -->
+            <div id="btnUserProfile" style="display: none; align-items: center; gap: 8px; background: #1E293B; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
+                <i data-lucide="user" style="width: 15px; height: 15px; color: #10B981;"></i>
+                <span id="lblCurrentUserName" style="font-size: 0.8rem; font-weight: 600; color: white;">Usuário</span>
+                <button onclick="logout()" title="Sair / Trocar de Conta" style="background: transparent; border: none; color: #EF4444; cursor: pointer; padding: 2px 4px; display: flex; align-items: center;">
+                    <i data-lucide="log-out" style="width: 14px; height: 14px;"></i>
+                </button>
+            </div>
+
             <!-- Botão Novo Lançamento -->
             <button class="btn-primary-new" onclick="abrirModalLancamento()">
                 <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
@@ -435,11 +444,103 @@
         </div>
     </div>
 
+    <!-- MODAL DE ENTRADA E CADASTRO (MODELO TUDO EM DIA COM VISUAL FINANCEIRO) -->
+    <div id="auth-modal" class="modal-overlay" style="display: none; z-index: 10000; background: rgba(11, 17, 32, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);">
+        <div class="modal-content" style="max-width: 420px; width: 92%; padding: 32px 28px; background: #0F172A; border-radius: 24px; border: 1px solid #334155; box-shadow: 0 25px 60px rgba(0,0,0,0.6), 0 0 30px rgba(37,99,235,0.15);">
+            
+            <!-- Cabeçalho da Tela de Entrada -->
+            <div style="text-align: center; margin-bottom: 24px;">
+                <div style="width: 64px; height: 64px; border-radius: 18px; background: linear-gradient(135deg, #2563EB, #10B981); display: inline-flex; align-items: center; justify-content: center; font-size: 32px; box-shadow: 0 8px 20px rgba(37,99,235,0.35); margin-bottom: 12px;">
+                    💰
+                </div>
+                <h2 style="font-size: 1.4rem; font-weight: 800; color: #FFFFFF; margin: 0; letter-spacing: -0.5px;">Finanças Pessoais</h2>
+                <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 6px;">Gestão patrimonial completa para Computador & Mobbi</p>
+            </div>
+
+            <!-- Abas: Entrar e Criar Conta (Mesmo Modelo do Tudo em Dia) -->
+            <div style="display: flex; gap: 6px; margin-bottom: 20px; background: #1E293B; padding: 4px; border-radius: 12px; border: 1px solid #334155;">
+                <button type="button" id="tab-auth-login" onclick="switchAuthTab('login')" style="flex: 1; padding: 10px; border-radius: 8px; font-weight: 700; background: #2563EB; color: #FFFFFF; border: none; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;">
+                    🔐 Entrar
+                </button>
+                <button type="button" id="tab-auth-register" onclick="switchAuthTab('register')" style="flex: 1; padding: 10px; border-radius: 8px; font-weight: 700; background: transparent; color: #94A3B8; border: none; font-size: 0.9rem; cursor: pointer; transition: all 0.2s;">
+                    ✨ Criar Conta
+                </button>
+            </div>
+
+            <!-- Mensagem de Erro / Alerta -->
+            <div id="auth-error-msg" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; text-align: center;">
+            </div>
+
+            <!-- Formulário -->
+            <form id="auth-form" onsubmit="event.preventDefault(); handleAuthSubmit();" style="display: flex; flex-direction: column; gap: 14px;">
+                
+                <!-- Nome Completo (Apenas em Criar Conta) -->
+                <div id="auth-name-container" style="display: none;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">Nome Completo</label>
+                    <input type="text" id="auth-name" placeholder="Seu Nome ou Família" style="width: 100%; padding: 12px; font-size: 0.95rem; border: 1px solid #334155; border-radius: 10px; box-sizing: border-box; background: #0B1120; color: #FFFFFF; outline: none;">
+                </div>
+
+                <!-- E-mail -->
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">E-mail de Acesso</label>
+                    <input type="email" id="auth-email" placeholder="seuemail@exemplo.com" required style="width: 100%; padding: 12px; font-size: 0.95rem; border: 1px solid #334155; border-radius: 10px; box-sizing: border-box; background: #0B1120; color: #FFFFFF; outline: none;">
+                </div>
+
+                <!-- Senha -->
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">Senha</label>
+                    <div style="position: relative; width: 100%;">
+                        <input type="password" id="auth-password" placeholder="Sua senha secreta" required style="width: 100%; padding: 12px; font-size: 0.95rem; border: 1px solid #334155; border-radius: 10px; box-sizing: border-box; padding-right: 44px; background: #0B1120; color: #FFFFFF; outline: none;">
+                        <button type="button" onclick="toggleAuthPassword()" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; color: #94A3B8; padding: 4px; font-size: 1rem;">
+                            👁️
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lembrar-me -->
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: #94A3B8; margin-top: 2px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="auth-remember" checked style="width: 16px; height: 16px; cursor: pointer;">
+                        <span>Lembrar-me</span>
+                    </label>
+                    <span style="color: #10B981; font-size: 0.8rem; font-weight: 600;">● Sincronizado</span>
+                </div>
+
+                <!-- Botão Primário -->
+                <button type="submit" id="auth-submit-btn" style="width: 100%; padding: 14px; font-size: 1rem; font-weight: 700; background: linear-gradient(135deg, #2563EB, #1D4ED8); color: white; border: none; border-radius: 10px; cursor: pointer; box-shadow: 0 4px 14px rgba(37,99,235,0.4); margin-top: 6px; transition: all 0.2s;">
+                    Entrar no Finanças
+                </button>
+
+                <!-- Divisor -->
+                <div style="display: flex; align-items: center; text-align: center; color: #64748B; font-size: 0.75rem; text-transform: uppercase; margin: 4px 0;">
+                    <div style="flex: 1; border-bottom: 1px solid #334155;"></div>
+                    <span style="padding: 0 10px;">ou use sem login</span>
+                    <div style="flex: 1; border-bottom: 1px solid #334155;"></div>
+                </div>
+
+                <!-- Botão Secundário: Acesso Modo Offline / Local -->
+                <button type="button" onclick="enterOfflineMode()" style="width: 100%; padding: 12px; font-size: 0.85rem; font-weight: 600; background: #1E293B; border: 1px solid #334155; color: #E2E8F0; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>📲</span>
+                    <span>Acessar Modo Local / Offline</span>
+                </button>
+            </form>
+
+            <!-- Rodapé Informativo -->
+            <div style="margin-top: 20px; text-align: center; border-top: 1px solid #1E293B; padding-top: 14px;">
+                <div style="font-size: 0.75rem; color: #64748B;">
+                    🛡️ Banco de dados local SQLite com 164 lançamentos preservados
+                </div>
+            </div>
+
+        </div>
+    </div>
+
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="finance-db.js"></script>
     <script src="finance-sync.js"></script>
     <script src="finance-powerbi.js"></script>
     <script src="finance-dashboard.js"></script>
+    <script src="auth.js"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

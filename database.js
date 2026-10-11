@@ -46,6 +46,15 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 updated_at INTEGER,
                 deleted INTEGER DEFAULT 0
             )`);
+
+            // Tabela 4: users (Autenticação Local e Nuvem)
+            db.run(`CREATE TABLE IF NOT EXISTS users (
+                id TEXT PRIMARY KEY,
+                name TEXT,
+                email TEXT UNIQUE,
+                password TEXT,
+                created_at INTEGER
+            )`);
         });
     }
 });
