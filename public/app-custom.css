@@ -1192,6 +1192,10 @@ body {
     display: none;
 }
 
+.demo-dropdown-item:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
 .demo-filter-pill {
     background: #0F172A;
     border: 1px solid #334155;

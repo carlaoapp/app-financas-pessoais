@@ -37,83 +37,178 @@ function formatBRL(value) {
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
 
-// Alternar Filtro do Demonstrativo (Todos, Receitas, Despesas, Investimentos, Reserva)
-function filtrarDemonstrativo(tipo, btnEl) {
-    filtroDemonstrativoAtual = tipo;
+// Estado das opções ativas no demonstrativo
+let filtrosAtivosDemo = {
+    receitas: true,
+    despesas: true,
+    investimentos: true,
+    reserva: true
+};
 
-    // Atualiza botões ativos na barra de filtros
-    const botoes = document.querySelectorAll('#demoFilterContainer .demo-filter-pill');
-    botoes.forEach(b => {
-        b.classList.remove('active');
-        if (btnEl && b === btnEl) {
-            b.classList.add('active');
-        } else if (!btnEl) {
-            const txt = b.innerText.toLowerCase();
-            if (tipo === 'todos' && txt.includes('tudo')) b.classList.add('active');
-            if (tipo === 'receitas' && txt.includes('receitas')) b.classList.add('active');
-            if (tipo === 'despesas' && txt.includes('despesas')) b.classList.add('active');
-            if (tipo === 'investimentos' && txt.includes('investimentos')) b.classList.add('active');
-            if (tipo === 'reserva' && txt.includes('reserva')) b.classList.add('active');
+// Abrir / Fechar menu dropdown
+function toggleMenuFiltroDemo(event) {
+    if (event) event.stopPropagation();
+    const menu = document.getElementById('demoDropdownMenu');
+    if (!menu) return;
+    const isVisible = menu.style.display === 'block';
+    menu.style.display = isVisible ? 'none' : 'block';
+}
+
+// Fechar menu ao clicar fora
+document.addEventListener('click', function(e) {
+    const wrapper = document.getElementById('demoDropdownWrapper');
+    const menu = document.getElementById('demoDropdownMenu');
+    if (menu && wrapper && !wrapper.contains(e.target)) {
+        menu.style.display = 'none';
+    }
+});
+
+// Ação de 'Ver Tudo (Completo)'
+function selecionarFiltroDemoTudo(event) {
+    if (event) event.stopPropagation();
+    const chkTudo = document.getElementById('chkDemoTudo');
+    const novoValor = event && event.target && event.target.id === 'chkDemoTudo' 
+        ? chkTudo.checked 
+        : true;
+
+    chkTudo.checked = true;
+    filtrosAtivosDemo = {
+        receitas: true,
+        despesas: true,
+        investimentos: true,
+        reserva: true
+    };
+
+    document.getElementById('chkDemoRec').checked = true;
+    document.getElementById('chkDemoDes').checked = true;
+    document.getElementById('chkDemoInv').checked = true;
+    document.getElementById('chkDemoRes').checked = true;
+
+    aplicarFiltrosDemonstrativo();
+}
+
+// Alternar uma opção específica (Receitas, Despesas, Investimentos, Reserva)
+function toggleOpcaoFiltroDemo(tipo, event) {
+    if (event) event.stopPropagation();
+    
+    const idMap = {
+        receitas: 'chkDemoRec',
+        despesas: 'chkDemoDes',
+        investimentos: 'chkDemoInv',
+        reserva: 'chkDemoRes'
+    };
+    
+    const chk = document.getElementById(idMap[tipo]);
+    if (!chk) return;
+
+    if (!event || event.target.id !== idMap[tipo]) {
+        chk.checked = !chk.checked;
+    }
+
+    filtrosAtivosDemo[tipo] = chk.checked;
+
+    // Atualiza estado do "Ver Tudo"
+    const todasMarcadas = filtrosAtivosDemo.receitas && filtrosAtivosDemo.despesas && filtrosAtivosDemo.investimentos && filtrosAtivosDemo.reserva;
+    const chkTudo = document.getElementById('chkDemoTudo');
+    if (chkTudo) chkTudo.checked = todasMarcadas;
+
+    aplicarFiltrosDemonstrativo();
+}
+
+// Aplica visualmente os filtros ativos na tela
+function aplicarFiltrosDemonstrativo() {
+    const { receitas, despesas, investimentos, reserva } = filtrosAtivosDemo;
+    const todasMarcadas = receitas && despesas && investimentos && reserva;
+    const nenhumaMarcada = !receitas && !despesas && !investimentos && !reserva;
+
+    // Se usuário desmarcou tudo, mantém pelo menos a opção clicada ou marca tudo
+    const totalSelecionadas = [receitas, despesas, investimentos, reserva].filter(Boolean).length;
+
+    // Atualiza rótulo do botão principal
+    const lbl = document.getElementById('lblDemoFiltroSelecionado');
+    if (lbl) {
+        if (todasMarcadas || nenhumaMarcada) {
+            lbl.innerText = 'Ver Tudo (Completo)';
+        } else if (totalSelecionadas === 1) {
+            if (receitas) lbl.innerText = 'Receitas (Entradas)';
+            else if (despesas) lbl.innerText = 'Despesas (Saídas)';
+            else if (investimentos) lbl.innerText = 'Investimentos';
+            else if (reserva) lbl.innerText = 'Reserva de Emergência';
+        } else {
+            lbl.innerText = `${totalSelecionadas} Categorias Selecionadas`;
         }
-    });
+    }
 
-    // Destaca o KPI Card correspondente
-    const kpiCards = document.querySelectorAll('.demo-kpi-card');
-    kpiCards.forEach(c => c.classList.remove('highlight-focus'));
-
+    // Exibe / Oculta cada um dos 4 Cards de Demonstrativo (KPIs)
     const cardRec = document.getElementById('cardKpiRec');
     const cardDes = document.getElementById('cardKpiDes');
     const cardInv = document.getElementById('cardKpiInv');
     const cardRes = document.getElementById('cardKpiRes');
 
-    if (tipo === 'receitas' && cardRec) cardRec.classList.add('highlight-focus');
-    if (tipo === 'despesas' && cardDes) cardDes.classList.add('highlight-focus');
-    if (tipo === 'investimentos' && cardInv) cardInv.classList.add('highlight-focus');
-    if (tipo === 'reserva' && cardRes) cardRes.classList.add('highlight-focus');
+    if (cardRec) cardRec.style.display = (todasMarcadas || nenhumaMarcada || receitas) ? 'flex' : 'none';
+    if (cardDes) cardDes.style.display = (todasMarcadas || nenhumaMarcada || despesas) ? 'flex' : 'none';
+    if (cardInv) cardInv.style.display = (todasMarcadas || nenhumaMarcada || investimentos) ? 'flex' : 'none';
+    if (cardRes) cardRes.style.display = (todasMarcadas || nenhumaMarcada || reserva) ? 'flex' : 'none';
 
-    // Controla visibilidade das seções conforme o filtro
+    // Exibe / Oculta Seções de Gráficos correspondentes
     const boxDiff = document.getElementById('boxChartDiff');
     const boxGridFontes = document.getElementById('boxGridFontes');
     const boxFontesRec = document.getElementById('boxChartFontesRec');
     const boxFontesDes = document.getElementById('boxChartFontesDes');
     const boxReserva = document.getElementById('boxChartReserva');
 
-    if (tipo === 'todos') {
-        if (boxDiff) boxDiff.style.display = 'block';
-        if (boxGridFontes) {
+    // Comparativo geral aparece se houver pelo menos 2 categorias ou se for Ver Tudo
+    if (boxDiff) {
+        boxDiff.style.display = (todasMarcadas || nenhumaMarcada || (receitas && despesas) || totalSelecionadas >= 2) ? 'block' : 'none';
+    }
+
+    // Fontes de Receita e Fontes de Despesa
+    const showRec = todasMarcadas || nenhumaMarcada || receitas;
+    const showDes = todasMarcadas || nenhumaMarcada || despesas;
+
+    if (boxFontesRec) boxFontesRec.style.display = showRec ? 'block' : 'none';
+    if (boxFontesDes) boxFontesDes.style.display = showDes ? 'block' : 'none';
+
+    if (boxGridFontes) {
+        if (showRec && showDes) {
             boxGridFontes.style.display = 'grid';
             boxGridFontes.style.gridTemplateColumns = window.innerWidth > 900 ? '1fr 1fr' : '1fr';
-        }
-        if (boxFontesRec) boxFontesRec.style.display = 'block';
-        if (boxFontesDes) boxFontesDes.style.display = 'block';
-        if (boxReserva) boxReserva.style.display = 'block';
-    } else if (tipo === 'receitas') {
-        if (boxDiff) boxDiff.style.display = 'block';
-        if (boxGridFontes) {
+        } else if (showRec || showDes) {
             boxGridFontes.style.display = 'block';
+        } else {
+            boxGridFontes.style.display = 'none';
         }
-        if (boxFontesRec) boxFontesRec.style.display = 'block';
-        if (boxFontesDes) boxFontesDes.style.display = 'none';
-        if (boxReserva) boxReserva.style.display = 'none';
-    } else if (tipo === 'despesas') {
-        if (boxDiff) boxDiff.style.display = 'block';
-        if (boxGridFontes) {
-            boxGridFontes.style.display = 'block';
-        }
-        if (boxFontesRec) boxFontesRec.style.display = 'none';
-        if (boxFontesDes) boxFontesDes.style.display = 'block';
-        if (boxReserva) boxReserva.style.display = 'none';
-    } else if (tipo === 'investimentos') {
-        if (boxDiff) boxDiff.style.display = 'block';
-        if (boxGridFontes) boxGridFontes.style.display = 'none';
-        if (boxReserva) boxReserva.style.display = 'none';
-    } else if (tipo === 'reserva') {
-        if (boxDiff) boxDiff.style.display = 'none';
-        if (boxGridFontes) boxGridFontes.style.display = 'none';
-        if (boxReserva) boxReserva.style.display = 'block';
+    }
+
+    // Termômetro da Reserva
+    if (boxReserva) {
+        boxReserva.style.display = (todasMarcadas || nenhumaMarcada || reserva) ? 'block' : 'none';
     }
 
     redimensionarGraficos();
+}
+
+// Compatibilidade com clique direto nos cards
+function filtrarDemonstrativo(tipo) {
+    if (tipo === 'todos') {
+        selecionarFiltroDemoTudo();
+        return;
+    }
+    // Foca exclusivamente na opção clicada
+    filtrosAtivosDemo = {
+        receitas: tipo === 'receitas',
+        despesas: tipo === 'despesas',
+        investimentos: tipo === 'investimentos',
+        reserva: tipo === 'reserva'
+    };
+
+    document.getElementById('chkDemoTudo').checked = false;
+    document.getElementById('chkDemoRec').checked = tipo === 'receitas';
+    document.getElementById('chkDemoDes').checked = tipo === 'despesas';
+    document.getElementById('chkDemoInv').checked = tipo === 'investimentos';
+    document.getElementById('chkDemoRes').checked = tipo === 'reserva';
+
+    aplicarFiltrosDemonstrativo();
 }
 
 async function renderPowerBIDashboard() {
@@ -407,7 +502,7 @@ async function renderPowerBIDashboard() {
         pbiChartGauge.setOption(gaugeOption);
 
         // Aplica o filtro selecionado inicialmente
-        filtrarDemonstrativo(filtroDemonstrativoAtual);
+        aplicarFiltrosDemonstrativo();
 
     } catch(err) {
         console.error("Erro ao renderizar Demonstrativo PowerBI:", err);
@@ -416,3 +511,7 @@ async function renderPowerBIDashboard() {
 
 window.renderPowerBIDashboard = renderPowerBIDashboard;
 window.filtrarDemonstrativo = filtrarDemonstrativo;
+window.toggleMenuFiltroDemo = toggleMenuFiltroDemo;
+window.selecionarFiltroDemoTudo = selecionarFiltroDemoTudo;
+window.toggleOpcaoFiltroDemo = toggleOpcaoFiltroDemo;
+window.aplicarFiltrosDemonstrativo = aplicarFiltrosDemonstrativo;
