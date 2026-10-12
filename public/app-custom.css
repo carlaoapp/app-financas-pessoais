@@ -1446,6 +1446,18 @@ body {
     }
 }
 
+/* Gerenciador de Categorias / Tipos de Movimentação */
+#listaCategoriasGerenciar::-webkit-scrollbar {
+    width: 6px;
+}
+#listaCategoriasGerenciar::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+#listaCategoriasGerenciar::-webkit-scrollbar-thumb:hover {
+    background: #475569;
+}
+
 
 
 

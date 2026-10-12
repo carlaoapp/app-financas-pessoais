@@ -555,8 +555,236 @@ function atualizarTextoStatus() {
     if (extras) {
         extras.style.display = (tipo === 'Lista de Desejos') ? 'block' : 'none';
     }
+// ==================================================================
+// GERENCIADOR DE TIPOS DE RECEITA E DESPESA (CATEGORIAS RÁPIDAS)
+// ==================================================================
+const CATEGORIAS_PADRAO_SISTEMA = [
+    "Salário",
+    "Luz (Energia)",
+    "Água",
+    "Celular / Telefone",
+    "Internet",
+    "Mercado / Alimentação",
+    "Aluguel / Moradia",
+    "Condomínio",
+    "Combustível / Transporte",
+    "Cartão de Crédito",
+    "Farmácia / Saúde",
+    "Educação / Cursos",
+    "Lazer / Entretenimento",
+    "Assinaturas / Streaming",
+    "Investimentos",
+    "Reserva de Emergência",
+    "Outros"
+];
+
+let indiceCategoriaEmEdicao = -1;
+
+function obterCategoriasCustomizadas() {
+    try {
+        const salvas = localStorage.getItem('finance_tipos_categorias');
+        if (salvas) {
+            const parsed = JSON.parse(salvas);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch (e) {
+        console.error('Erro ao ler categorias do localStorage:', e);
+    }
+    try {
+        localStorage.setItem('finance_tipos_categorias', JSON.stringify(CATEGORIAS_PADRAO_SISTEMA));
+    } catch (e) {}
+    return [...CATEGORIAS_PADRAO_SISTEMA];
 }
 
+function salvarCategoriasCustomizadas(lista) {
+    try {
+        localStorage.setItem('finance_tipos_categorias', JSON.stringify(lista));
+    } catch (e) {
+        console.error('Erro ao salvar categorias:', e);
+    }
+    renderizarSelectCategorias();
+    renderizarListaGerenciarCategorias();
+}
+
+function renderizarSelectCategorias() {
+    const sel = document.getElementById('selectCategoriaPredefinida');
+    const dlist = document.getElementById('listaCategoriasDescricao');
+    if (!sel && !dlist) return;
+
+    const lista = obterCategoriasCustomizadas();
+
+    if (sel) {
+        const valAtual = sel.value;
+        sel.innerHTML = '<option value="">📋 Escolha da lista (Salário, Luz, Água, Celular...)</option>' +
+            lista.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+        if (valAtual && lista.includes(valAtual)) {
+            sel.value = valAtual;
+        }
+    }
+
+    if (dlist) {
+        dlist.innerHTML = lista.map(cat => `<option value="${cat}">`).join('');
+    }
+}
+
+function aoSelecionarCategoriaPredefinida(val) {
+    if (!val) return;
+    const inp = document.getElementById('inputDescricao');
+    if (inp) {
+        inp.value = val;
+        inp.focus();
+    }
+}
+
+function abrirModalGerenciarCategorias() {
+    indiceCategoriaEmEdicao = -1;
+    const inputNova = document.getElementById('inputNovaCategoria');
+    const lbl = document.getElementById('lblFormGerenciarCategoria');
+    const btnSalvar = document.getElementById('btnSalvarCategoria');
+    const btnCanc = document.getElementById('btnCancelarEdicaoCategoria');
+    
+    if (inputNova) inputNova.value = '';
+    if (lbl) lbl.innerHTML = '➕ Cadastrar Novo Tipo:';
+    if (btnSalvar) btnSalvar.innerHTML = '+ Inserir';
+    if (btnCanc) btnCanc.style.display = 'none';
+
+    renderizarListaGerenciarCategorias();
+
+    const m = document.getElementById('modalGerenciarCategorias');
+    if (m) {
+        m.style.display = 'flex';
+        if (inputNova) setTimeout(() => inputNova.focus(), 100);
+    }
+}
+
+function fecharModalGerenciarCategorias() {
+    const m = document.getElementById('modalGerenciarCategorias');
+    if (m) m.style.display = 'none';
+}
+
+function renderizarListaGerenciarCategorias() {
+    const container = document.getElementById('listaCategoriasGerenciar');
+    const countEl = document.getElementById('countCategorias');
+    if (!container) return;
+
+    const lista = obterCategoriasCustomizadas();
+    if (countEl) countEl.innerText = lista.length;
+
+    if (lista.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #64748B; padding: 20px 0; font-size: 0.85rem;">Nenhum tipo cadastrado. Clique acima para cadastrar ou restaurar os padrões.</div>';
+        return;
+    }
+
+    container.innerHTML = lista.map((cat, idx) => `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: #141F36; border: 1px solid #1E293B; border-radius: 8px; padding: 8px 12px; gap: 8px;">
+            <span style="font-size: 0.88rem; font-weight: 700; color: #E2E8F0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
+                ${cat}
+            </span>
+            <div style="display: flex; gap: 6px; flex-shrink: 0;">
+                <button type="button" onclick="iniciarEdicaoCategoria(${idx})" style="background: rgba(59, 130, 246, 0.2); border: 1px solid #3B82F6; color: #93C5FD; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;" title="Editar nome">
+                    ✏️ Editar
+                </button>
+                <button type="button" onclick="excluirCategoriaCustomizada(${idx})" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;" title="Excluir este tipo">
+                    🗑️ Excluir
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function salvarNovaOuEditadaCategoria() {
+    const inputNova = document.getElementById('inputNovaCategoria');
+    if (!inputNova) return;
+    const nome = inputNova.value.trim();
+    if (!nome) {
+        showToast('Digite o nome do tipo (ex: Internet, Luz...).');
+        inputNova.focus();
+        return;
+    }
+
+    let lista = obterCategoriasCustomizadas();
+
+    if (indiceCategoriaEmEdicao >= 0 && indiceCategoriaEmEdicao < lista.length) {
+        lista[indiceCategoriaEmEdicao] = nome;
+        salvarCategoriasCustomizadas(lista);
+        cancelarEdicaoCategoria();
+        showToast(`Tipo "${nome}" atualizado com sucesso!`);
+    } else {
+        const jaExiste = lista.some(item => item.toLowerCase() === nome.toLowerCase());
+        if (jaExiste) {
+            showToast(`O tipo "${nome}" já está cadastrado.`);
+            inputNova.focus();
+            return;
+        }
+        lista.push(nome);
+        salvarCategoriasCustomizadas(lista);
+        inputNova.value = '';
+        inputNova.focus();
+        showToast(`Tipo "${nome}" cadastrado com sucesso!`);
+    }
+}
+
+function iniciarEdicaoCategoria(idx) {
+    const lista = obterCategoriasCustomizadas();
+    if (idx < 0 || idx >= lista.length) return;
+
+    indiceCategoriaEmEdicao = idx;
+    const inputNova = document.getElementById('inputNovaCategoria');
+    const lbl = document.getElementById('lblFormGerenciarCategoria');
+    const btnSalvar = document.getElementById('btnSalvarCategoria');
+    const btnCanc = document.getElementById('btnCancelarEdicaoCategoria');
+
+    if (inputNova) {
+        inputNova.value = lista[idx];
+        inputNova.focus();
+    }
+    if (lbl) lbl.innerHTML = `✏️ Alterar Tipo: <span style="color: #FCD34D;">${lista[idx]}</span>`;
+    if (btnSalvar) btnSalvar.innerHTML = 'Salvar';
+    if (btnCanc) btnCanc.style.display = 'block';
+}
+
+function cancelarEdicaoCategoria() {
+    indiceCategoriaEmEdicao = -1;
+    const inputNova = document.getElementById('inputNovaCategoria');
+    const lbl = document.getElementById('lblFormGerenciarCategoria');
+    const btnSalvar = document.getElementById('btnSalvarCategoria');
+    const btnCanc = document.getElementById('btnCancelarEdicaoCategoria');
+
+    if (inputNova) inputNova.value = '';
+    if (lbl) lbl.innerHTML = '➕ Cadastrar Novo Tipo:';
+    if (btnSalvar) btnSalvar.innerHTML = '+ Inserir';
+    if (btnCanc) btnCanc.style.display = 'none';
+}
+
+function excluirCategoriaCustomizada(idx) {
+    let lista = obterCategoriasCustomizadas();
+    if (idx < 0 || idx >= lista.length) return;
+
+    const nome = lista[idx];
+    if (!confirm(`Deseja remover "${nome}" da lista de opções rápidas?`)) return;
+
+    lista.splice(idx, 1);
+    salvarCategoriasCustomizadas(lista);
+    if (indiceCategoriaEmEdicao === idx) cancelarEdicaoCategoria();
+    showToast(`Tipo "${nome}" removido!`);
+}
+
+function restaurarCategoriasPadrao() {
+    if (!confirm('Deseja restaurar a lista original de tipos padrão do sistema?')) return;
+    salvarCategoriasCustomizadas([...CATEGORIAS_PADRAO_SISTEMA]);
+    cancelarEdicaoCategoria();
+    showToast('Lista de tipos padrão restaurada!');
+}
+
+window.abrirModalGerenciarCategorias = abrirModalGerenciarCategorias;
+window.fecharModalGerenciarCategorias = fecharModalGerenciarCategorias;
+window.aoSelecionarCategoriaPredefinida = aoSelecionarCategoriaPredefinida;
+window.salvarNovaOuEditadaCategoria = salvarNovaOuEditadaCategoria;
+window.iniciarEdicaoCategoria = iniciarEdicaoCategoria;
+window.cancelarEdicaoCategoria = cancelarEdicaoCategoria;
+window.excluirCategoriaCustomizada = excluirCategoriaCustomizada;
+window.restaurarCategoriasPadrao = restaurarCategoriasPadrao;
+window.renderizarSelectCategorias = renderizarSelectCategorias;
 
 function fecharModalLancamento() {
     const m = document.getElementById('modalLancamento');
@@ -589,6 +817,10 @@ function abrirModalLancamento() {
     }
 
     document.getElementById('btnSalvar').innerText = 'Salvar Lançamento';
+    renderizarSelectCategorias();
+    const selCat = document.getElementById('selectCategoriaPredefinida');
+    if (selCat) selCat.value = '';
+
     const m = document.getElementById('modalLancamento');
     if (m) {
         m.style.display = 'flex';
@@ -627,6 +859,8 @@ async function editarLancamento(id) {
     document.getElementById('inputIdMovimentacao').value = item.id;
     document.getElementById('inputTipoGasto').value = item.tipo_gasto;
     document.getElementById('inputDescricao').value = item.descricao;
+    const selCatEdit = document.getElementById('selectCategoriaPredefinida');
+    if (selCatEdit) selCatEdit.value = item.descricao || '';
     document.getElementById('inputValor').value = item.valor_total;
     document.getElementById('inputValorRealizado').value = item.valor_realizado || 0;
     document.getElementById('inputData').value = item.data_lancamento;
