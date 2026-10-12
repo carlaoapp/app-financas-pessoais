@@ -1144,5 +1144,263 @@ body {
     }
 }
 
+/* ==========================================================================
+   NOVA ABA: DEMONSTRATIVO FINANCEIRO SIMPLES (POWER BI)
+   ========================================================================== */
+
+.demo-header-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 16px 18px;
+    margin-bottom: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.demo-title-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.demo-title-text {
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #60A5FA;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.demo-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+}
+.demo-filter-bar::-webkit-scrollbar {
+    display: none;
+}
+
+.demo-filter-pill {
+    background: #0F172A;
+    border: 1px solid #334155;
+    color: #94A3B8;
+    padding: 7px 14px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+}
+
+.demo-filter-pill:hover {
+    border-color: #64748B;
+    color: #F8FAFC;
+}
+
+.demo-filter-pill.active {
+    background: #2563EB;
+    border-color: #3B82F6;
+    color: #FFFFFF;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.35);
+}
+
+.demo-filter-pill.active.pill-rec {
+    background: #059669;
+    border-color: #10B981;
+}
+
+.demo-filter-pill.active.pill-des {
+    background: #DC2626;
+    border-color: #EF4444;
+}
+
+.demo-filter-pill.active.pill-inv {
+    background: #7C3AED;
+    border-color: #8B5CF6;
+}
+
+.demo-filter-pill.active.pill-res {
+    background: #D97706;
+    border-color: #F59E0B;
+}
+
+/* Grade de 4 Cards de Demonstrativo (KPIs) */
+.demo-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.demo-kpi-card {
+    background: #0F172A;
+    border: 1px solid #1E293B;
+    border-radius: 14px;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.demo-kpi-card:hover {
+    transform: translateY(-2px);
+}
+
+.demo-kpi-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+}
+
+.demo-kpi-rec::before { background: #10B981; }
+.demo-kpi-des::before { background: #EF4444; }
+.demo-kpi-inv::before { background: #8B5CF6; }
+.demo-kpi-res::before { background: #F59E0B; }
+
+.demo-kpi-card.highlight-focus {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+}
+
+.demo-kpi-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+}
+
+.demo-kpi-label {
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.demo-kpi-badge {
+    font-size: 1.1rem;
+}
+
+.demo-kpi-value {
+    font-size: 1.4rem;
+    font-weight: 800;
+    line-height: 1.2;
+    margin-bottom: 4px;
+}
+
+.demo-kpi-subtext {
+    font-size: 0.75rem;
+    color: #64748B;
+    line-height: 1.3;
+}
+
+/* Gráficos e Seções Modulares */
+.demo-grid-charts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+}
+
+.demo-chart-box {
+    background: #0F172A;
+    border: 1px solid #1E293B;
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+}
+
+.demo-chart-header {
+    margin-bottom: 12px;
+}
+
+.demo-chart-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #F8FAFC;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.demo-chart-desc {
+    font-size: 0.78rem;
+    color: #94A3B8;
+}
+
+.demo-chart-canvas {
+    width: 100%;
+    min-height: 280px;
+}
+
+/* Card Informativo Didático (Linguagem Simples) */
+.demo-info-banner {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid #334155;
+    border-radius: 12px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+}
+
+.demo-info-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.demo-info-text {
+    font-size: 0.82rem;
+    color: #CBD5E1;
+    line-height: 1.4;
+}
+
+/* Responsividade Mobile First */
+@media (max-width: 900px) {
+    .demo-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    .demo-grid-charts {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+}
+
+@media (max-width: 520px) {
+    .demo-kpi-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    .demo-kpi-card {
+        padding: 14px 12px;
+    }
+    .demo-kpi-value {
+        font-size: 1.3rem;
+    }
+}
+
+
 
 

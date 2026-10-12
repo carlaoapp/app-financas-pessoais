@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.1.8">
+    <meta name="app-build-version" content="1.1.9">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.1.8">
+    <link rel="stylesheet" href="app-custom.css?v=1.1.9">
 </head>
 <body class="mode-desktop">
 
@@ -261,7 +261,7 @@
             </button>
             <button class="tab-pill" id="navPowerBI" onclick="switchFinanceTab('PowerBI')">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-                <span>Dashboard Power BI</span>
+                <span>Demonstrativo</span>
             </button>
             <button class="tab-pill" id="navDesejos" onclick="switchFinanceTab('Desejos')">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
@@ -358,56 +358,145 @@
                 </div>
             </div>
 
-            <!-- ABA 2: POWER BI DASHBOARD -->
+            <!-- ABA 2: DEMONSTRATIVO FINANCEIRO SIMPLES (POWER BI) -->
             <div id="tabPowerBI" class="tab-content powerbi-container" style="display: none;">
-                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
-                    <div style="font-size: 1.1rem; font-weight: 700; color: #60A5FA; display: flex; align-items: center; gap: 8px;">
-                        <span>📊</span> DASHBOARD POWER BI DE FINANÇAS PESSOAIS
-                    </div>
-                    <button onclick="renderPowerBIDashboard()" style="background: #2563EB; color: white; border: none; padding: 6px 14px; border-radius: 8px; font-weight: 600; cursor: pointer;">
-                        Atualizar Gráficos
-                    </button>
-                </div>
-
-                <div class="powerbi-grid">
-                    <!-- Top Chart: Diff -->
-                    <div class="powerbi-card pbi-diff">
-                        <div class="pbi-card-title">DIFERENÇA ENTRE RECEITA E DESPESA</div>
-                        <div id="pbiChartDiff" style="width: 100%; height: 260px;"></div>
+                
+                <!-- Cabeçalho do Demonstrativo com Filtros Simples -->
+                <div class="demo-header-card">
+                    <div class="demo-title-row">
+                        <div class="demo-title-text">
+                            <span>📊</span> Demonstrativo Financeiro Simples
+                        </div>
+                        <button onclick="renderPowerBIDashboard()" style="background: #1E293B; border: 1px solid #3B82F6; color: #60A5FA; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                            <span>🔄</span> Atualizar
+                        </button>
                     </div>
 
-                    <!-- KPI Cards -->
-                    <div style="display: flex; flex-direction: column; gap: 14px;">
-                        <div class="powerbi-card pbi-receitas">
-                            <div class="pbi-card-title">TOTAL DE RECEITAS</div>
-                            <div class="pbi-value" id="pbiValReceitas">R$ 0</div>
+                    <!-- Barra de Filtros: O que você quer ver? -->
+                    <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">Escolha o que deseja visualizar no demonstrativo:</div>
+                    <div class="demo-filter-bar" id="demoFilterContainer">
+                        <button type="button" class="demo-filter-pill active" onclick="filtrarDemonstrativo('todos', this)">
+                            <span>🌐</span> Ver Tudo (Completo)
+                        </button>
+                        <button type="button" class="demo-filter-pill pill-rec" onclick="filtrarDemonstrativo('receitas', this)">
+                            <span>🟢</span> Receitas (Entradas)
+                        </button>
+                        <button type="button" class="demo-filter-pill pill-des" onclick="filtrarDemonstrativo('despesas', this)">
+                            <span>🔴</span> Despesas (Saídas)
+                        </button>
+                        <button type="button" class="demo-filter-pill pill-inv" onclick="filtrarDemonstrativo('investimentos', this)">
+                            <span>🟣</span> Investimentos
+                        </button>
+                        <button type="button" class="demo-filter-pill pill-res" onclick="filtrarDemonstrativo('reserva', this)">
+                            <span>🟡</span> Reserva de Emergência
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 4 CARDS DE DEMONSTRATIVO: RECEITAS, DESPESAS, INVESTIMENTOS E RESERVA -->
+                <div class="demo-kpi-grid" id="demoKpiGrid">
+                    <!-- 1. Receitas -->
+                    <div class="demo-kpi-card demo-kpi-rec" id="cardKpiRec" onclick="filtrarDemonstrativo('receitas')">
+                        <div class="demo-kpi-header">
+                            <span class="demo-kpi-label" style="color: #10B981;">Receitas (Entradas)</span>
+                            <span class="demo-kpi-badge">💰</span>
                         </div>
-                        <div class="powerbi-card pbi-despesas">
-                            <div class="pbi-card-title">TOTAL DE DESPESAS</div>
-                            <div class="pbi-value" id="pbiValDespesas">R$ 0</div>
+                        <div class="demo-kpi-value" id="pbiValReceitas" style="color: #34D399;">R$ 0,00</div>
+                        <div class="demo-kpi-subtext">Total de dinheiro que entrou neste mês</div>
+                    </div>
+
+                    <!-- 2. Despesas -->
+                    <div class="demo-kpi-card demo-kpi-des" id="cardKpiDes" onclick="filtrarDemonstrativo('despesas')">
+                        <div class="demo-kpi-header">
+                            <span class="demo-kpi-label" style="color: #EF4444;">Despesas (Saídas)</span>
+                            <span class="demo-kpi-badge">💳</span>
                         </div>
-                        <div class="powerbi-card pbi-saldo">
-                            <div class="pbi-card-title">SALDO DO PERÍODO</div>
-                            <div class="pbi-value" id="pbiValSaldo">R$ 0</div>
+                        <div class="demo-kpi-value" id="pbiValDespesas" style="color: #F87171;">R$ 0,00</div>
+                        <div class="demo-kpi-subtext">Total de contas e compras pagas no mês</div>
+                    </div>
+
+                    <!-- 3. Investimentos -->
+                    <div class="demo-kpi-card demo-kpi-inv" id="cardKpiInv" onclick="filtrarDemonstrativo('investimentos')">
+                        <div class="demo-kpi-header">
+                            <span class="demo-kpi-label" style="color: #8B5CF6;">Investimentos</span>
+                            <span class="demo-kpi-badge">📈</span>
+                        </div>
+                        <div class="demo-kpi-value" id="pbiValInvestimentos" style="color: #A78BFA;">R$ 0,00</div>
+                        <div class="demo-kpi-subtext">Aplicações guardadas para o seu futuro</div>
+                    </div>
+
+                    <!-- 4. Reserva de Emergência -->
+                    <div class="demo-kpi-card demo-kpi-res" id="cardKpiRes" onclick="filtrarDemonstrativo('reserva')">
+                        <div class="demo-kpi-header">
+                            <span class="demo-kpi-label" style="color: #F59E0B;">Reserva de Emergência</span>
+                            <span class="demo-kpi-badge">🛡️</span>
+                        </div>
+                        <div class="demo-kpi-value" id="pbiValReserva" style="color: #FBBF24;">R$ 0,00</div>
+                        <div class="demo-kpi-subtext">Fundo protegido acumulado até hoje</div>
+                    </div>
+                </div>
+
+                <!-- Resumo Rápido do Saldo Líquido do Mês -->
+                <div id="demoBannerSaldo" class="demo-info-banner" style="margin-bottom: 16px;">
+                    <div class="demo-info-icon" id="demoSaldoIcon">⚖️</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: #FFFFFF; font-size: 0.9rem;" id="demoSaldoTitulo">Saldo do Mês (Sobra Livre)</div>
+                        <div class="demo-info-text" id="demoSaldoDesc">Diferença do que entrou menos o que saiu e foi investido: <strong id="pbiValSaldo" style="color: #60A5FA; font-size: 1rem;">R$ 0,00</strong></div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 1: COMPARATIVO GERAL (GRÁFICO DE BARRAS) -->
+                <div class="demo-chart-box" id="boxChartDiff" style="margin-bottom: 16px;">
+                    <div class="demo-chart-header">
+                        <div class="demo-chart-title">
+                            <span>⚖️</span> Comparativo: Entradas vs Saídas vs Investido
+                        </div>
+                        <div class="demo-chart-desc">Veja lado a lado quanto entrou e para onde o seu dinheiro foi no mês</div>
+                    </div>
+                    <div id="pbiChartDiff" class="demo-chart-canvas"></div>
+                </div>
+
+                <!-- SEÇÃO 2: DETALHAMENTO DE FONTES E CATEGORIAS -->
+                <div class="demo-grid-charts" id="boxGridFontes">
+                    <!-- Fontes de Receita -->
+                    <div class="demo-chart-box" id="boxChartFontesRec">
+                        <div class="demo-chart-header">
+                            <div class="demo-chart-title" style="color: #10B981;">
+                                <span>📥</span> De Onde Veio o Dinheiro (Receitas)
+                            </div>
+                            <div class="demo-chart-desc">Distribuição por cada fonte ou tipo de entrada</div>
+                        </div>
+                        <div id="pbiChartFontesRec" class="demo-chart-canvas" style="min-height: 250px;"></div>
+                    </div>
+
+                    <!-- Fontes de Despesa -->
+                    <div class="demo-chart-box" id="boxChartFontesDes">
+                        <div class="demo-chart-header">
+                            <div class="demo-chart-title" style="color: #EF4444;">
+                                <span>📤</span> Onde Foi Gasto o Dinheiro (Despesas)
+                            </div>
+                            <div class="demo-chart-desc">Principais categorias de saídas do mês</div>
+                        </div>
+                        <div id="pbiChartFontesDes" class="demo-chart-canvas" style="min-height: 250px;"></div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 3: RESERVA DE EMERGÊNCIA (TERMÔMETRO DE SEGURANÇA) -->
+                <div class="demo-chart-box" id="boxChartReserva" style="margin-bottom: 16px;">
+                    <div class="demo-chart-header">
+                        <div class="demo-chart-title" style="color: #F59E0B;">
+                            <span>🛡️</span> Medidor da Reserva de Emergência
+                        </div>
+                        <div class="demo-chart-desc">Termômetro da sua segurança financeira em relação à meta recomendada</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div id="pbiChartGauge" class="demo-chart-canvas" style="min-height: 240px; max-width: 480px;"></div>
+                        <div style="text-align: center; max-width: 500px; padding: 10px 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; font-size: 0.82rem; color: #FCD34D;">
+                            💡 <strong>Dica de Segurança:</strong> Uma reserva ideal cobre de 3 a 6 meses do seu custo fixo para imprevistos.
                         </div>
                     </div>
                 </div>
 
-                <!-- Segunda Linha de Gráficos -->
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-top: 16px;">
-                    <div class="powerbi-card">
-                        <div class="pbi-card-title">FONTES DE RECEITAS</div>
-                        <div id="pbiChartFontesRec" style="width: 100%; height: 220px;"></div>
-                    </div>
-                    <div class="powerbi-card">
-                        <div class="pbi-card-title">FONTES DE DESPESAS</div>
-                        <div id="pbiChartFontesDes" style="width: 100%; height: 220px;"></div>
-                    </div>
-                    <div class="powerbi-card">
-                        <div class="pbi-card-title">RESERVA DE EMERGÊNCIA</div>
-                        <div id="pbiChartGauge" style="width: 100%; height: 220px;"></div>
-                    </div>
-                </div>
             </div>
 
             <!-- ABA 3: CONTAS A PAGAR (GAVETA) -->
@@ -587,7 +676,7 @@
         </button>
         <button class="mobile-nav-item" id="mNavPowerBI" onclick="switchFinanceTab('PowerBI')">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
-            <span>Power BI</span>
+            <span>Demonstrativo</span>
         </button>
         <button class="mobile-nav-item" id="mNavDesejos" onclick="switchFinanceTab('Desejos')">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
@@ -794,12 +883,12 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.1.8"></script>
-    <script src="finance-sync.js?v=1.1.8"></script>
-    <script src="finance-powerbi.js?v=1.1.8"></script>
-    <script src="finance-dashboard.js?v=1.1.8"></script>
-    <script src="auth.js?v=1.1.8"></script>
-    <script src="auto-update.js?v=1.1.8"></script>
+    <script src="finance-db.js?v=1.1.9"></script>
+    <script src="finance-sync.js?v=1.1.9"></script>
+    <script src="finance-powerbi.js?v=1.1.9"></script>
+    <script src="finance-dashboard.js?v=1.1.9"></script>
+    <script src="auth.js?v=1.1.9"></script>
+    <script src="auto-update.js?v=1.1.9"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -848,7 +937,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.1.8')
+                navigator.serviceWorker.register('/sw.js?v=1.1.9')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor

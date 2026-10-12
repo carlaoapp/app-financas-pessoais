@@ -1,6 +1,10 @@
-// Lógica do Dashboard Financeiro - Estilo Power BI
+// Lógica do Demonstrativo Financeiro Simples - Estilo Power BI Acessível
 
-let pbiChartDiff, pbiChartFontesRec, pbiChartFontesDes, pbiChartGauge;
+let pbiChartDiff = null;
+let pbiChartFontesRec = null;
+let pbiChartFontesDes = null;
+let pbiChartGauge = null;
+let filtroDemonstrativoAtual = 'todos';
 
 function getOrCreateChart(domId) {
     const el = document.getElementById(domId);
@@ -15,24 +19,109 @@ function initPowerBICharts() {
     window.pbiChartGauge = pbiChartGauge = getOrCreateChart('pbiChartGauge');
 
     window.addEventListener('resize', function() {
-        if(pbiChartDiff) pbiChartDiff.resize();
-        if(pbiChartFontesRec) pbiChartFontesRec.resize();
-        if(pbiChartFontesDes) pbiChartFontesDes.resize();
-        if(pbiChartGauge) pbiChartGauge.resize();
+        redimensionarGraficos();
     });
+}
+
+function redimensionarGraficos() {
+    setTimeout(() => {
+        if (pbiChartDiff) pbiChartDiff.resize();
+        if (pbiChartFontesRec) pbiChartFontesRec.resize();
+        if (pbiChartFontesDes) pbiChartFontesDes.resize();
+        if (pbiChartGauge) pbiChartGauge.resize();
+    }, 80);
 }
 
 function formatBRL(value) {
     if (window.privacyMode) return 'R$ •••••';
-    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+}
+
+// Alternar Filtro do Demonstrativo (Todos, Receitas, Despesas, Investimentos, Reserva)
+function filtrarDemonstrativo(tipo, btnEl) {
+    filtroDemonstrativoAtual = tipo;
+
+    // Atualiza botões ativos na barra de filtros
+    const botoes = document.querySelectorAll('#demoFilterContainer .demo-filter-pill');
+    botoes.forEach(b => {
+        b.classList.remove('active');
+        if (btnEl && b === btnEl) {
+            b.classList.add('active');
+        } else if (!btnEl) {
+            const txt = b.innerText.toLowerCase();
+            if (tipo === 'todos' && txt.includes('tudo')) b.classList.add('active');
+            if (tipo === 'receitas' && txt.includes('receitas')) b.classList.add('active');
+            if (tipo === 'despesas' && txt.includes('despesas')) b.classList.add('active');
+            if (tipo === 'investimentos' && txt.includes('investimentos')) b.classList.add('active');
+            if (tipo === 'reserva' && txt.includes('reserva')) b.classList.add('active');
+        }
+    });
+
+    // Destaca o KPI Card correspondente
+    const kpiCards = document.querySelectorAll('.demo-kpi-card');
+    kpiCards.forEach(c => c.classList.remove('highlight-focus'));
+
+    const cardRec = document.getElementById('cardKpiRec');
+    const cardDes = document.getElementById('cardKpiDes');
+    const cardInv = document.getElementById('cardKpiInv');
+    const cardRes = document.getElementById('cardKpiRes');
+
+    if (tipo === 'receitas' && cardRec) cardRec.classList.add('highlight-focus');
+    if (tipo === 'despesas' && cardDes) cardDes.classList.add('highlight-focus');
+    if (tipo === 'investimentos' && cardInv) cardInv.classList.add('highlight-focus');
+    if (tipo === 'reserva' && cardRes) cardRes.classList.add('highlight-focus');
+
+    // Controla visibilidade das seções conforme o filtro
+    const boxDiff = document.getElementById('boxChartDiff');
+    const boxGridFontes = document.getElementById('boxGridFontes');
+    const boxFontesRec = document.getElementById('boxChartFontesRec');
+    const boxFontesDes = document.getElementById('boxChartFontesDes');
+    const boxReserva = document.getElementById('boxChartReserva');
+
+    if (tipo === 'todos') {
+        if (boxDiff) boxDiff.style.display = 'block';
+        if (boxGridFontes) {
+            boxGridFontes.style.display = 'grid';
+            boxGridFontes.style.gridTemplateColumns = window.innerWidth > 900 ? '1fr 1fr' : '1fr';
+        }
+        if (boxFontesRec) boxFontesRec.style.display = 'block';
+        if (boxFontesDes) boxFontesDes.style.display = 'block';
+        if (boxReserva) boxReserva.style.display = 'block';
+    } else if (tipo === 'receitas') {
+        if (boxDiff) boxDiff.style.display = 'block';
+        if (boxGridFontes) {
+            boxGridFontes.style.display = 'block';
+        }
+        if (boxFontesRec) boxFontesRec.style.display = 'block';
+        if (boxFontesDes) boxFontesDes.style.display = 'none';
+        if (boxReserva) boxReserva.style.display = 'none';
+    } else if (tipo === 'despesas') {
+        if (boxDiff) boxDiff.style.display = 'block';
+        if (boxGridFontes) {
+            boxGridFontes.style.display = 'block';
+        }
+        if (boxFontesRec) boxFontesRec.style.display = 'none';
+        if (boxFontesDes) boxFontesDes.style.display = 'block';
+        if (boxReserva) boxReserva.style.display = 'none';
+    } else if (tipo === 'investimentos') {
+        if (boxDiff) boxDiff.style.display = 'block';
+        if (boxGridFontes) boxGridFontes.style.display = 'none';
+        if (boxReserva) boxReserva.style.display = 'none';
+    } else if (tipo === 'reserva') {
+        if (boxDiff) boxDiff.style.display = 'none';
+        if (boxGridFontes) boxGridFontes.style.display = 'none';
+        if (boxReserva) boxReserva.style.display = 'block';
+    }
+
+    redimensionarGraficos();
 }
 
 async function renderPowerBIDashboard() {
     if (typeof echarts === 'undefined') return;
-    
+
     initPowerBICharts();
-    
-    // Pegar o ano e mês selecionados no select geral de Finanças
+
+    // Pegar o ano e mês selecionados no select do cabeçalho
     const anoBaseSelect = document.getElementById('anoBaseSelector');
     const ano = anoBaseSelect ? parseInt(anoBaseSelect.value) : new Date().getFullYear();
     const mesBaseSelect = document.getElementById('mesBaseSelector');
@@ -40,123 +129,238 @@ async function renderPowerBIDashboard() {
 
     try {
         const todasMovs = await dbLocal.movimentacoes.toArray();
-        const movsMes = todasMovs.filter(m => {
-            if (m.deleted === 1) return false;
-            if (!m.data_lancamento) return false;
-            const dataObj = new Date(m.data_lancamento + 'T12:00:00');
-            return dataObj.getFullYear() === ano && dataObj.getMonth() === mes;
-        });
 
         let totalReceitasMes = 0;
         let totalDespesasMes = 0;
+        let totalInvestimentosMes = 0;
+        let reservaAcumuladaTotal = 0;
 
-        // Agrupamentos por categoria
         const receitasPorCat = {};
         const despesasPorCat = {};
 
-        movsMes.forEach(m => {
-            const val = parseFloat(m.valor_total) || 0;
-            const descName = m.descricao ? m.descricao.split(' (')[0].trim() : 'Outros';
+        todasMovs.forEach(m => {
+            if (m.deleted === 1 || m.status === 'Cancelado') return;
 
-            if (m.tipo_gasto === 'Receita') {
-                totalReceitasMes += val;
-                receitasPorCat[descName] = (receitasPorCat[descName] || 0) + val;
-            } else if (m.tipo_gasto !== 'Receita' && m.tipo_gasto !== 'Reserva de Emergência' && m.tipo_gasto !== 'Lista de Desejos' && m.tipo_gasto !== 'Conta a Pagar') {
-                totalDespesasMes += val;
-                despesasPorCat[descName] = (despesasPorCat[descName] || 0) + val;
+            const vTotal = parseFloat(m.valor_total) || 0;
+            const vReal = (m.valor_realizado !== undefined && m.valor_realizado !== null && m.valor_realizado !== '')
+                ? parseFloat(m.valor_realizado)
+                : vTotal;
+
+            // Histórico geral acumulado da Reserva de Emergência
+            if (m.tipo_gasto === 'Reserva de Emergência') {
+                reservaAcumuladaTotal += vReal;
+            } else if (m.tipo_gasto === 'Resgate de Reserva') {
+                reservaAcumuladaTotal -= vReal;
+            }
+
+            // Filtragem específica do mês selecionado
+            if (!m.data_lancamento) return;
+            const dataObj = new Date(m.data_lancamento + 'T12:00:00');
+            if (dataObj.getFullYear() === ano && dataObj.getMonth() === mes) {
+                const descName = m.descricao ? m.descricao.split(' (')[0].trim() : 'Outros';
+
+                if (m.tipo_gasto === 'Receita' || m.tipo_gasto === 'Resgate de Reserva') {
+                    totalReceitasMes += vReal;
+                    receitasPorCat[descName] = (receitasPorCat[descName] || 0) + vReal;
+                } else if (m.tipo_gasto === 'Investimento') {
+                    totalInvestimentosMes += vReal;
+                } else if (m.tipo_gasto === 'Reserva de Emergência') {
+                    // Contabilizado no acumulado da reserva
+                } else if (m.tipo_gasto !== 'Lista de Desejos' && m.tipo_gasto !== 'Conta a Pagar') {
+                    totalDespesasMes += vReal;
+                    despesasPorCat[descName] = (despesasPorCat[descName] || 0) + vReal;
+                }
             }
         });
 
-        const saldoMes = totalReceitasMes - totalDespesasMes;
+        const saldoMes = totalReceitasMes - totalDespesasMes - totalInvestimentosMes;
 
-        // Atualizar KPIs
-        document.getElementById('pbiValReceitas').innerText = formatBRL(totalReceitasMes);
-        document.getElementById('pbiValDespesas').innerText = formatBRL(totalDespesasMes);
-        document.getElementById('pbiValSaldo').innerText = formatBRL(saldoMes);
+        // Atualizar os 4 Cards de Demonstrativo (KPIs)
+        const elRec = document.getElementById('pbiValReceitas');
+        const elDes = document.getElementById('pbiValDespesas');
+        const elInv = document.getElementById('pbiValInvestimentos');
+        const elRes = document.getElementById('pbiValReserva');
+        const elSaldo = document.getElementById('pbiValSaldo');
 
-        // --- Chart 1: Diferença Receita e Despesa ---
-        const mesesNomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        const mesLabel = mesesNomes[mes];
+        if (elRec) elRec.innerText = formatBRL(totalReceitasMes);
+        if (elDes) elDes.innerText = formatBRL(totalDespesasMes);
+        if (elInv) elInv.innerText = formatBRL(totalInvestimentosMes);
+        if (elRes) elRes.innerText = formatBRL(reservaAcumuladaTotal);
+        if (elSaldo) {
+            elSaldo.innerText = formatBRL(saldoMes);
+            elSaldo.style.color = saldoMes >= 0 ? '#10B981' : '#EF4444';
+        }
+
+        const saldoIcon = document.getElementById('demoSaldoIcon');
+        const saldoTitulo = document.getElementById('demoSaldoTitulo');
+        if (saldoIcon && saldoTitulo) {
+            if (saldoMes >= 0) {
+                saldoIcon.innerText = '🟢';
+                saldoTitulo.innerText = 'Saldo Positivo no Mês (Sobra Livre)';
+            } else {
+                saldoIcon.innerText = '🔴';
+                saldoTitulo.innerText = 'Atenção: Despesas Superaram as Entradas no Mês';
+            }
+        }
+
+        // --- Gráfico 1: Comparativo Amigável (Entradas vs Saídas vs Investido) ---
+        const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const mesExtenso = mesesNomes[mes] + ' / ' + ano;
+
         const diffOption = {
-            tooltip: { trigger: 'axis', formatter: function(params) {
-                let res = params[0].name + '<br/>';
-                params.forEach(p => {
-                    res += p.seriesName + ': ' + formatBRL(p.value) + '<br/>';
-                });
-                return res;
-            }, axisPointer: { type: 'shadow' } },
-            legend: { data: ['Receita', 'Despesas'], textStyle: { color: '#fff' }, left: 0 },
-            grid: { left: '3%', right: '4%', bottom: '3%', containLabel: true },
-            xAxis: { type: 'category', data: [mesLabel], axisLabel: { color: '#fff' } },
-            yAxis: { type: 'value', axisLabel: { color: '#fff', formatter: (value) => formatBRL(value) } },
+            backgroundColor: 'transparent',
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: '#1E293B',
+                borderColor: '#334155',
+                textStyle: { color: '#F8FAFC' },
+                formatter: function(params) {
+                    let res = '<strong>' + params[0].name + '</strong><br/>';
+                    params.forEach(p => {
+                        res += `<span style="display:inline-block;margin-right:5px;border-radius:10px;width:9px;height:9px;background-color:${p.color};"></span>`
+                            + p.seriesName + ': <strong>' + formatBRL(p.value) + '</strong><br/>';
+                    });
+                    return res;
+                },
+                axisPointer: { type: 'shadow' }
+            },
+            legend: {
+                data: ['Receitas (Entrou)', 'Despesas (Saiu)', 'Investimentos (Guardado)'],
+                textStyle: { color: '#94A3B8', fontSize: 12 },
+                top: 0
+            },
+            grid: { left: '3%', right: '4%', bottom: '8%', top: '45px', containLabel: true },
+            xAxis: {
+                type: 'category',
+                data: [mesExtenso],
+                axisLabel: { color: '#CBD5E1', fontSize: 12, fontWeight: 'bold' },
+                axisLine: { lineStyle: { color: '#334155' } }
+            },
+            yAxis: {
+                type: 'value',
+                axisLabel: { color: '#94A3B8', formatter: (val) => formatBRL(val) },
+                splitLine: { lineStyle: { color: 'rgba(51, 65, 85, 0.4)' } }
+            },
             series: [
                 {
-                    name: 'Receita',
+                    name: 'Receitas (Entrou)',
                     type: 'bar',
                     data: [totalReceitasMes],
-                    itemStyle: { color: '#00d2ff' },
-                    label: { show: true, position: 'top', color: '#fff', formatter: (p) => 'R$ ' + p.value }
+                    itemStyle: { color: '#10B981', borderRadius: [6, 6, 0, 0] },
+                    label: { show: true, position: 'top', color: '#34D399', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
                 },
                 {
-                    name: 'Despesas',
+                    name: 'Despesas (Saiu)',
                     type: 'bar',
                     data: [totalDespesasMes],
-                    itemStyle: { color: '#ff003c' },
-                    label: { show: true, position: 'top', color: '#fff', formatter: (p) => 'R$ ' + p.value }
+                    itemStyle: { color: '#EF4444', borderRadius: [6, 6, 0, 0] },
+                    label: { show: true, position: 'top', color: '#F87171', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
+                },
+                {
+                    name: 'Investimentos (Guardado)',
+                    type: 'bar',
+                    data: [totalInvestimentosMes],
+                    itemStyle: { color: '#8B5CF6', borderRadius: [6, 6, 0, 0] },
+                    label: { show: true, position: 'top', color: '#C4B5FD', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
                 }
             ]
         };
         pbiChartDiff.setOption(diffOption);
 
-        // --- Chart 2: Fontes de Receitas (Barra Horizontal) ---
-        const catRecArr = Object.keys(receitasPorCat).map(k => ({ name: k, value: receitasPorCat[k] })).sort((a,b)=>a.value - b.value);
+        // --- Gráfico 2: De Onde Veio o Dinheiro (Receitas) ---
+        const catRecArr = Object.keys(receitasPorCat)
+            .map(k => ({ name: k, value: receitasPorCat[k] }))
+            .sort((a, b) => a.value - b.value);
+
         const fontesRecOption = {
-            tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' }, formatter: function(params) {
-                return params[0].name + '<br/>' + formatBRL(params[0].value);
-            }},
-            grid: { left: '3%', right: '15%', bottom: '3%', containLabel: true },
-            xAxis: { type: 'value', show: false },
-            yAxis: { type: 'category', data: catRecArr.map(c => c.name), axisLabel: { color: '#fff' } },
-            series: [
-                {
-                    type: 'bar',
-                    data: catRecArr.map(c => c.value),
-                    itemStyle: { color: '#00d2ff' },
-                    label: { show: true, position: 'right', color: '#fff', formatter: (p) => formatBRL(p.value) }
+            backgroundColor: 'transparent',
+            tooltip: {
+                trigger: 'axis',
+                backgroundColor: '#1E293B',
+                borderColor: '#334155',
+                textStyle: { color: '#F8FAFC' },
+                formatter: function(params) {
+                    return params[0].name + '<br/><strong>' + formatBRL(params[0].value) + '</strong>';
                 }
-            ]
+            },
+            grid: { left: '3%', right: '22%', bottom: '3%', top: '15px', containLabel: true },
+            xAxis: { type: 'value', show: false },
+            yAxis: {
+                type: 'category',
+                data: catRecArr.length > 0 ? catRecArr.map(c => c.name) : ['Nenhum lançamento'],
+                axisLabel: { color: '#CBD5E1', fontSize: 11 },
+                axisLine: { lineStyle: { color: '#334155' } }
+            },
+            series: [{
+                type: 'bar',
+                data: catRecArr.length > 0 ? catRecArr.map(c => c.value) : [0],
+                itemStyle: { color: '#10B981', borderRadius: [0, 6, 6, 0] },
+                label: { show: true, position: 'right', color: '#34D399', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
+            }]
         };
         pbiChartFontesRec.setOption(fontesRecOption);
 
-        // --- Chart 3: Fontes de Despesas (Treemap) ---
-        const catDesArr = Object.keys(despesasPorCat).map(k => ({ name: k, value: despesasPorCat[k] }));
-        const treemapOption = {
-            tooltip: { formatter: function(p) { return p.name + ': ' + formatBRL(p.value); } },
+        // --- Gráfico 3: Onde Foi Gasto o Dinheiro (Despesas - Rosca / Pizza Clara) ---
+        const catDesArr = Object.keys(despesasPorCat)
+            .map(k => ({ name: k, value: despesasPorCat[k] }))
+            .sort((a, b) => b.value - a.value);
+
+        const fontesDesOption = {
+            backgroundColor: 'transparent',
+            tooltip: {
+                trigger: 'item',
+                backgroundColor: '#1E293B',
+                borderColor: '#334155',
+                textStyle: { color: '#F8FAFC' },
+                formatter: function(p) {
+                    return p.name + '<br/><strong>' + formatBRL(p.value) + '</strong> (' + p.percent + '%)';
+                }
+            },
+            legend: {
+                orient: 'horizontal',
+                bottom: '0',
+                textStyle: { color: '#94A3B8', fontSize: 11 }
+            },
             series: [{
-                type: 'treemap',
-                width: '100%', height: '100%',
-                roam: false,
-                nodeClick: false,
-                breadcrumb: { show: false },
-                label: { show: true, formatter: function(p) { return p.name + '\n' + formatBRL(p.value); }, color: '#fff', fontSize: 12 },
-                itemStyle: { borderColor: '#030816', borderWidth: 2 },
-                data: catDesArr
+                name: 'Despesas',
+                type: 'pie',
+                radius: ['40%', '68%'],
+                center: ['50%', '45%'],
+                avoidLabelOverlap: true,
+                itemStyle: {
+                    borderRadius: 8,
+                    borderColor: '#0F172A',
+                    borderWidth: 2
+                },
+                label: {
+                    show: false,
+                    position: 'center'
+                },
+                emphasis: {
+                    label: {
+                        show: true,
+                        fontSize: 14,
+                        fontWeight: 'bold',
+                        color: '#FFFFFF',
+                        formatter: '{b}\n{d}%'
+                    }
+                },
+                data: catDesArr.length > 0 ? catDesArr : [{ name: 'Sem Despesas', value: 0 }]
             }]
         };
-        pbiChartFontesDes.setOption(treemapOption);
+        pbiChartFontesDes.setOption(fontesDesOption);
 
-        // --- Chart 4: Gauge Reserva de Emergência ---
-        // Simulação: Saldo vs Meta de 20% das Receitas do mês.
-        const metaReserva = totalReceitasMes * 0.20;
+        // --- Gráfico 4: Medidor / Termômetro da Reserva de Emergência ---
+        // Meta de segurança: 3 meses de despesas médias (ou 3x despesa do mês atual)
+        const metaReservaRecomendada = totalDespesasMes > 0 ? (totalDespesasMes * 3) : 5000;
         let percentualReserva = 0;
-        if (saldoMes > 0 && metaReserva > 0) {
-            percentualReserva = (saldoMes / metaReserva) * 100;
-        } else if (saldoMes >= metaReserva && metaReserva === 0) {
-            percentualReserva = 100;
+        if (metaReservaRecomendada > 0) {
+            percentualReserva = (reservaAcumuladaTotal / metaReservaRecomendada) * 100;
         }
         if (percentualReserva > 100) percentualReserva = 100;
 
         const gaugeOption = {
+            backgroundColor: 'transparent',
             series: [{
                 type: 'gauge',
                 startAngle: 180,
@@ -164,36 +368,51 @@ async function renderPowerBIDashboard() {
                 min: 0,
                 max: 100,
                 splitNumber: 4,
+                radius: '100%',
+                center: ['50%', '75%'],
                 axisLine: {
                     lineStyle: {
                         width: 20,
                         color: [
-                            [0.3, '#ff003c'],
-                            [0.7, '#f5b041'],
-                            [1, '#10b981']
+                            [0.35, '#EF4444'],
+                            [0.70, '#F59E0B'],
+                            [1.0, '#10B981']
                         ]
                     }
                 },
-                pointer: { icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z', length: '12%', width: 20, offsetCenter: [0, '-60%'], itemStyle: { color: 'auto' } },
-                axisTick: { length: 12, lineStyle: { color: 'auto', width: 2 } },
-                splitLine: { length: 20, lineStyle: { color: 'auto', width: 5 } },
-                axisLabel: { color: '#fff', distance: -40, formatter: '{value}%' },
-                title: { offsetCenter: [0, '30%'], color: '#fff', fontSize: 14 },
-                detail: { 
-                    fontSize: 24, 
-                    offsetCenter: [0, '0%'], 
-                    valueAnimation: true, 
-                    formatter: function (value) {
-                        return window.privacyMode ? '•••%' : value.toFixed(0) + '%';
-                    }, 
-                    color: '#fff' 
+                pointer: {
+                    icon: 'path://M12.8,0.7l12,40.1H0.7L12.8,0.7z',
+                    length: '14%',
+                    width: 18,
+                    offsetCenter: [0, '-62%'],
+                    itemStyle: { color: 'auto' }
                 },
-                data: [{ value: percentualReserva.toFixed(2), name: '' }]
+                axisTick: { length: 8, lineStyle: { color: 'auto', width: 2 } },
+                splitLine: { length: 18, lineStyle: { color: 'auto', width: 4 } },
+                axisLabel: { color: '#94A3B8', distance: -36, formatter: '{value}%' },
+                title: { offsetCenter: [0, '25%'], color: '#94A3B8', fontSize: 13 },
+                detail: {
+                    fontSize: 22,
+                    offsetCenter: [0, '-5%'],
+                    valueAnimation: true,
+                    formatter: function (value) {
+                        return window.privacyMode ? '•••%' : value.toFixed(0) + '% da meta';
+                    },
+                    color: '#FFFFFF',
+                    fontWeight: 'bold'
+                },
+                data: [{ value: percentualReserva.toFixed(1), name: 'Segurança Atual' }]
             }]
         };
         pbiChartGauge.setOption(gaugeOption);
 
+        // Aplica o filtro selecionado inicialmente
+        filtrarDemonstrativo(filtroDemonstrativoAtual);
+
     } catch(err) {
-        console.error("Erro ao renderizar PowerBI", err);
+        console.error("Erro ao renderizar Demonstrativo PowerBI:", err);
     }
 }
+
+window.renderPowerBIDashboard = renderPowerBIDashboard;
+window.filtrarDemonstrativo = filtrarDemonstrativo;
