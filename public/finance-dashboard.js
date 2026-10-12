@@ -98,9 +98,16 @@ function initHeader() {
     if (temaSalvo) {
         const sel = document.getElementById('temaSelector');
         if (sel) sel.value = temaSalvo;
-        aplicarTema(temaSalvo);
+        if (typeof aplicarTema === 'function') aplicarTema(temaSalvo);
     }
+
+    // Força a remoção de qualquer card de saldo hero residual
+    document.querySelectorAll('.hero-balance-card').forEach(el => el.remove());
 }
+
+window.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.hero-balance-card').forEach(el => el.remove());
+});
 
 function updateMonthLabel() {
     const mesesCompletos = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];

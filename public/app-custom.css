@@ -250,16 +250,7 @@ body {
    HERO CARD DE SALDO (ESTILO FINTECH) E CARD DE RESUMO GERAL
    ========================================================================== */
 .hero-balance-card {
-    background: linear-gradient(145deg, #132247, #0D162B);
-    border: 1px solid rgba(59, 130, 246, 0.25);
-    border-radius: 14px;
-    padding: 18px 20px;
-    margin: 14px 0 16px 0;
-    width: 100%;
-    box-sizing: border-box;
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(37, 99, 235, 0.15);
-    position: relative;
-    overflow: hidden;
+    display: none !important;
 }
 
 .summary-table-card {
