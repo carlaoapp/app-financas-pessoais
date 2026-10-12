@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.1.4">
+    <meta name="app-build-version" content="1.1.5">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -758,7 +758,7 @@
                 </button>
                 <button onclick="forcarAtualizacaoApp()" style="padding: 12px; background: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid #3B82F6; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
-                    <span>⚡ Atualizar & Limpar Cache (v1.1.2)</span>
+                    <span>⚡ Atualizar & Limpar Cache</span>
                 </button>
                 <button onclick="zerarTodosLancamentos()" style="padding: 12px; background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px dashed rgba(239, 68, 68, 0.5); border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
@@ -787,12 +787,12 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.1.4"></script>
-    <script src="finance-sync.js?v=1.1.4"></script>
-    <script src="finance-powerbi.js?v=1.1.4"></script>
-    <script src="finance-dashboard.js?v=1.1.4"></script>
-    <script src="auth.js?v=1.1.4"></script>
-    <script src="auto-update.js?v=1.1.4"></script>
+    <script src="finance-db.js?v=1.1.5"></script>
+    <script src="finance-sync.js?v=1.1.5"></script>
+    <script src="finance-powerbi.js?v=1.1.5"></script>
+    <script src="finance-dashboard.js?v=1.1.5"></script>
+    <script src="auth.js?v=1.1.5"></script>
+    <script src="auto-update.js?v=1.1.5"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -841,7 +841,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.1.4')
+                navigator.serviceWorker.register('/sw.js?v=1.1.5')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor

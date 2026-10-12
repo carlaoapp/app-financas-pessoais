@@ -3,10 +3,35 @@
 function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
-    return localStorage.getItem('app_installed_version') || '1.1.4';
+    return localStorage.getItem('app_installed_version') || '1.1.5';
+}
+
+function isNewerVersion(serverVer, currentVer) {
+    if (!serverVer || !currentVer) return false;
+    if (serverVer === currentVer) return false;
+
+    const sParts = serverVer.replace(/[^0-9.]/g, '').split('.').map(n => parseInt(n, 10) || 0);
+    const cParts = currentVer.replace(/[^0-9.]/g, '').split('.').map(n => parseInt(n, 10) || 0);
+
+    for (let i = 0; i < Math.max(sParts.length, cParts.length); i++) {
+        const s = sParts[i] || 0;
+        const c = cParts[i] || 0;
+        if (s > c) return true;
+        if (s < c) return false;
+    }
+    return false;
 }
 
 let isUpdateBannerVisible = false;
+
+function dismissUpdateBanner(version) {
+    isUpdateBannerVisible = false;
+    if (version) {
+        sessionStorage.setItem('dismissed_update_' + version, 'true');
+    }
+    const banner = document.getElementById('update-notification-banner');
+    if (banner) banner.remove();
+}
 
 async function checkAppVersion() {
     if (!navigator.onLine) return;
@@ -22,11 +47,21 @@ async function checkAppVersion() {
         const serverVersion = (data.version || '').trim();
         const currentVersion = getCurrentRunningVersion();
 
-        console.log(`[Auto-Update] Versão na tela: ${currentVersion} | Versão no Servidor: ${serverVersion}`);
+        console.log(`[Auto-Update] Versão Atual: ${currentVersion} | Versão Servidor: ${serverVersion}`);
 
-        if (serverVersion && serverVersion !== currentVersion) {
-            console.log(`[Auto-Update] Nova versão disponível: ${serverVersion}! Exibindo notificação...`);
+        // Apenas exibe notificação se a versão do servidor for estritamente MAIOR
+        if (isNewerVersion(serverVersion, currentVersion)) {
+            // Se o usuário dispensou o alerta para esta versão nesta sessão, não incomoda
+            if (sessionStorage.getItem('dismissed_update_' + serverVersion) === 'true') {
+                return;
+            }
+            if (sessionStorage.getItem('just_updated_to') === serverVersion) {
+                return;
+            }
             showUpdateBanner(serverVersion);
+        } else {
+            // Se já está na versão igual ou mais nova, remove qualquer banner pendente
+            dismissUpdateBanner();
         }
     } catch (error) {
         console.warn('[Auto-Update] Verificação de versão indisponível:', error);
@@ -72,6 +107,9 @@ function showUpdateBanner(newVersion) {
                 <button onclick="applyAppUpdate('${newVersion}')" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 9px 14px; border-radius: 9px; font-weight: 800; font-size: 0.85rem; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 12px rgba(16, 185, 129, 0.4);">
                     Atualizar
                 </button>
+                <button onclick="dismissUpdateBanner('${newVersion}')" title="Dispensar aviso" style="background: transparent; border: none; color: #94A3B8; font-size: 1.2rem; cursor: pointer; padding: 4px 6px; line-height: 1;">
+                    ✕
+                </button>
             </div>
         </div>
     `;
@@ -80,17 +118,18 @@ function showUpdateBanner(newVersion) {
 }
 
 async function applyAppUpdate(newVersion) {
+    if (newVersion) {
+        sessionStorage.setItem('just_updated_to', newVersion);
+        localStorage.setItem('app_installed_version', newVersion);
+    }
+
     const banner = document.getElementById('update-notification-banner');
     if (banner) {
         banner.innerHTML = `
-            <div style="text-align: center; padding: 10px; font-size: 0.9rem; color: #34D399; font-weight: 800;">
-                ⚡ Atualizando para v${newVersion || ''}... Aguarde 1 segundo.
+            <div style="text-align: center; padding: 12px; font-size: 0.9rem; color: #34D399; font-weight: 800;">
+                ⚡ Atualizando para v${newVersion || ''}... Recarregando aplicativo.
             </div>
         `;
-    }
-
-    if (newVersion) {
-        localStorage.setItem('app_installed_version', newVersion);
     }
 
     // 1. Limpa TODOS os caches do Service Worker
@@ -104,7 +143,7 @@ async function applyAppUpdate(newVersion) {
         }
     }
 
-    // 2. Desregistra e atualiza os Service Workers para obter código 100% novo
+    // 2. Desregistra os Service Workers antigos
     if ('serviceWorker' in navigator) {
         try {
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -119,27 +158,18 @@ async function applyAppUpdate(newVersion) {
 
     // 3. Recarrega a página forçando bypass de cache
     setTimeout(() => {
-        window.location.href = window.location.pathname + '?refresh=' + Date.now();
-    }, 300);
+        window.location.replace(window.location.origin + window.location.pathname + '?v=' + Date.now());
+    }, 400);
 }
 
 window.applyAppUpdate = applyAppUpdate;
+window.dismissUpdateBanner = dismissUpdateBanner;
 window.forcarAtualizacaoApp = () => applyAppUpdate();
-
-// Escuta notificação direta do Service Worker quando um novo SW é ativado
-if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.addEventListener('message', event => {
-        if (event.data && event.data.type === 'SW_UPDATED') {
-            console.log('[Auto-Update] Mensagem do SW: Nova versão detectada! Exibindo banner...');
-            showUpdateBanner(event.data.version || '1.1.2');
-        }
-    });
-}
 
 // Inicia verificação imediata e periódica
 window.addEventListener('DOMContentLoaded', () => {
-    setTimeout(checkAppVersion, 800);
-    setInterval(checkAppVersion, 15000);
+    setTimeout(checkAppVersion, 1000);
+    setInterval(checkAppVersion, 30000);
 
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {

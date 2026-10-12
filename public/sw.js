@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.1.4
-const CACHE_NAME = 'financas-pessoais-v1.1.4';
+// Service Worker - APP Finanças Pessoais v1.1.5
+const CACHE_NAME = 'financas-pessoais-v1.1.5';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -44,14 +44,7 @@ self.addEventListener('activate', event => {
                     }
                 })
             );
-        }).then(() => self.clients.claim()).then(() => {
-            // Notifica todas as janelas abertas sobre a nova versão ativa
-            return self.clients.matchAll({ type: 'window' }).then(clients => {
-                clients.forEach(client => {
-                    client.postMessage({ type: 'SW_UPDATED', version: '1.1.2' });
-                });
-            });
-        })
+        }).then(() => self.clients.claim())
     );
 });
 
