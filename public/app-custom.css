@@ -133,18 +133,26 @@ body {
     white-space: nowrap;
 }
 
-/* Linha 2 de Filtros (Ano, Mês e Botão Ocultar) Distribuídos Uniformemente */
+/* Linha 2 de Filtros e Ferramentas (Computador: Linha Única Alinhada / Celular: Responsivo e Confortável) */
 .filters-header-row {
     display: flex;
     align-items: center;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 12px;
     width: 100%;
+    flex-wrap: wrap;
+}
+
+.filters-selectors-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex: 1;
 }
 
 .filters-header-row .ano-select-box {
-    flex: 1;
-    min-width: 80px;
-    height: 38px;
+    width: 110px;
+    height: 36px;
     text-align: center;
     font-size: 0.85rem;
     font-weight: 700;
@@ -155,12 +163,12 @@ body {
     outline: none;
     cursor: pointer;
     transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .filters-header-row .mes-select-box {
-    flex: 2;
-    min-width: 120px;
-    height: 38px;
+    width: 140px;
+    height: 36px;
     font-size: 0.85rem;
     font-weight: 700;
     background: var(--bg-card);
@@ -170,6 +178,7 @@ body {
     outline: none;
     cursor: pointer;
     transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .filters-header-row .ano-select-box:hover,
@@ -180,8 +189,8 @@ body {
 
 .filters-header-row .btn-icon-action {
     flex-shrink: 0;
-    width: 42px;
-    height: 38px;
+    width: 38px;
+    height: 36px;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
@@ -199,27 +208,37 @@ body {
     border-color: #64748B;
 }
 
-/* ==========================================================================
-   LINHA 2: SUB-BARRA DE FERRAMENTAS (ZOOM, BAIXAR E SAIR)
-   ========================================================================== */
-.sub-toolbar-container {
-    padding: 8px 16px;
-    background: rgba(15, 23, 42, 0.95);
-    border-bottom: 1px solid var(--border-color);
-    position: sticky;
-    top: 96px;
-    z-index: 95;
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
+/* Grupo de Ferramentas (Lupa, Baixar e Sair) na mesma linha no Desktop */
+.header-tools-desktop-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
 }
 
-.sub-toolbar-inner {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    max-width: 1400px;
-    margin: 0 auto;
-    gap: 10px;
+/* Ajustes Específicos para Celular (Mobile): Mantém 100% igual e confortável no celular */
+@media (max-width: 768px) {
+    .filters-header-row {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+    }
+    .filters-selectors-group {
+        width: 100%;
+    }
+    .filters-header-row .ano-select-box {
+        flex: 1;
+        width: auto;
+    }
+    .filters-header-row .mes-select-box {
+        flex: 2;
+        width: auto;
+    }
+    .header-tools-desktop-row {
+        justify-content: space-between;
+        width: 100%;
+        padding-top: 4px;
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+    }
 }
 
 .zoom-controls-group {
