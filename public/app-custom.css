@@ -133,11 +133,11 @@ body {
     white-space: nowrap;
 }
 
-/* Linha 2 de Filtros e Ferramentas (Computador: Linha Única Alinhada / Celular: Responsivo e Confortável) */
+/* Linha 2 de Filtros e Ferramentas (Computador: Centralizada, Padronizada e sem Vácuo / Celular: Responsivo e Confortável) */
 .filters-header-row {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
     gap: 12px;
     width: 100%;
     flex-wrap: wrap;
@@ -147,7 +147,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    flex: 1;
+    flex-shrink: 0;
 }
 
 .filters-header-row .ano-select-box {
@@ -246,9 +246,12 @@ body {
     align-items: center;
     gap: 6px;
     background: rgba(20, 31, 54, 0.8);
-    padding: 3px 8px;
+    padding: 0 10px;
+    height: 36px;
     border-radius: 10px;
     border: 1px solid var(--border-color);
+    box-sizing: border-box;
+    flex-shrink: 0;
 }
 
 .zoom-label {
@@ -268,9 +271,9 @@ body {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    width: 28px;
-    height: 28px;
-    border-radius: 8px;
+    width: 26px;
+    height: 26px;
+    border-radius: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -288,19 +291,24 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
+    flex-shrink: 0;
 }
 
 .btn-sub-action {
-    display: flex;
+    display: inline-flex;
     align-items: center;
+    justify-content: center;
     gap: 6px;
-    padding: 6px 12px;
+    height: 36px;
+    padding: 0 14px;
     border-radius: 10px;
-    font-size: 0.8rem;
+    font-size: 0.82rem;
     font-weight: 700;
     cursor: pointer;
     border: none;
+    box-sizing: border-box;
     transition: all 0.2s;
+    flex-shrink: 0;
 }
 
 .btn-install-app {
