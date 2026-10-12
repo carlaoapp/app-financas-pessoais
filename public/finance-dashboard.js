@@ -114,9 +114,8 @@ function updateMonthLabel() {
         mesesCurtos.forEach((mesStr, index) => {
             const isActive = index === currentViewDate.getMonth() ? 'active' : '';
             monthGrid.innerHTML += `
-                <div class="month-tab ${isActive}" onclick="selecionarMes(${index})">
+                <div class="month-chip ${isActive}" onclick="selecionarMes(${index})">
                     ${mesStr}
-                    <div class="dot"></div>
                 </div>
             `;
         });
@@ -323,6 +322,23 @@ async function carregarPlanejamento() {
         elRealizado.style.color = colorRealizado;
     }
 
+    const elHero = document.getElementById('valSaldoHero');
+    if(elHero) {
+        elHero.innerText = (saldoRealizado < 0 ? '- ' : '') + formatCurrencyDiff(saldoRealizado);
+        elHero.style.color = colorRealizado;
+    }
+
+    // Atualiza KPIs no Hero Card
+    const elKpiRec = document.getElementById('kpiHeroReceitas');
+    if (elKpiRec) elKpiRec.innerText = formatCurrency(recRealizado);
+    const elKpiDesp = document.getElementById('kpiHeroDespesas');
+    if (elKpiDesp) elKpiDesp.innerText = formatCurrency(despRealizado);
+    const elKpiInv = document.getElementById('kpiHeroInvestimentos');
+    if (elKpiInv) elKpiInv.innerText = formatCurrency(invRealizado);
+
+    // Salva itens globalmente para filtros e extrato
+    window.currentMesItens = itensDoMes;
+
     // Lógica da Fatura do Cartão de Crédito
     window.currentFaturaItens = itensDoMes.filter(m => m.tipo_gasto === 'Cartão de Crédito' && m.status !== 'Cancelado');
     window.currentFaturaTotal = window.currentFaturaItens.reduce((acc, item) => acc + (parseFloat(item.valor_total) || 0), 0);
@@ -343,6 +359,7 @@ async function carregarPlanejamento() {
     // Cartão de Crédito NAO vai pra lista principal de Pendentes, vai apenas pra Fatura!
     const pendentesParaExibir = itensDoMes.filter(item => (item.status === 'Pendente' || item.status === 'Cancelado') && item.tipo_gasto !== 'Cartão de Crédito');
     renderizarLista(pendentesParaExibir);
+    renderizarExtratoCompleto();
 
     // Injeta o Item da Fatura na lista de Despesas (Painel Principal) se existir
     if (window.currentFaturaItens && window.currentFaturaItens.length > 0) {
@@ -657,36 +674,42 @@ async function excluirLancamentoAtual() {
     }
 }
 
-// --- SISTEMA DE ABAS ---
+// --- SISTEMA DE ABAS ORGANIZADO (DESKTOP & MOBILE) ---
 function switchFinanceTab(tabName) {
-    const isDesktop = window.innerWidth > 768; // simple desktop check
+    const tabs = ['Painel', 'Lancamentos', 'PowerBI', 'APagar', 'Desejos'];
     
-    if (tabName === 'Painel') {
-        if (isDesktop && typeof renderPowerBIDashboard === 'function') {
-            document.getElementById('tabPainel').style.display = 'none';
-            if(document.getElementById('tabPowerBI')) document.getElementById('tabPowerBI').style.display = 'block';
-            renderPowerBIDashboard();
-        } else {
-            if(document.getElementById('tabPowerBI')) document.getElementById('tabPowerBI').style.display = 'none';
-            document.getElementById('tabPainel').style.display = 'block';
-        }
-    } else {
-        document.getElementById('tabPainel').style.display = 'none';
-        if(document.getElementById('tabPowerBI')) document.getElementById('tabPowerBI').style.display = 'none';
+    // Oculta todas as abas
+    tabs.forEach(t => {
+        const el = document.getElementById('tab' + t);
+        if (el) el.style.display = 'none';
+    });
+
+    // Exibe a aba escolhida
+    const targetTab = document.getElementById('tab' + tabName);
+    if (targetTab) {
+        targetTab.style.display = 'block';
     }
 
-    document.getElementById('tabDesejos').style.display = tabName === 'Desejos' ? 'block' : 'none';
-    document.getElementById('tabAPagar').style.display = tabName === 'APagar' ? 'block' : 'none';
-    
-    document.getElementById('navPainel').classList.toggle('active', tabName === 'Painel');
-    document.getElementById('navDesejos').classList.toggle('active', tabName === 'Desejos');
-    document.getElementById('navAPagar').classList.toggle('active', tabName === 'APagar');
+    // Sincroniza classes ativas nos botões (desktop e mobile)
+    tabs.forEach(t => {
+        const btnDesktop = document.getElementById('nav' + t);
+        const btnMobile = document.getElementById('mNav' + t);
+        if (btnDesktop) btnDesktop.classList.toggle('active', t === tabName);
+        if (btnMobile) btnMobile.classList.toggle('active', t === tabName);
+    });
 
-    if (tabName === 'Desejos') {
+    if (tabName === 'PowerBI' && typeof renderPowerBIDashboard === 'function') {
+        setTimeout(renderPowerBIDashboard, 100);
+    } else if (tabName === 'Desejos') {
         carregarListaDesejos();
     } else if (tabName === 'APagar') {
         carregarContasAPagar();
+    } else if (tabName === 'Painel' || tabName === 'Lancamentos') {
+        carregarPlanejamento();
     }
+
+    // Rola para o topo suavemente
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 // --- CARREGAR CONTAS A PAGAR (GAVETA) ---
@@ -952,4 +975,94 @@ function zoomFinance(step) {
 document.addEventListener('DOMContentLoaded', () => {
     applyFinanceZoom();
 });
+
+// ==========================================================================
+// ABA EXTRATO COMPLETO DE LANÇAMENTOS
+// ==========================================================================
+window.extratoFiltroAtual = 'todos';
+
+function filtrarExtratoTab(filtro, btn) {
+    window.extratoFiltroAtual = filtro;
+    const container = document.getElementById('filtrosExtratoContainer');
+    if (container) {
+        container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+    }
+    if (btn) btn.classList.add('active');
+    renderizarExtratoCompleto();
+}
+
+function renderizarExtratoCompleto() {
+    const container = document.getElementById('listaExtratoContainer');
+    if (!container) return;
+    
+    let itens = (window.currentMesItens || []).slice();
+    if (window.extratoFiltroAtual === 'receitas') {
+        itens = itens.filter(i => i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
+    } else if (window.extratoFiltroAtual === 'despesas') {
+        itens = itens.filter(i => i.tipo_gasto !== 'Receita' && i.tipo_gasto !== 'Resgate de Reserva');
+    }
+    
+    container.innerHTML = '';
+    
+    if (itens.length === 0) {
+        container.innerHTML = '<p style="text-align:center; color:#94A3B8; padding: 2.5rem 1rem;">Nenhum lançamento encontrado para os filtros selecionados.</p>';
+        return;
+    }
+    
+    itens.sort((a, b) => new Date(a.data_lancamento) - new Date(b.data_lancamento));
+    
+    itens.forEach(item => {
+        const [y, m, d] = (item.data_lancamento || '2026-01-01').split('-');
+        const dataBr = `${d}/${m}`;
+        const isReceita = (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva');
+        
+        let cssClass = item.isVirtual ? 'projected' : 'pending';
+        if (item.status === 'Cancelado') cssClass = 'cancelled';
+        if (item.status === 'Pago') cssClass = '';
+        
+        const tagCancelado = item.status === 'Cancelado' ? '<span class="badge" style="background:#FEE2E2; color:#EF4444; margin-left: 6px;">Cancelado</span>' : '';
+        const tagStatus = item.status === 'Pago' ? '<span class="badge" style="background:rgba(16,185,129,0.2); color:#10B981; margin-left: 6px;">Pago</span>' :
+                          (item.status === 'Pendente' ? '<span class="badge" style="background:rgba(245,158,11,0.2); color:#F59E0B; margin-left: 6px;">Pendente</span>' : '');
+        const tagParcela = item.parcelado === 'Sim' ? `<span class="badge" style="margin-left: 6px;">Parc. ${item.parcela_atual}/${item.total_parcelas}</span>` : '';
+        
+        const btnActions = item.isVirtual ? 
+            `<p style="font-size:0.75rem; color:#94A3B8; margin-top:6px;">Projeção de parcelamento. Edite no mês da 1ª parcela.</p>` :
+            `<div style="display:flex; gap:8px; margin-top:8px;">
+                <button onclick="editarLancamento('${item.id}')" style="background:#1E293B; border:1px solid var(--border-color); color:#60A5FA; padding:4px 10px; border-radius:6px; font-size:0.78rem; cursor:pointer; font-weight:600;">Editar</button>
+                <button onclick="excluirLancamento('${item.id}')" style="background:#1E293B; border:1px solid var(--border-color); color:#EF4444; padding:4px 10px; border-radius:6px; font-size:0.78rem; cursor:pointer; font-weight:600;">Excluir</button>
+            </div>`;
+
+        const vOrcado = window.privacyMode ? '•••••' : parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
+        const vRealizado = window.privacyMode ? '•••••' : parseFloat(item.valor_realizado || 0).toFixed(2).replace('.', ',');
+
+        const div = document.createElement('div');
+        div.className = `card ${cssClass}`;
+        div.style.flexDirection = 'column';
+        div.style.alignItems = 'flex-start';
+        div.style.borderLeft = isReceita ? '4px solid #10B981' : '4px solid #EF4444';
+
+        div.innerHTML = `
+            <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
+                <div class="card-details">
+                    <h4 style="display:flex; align-items:center; gap:6px; font-size: 0.95rem;">
+                        <span>${isReceita ? '📥' : '📤'}</span>
+                        ${item.descricao} ${tagCancelado} ${tagStatus}
+                    </h4>
+                    <p style="color:#94A3B8; font-size:0.8rem; margin-top:3px;">
+                        ${dataBr} • ${item.tipo_gasto || 'Geral'} &nbsp; ${tagParcela}
+                    </p>
+                </div>
+                <div class="card-value" style="text-align: right; ${item.status === 'Cancelado' ? 'text-decoration: line-through; opacity:0.6;' : ''}">
+                    <div style="font-size:1.05rem; font-weight:800; color:${isReceita ? '#10B981' : '#EF4444'};">
+                        ${isReceita ? '+' : '-'} R$ ${vRealizado !== '0,00' ? vRealizado : vOrcado}
+                    </div>
+                    <div style="font-size:0.75rem; color:#64748B;">Previsto: R$ ${vOrcado}</div>
+                </div>
+            </div>
+            ${btnActions}
+        `;
+        container.appendChild(div);
+    });
+}
+
 

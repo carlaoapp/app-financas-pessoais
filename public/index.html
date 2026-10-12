@@ -29,118 +29,119 @@
 </head>
 <body class="mode-desktop">
 
-    <!-- BARRA SUPERIOR DO APLICATIVO -->
+    <!-- 1. BARRA SUPERIOR CLEAN E MODERNA -->
     <header class="top-navbar">
         <div class="brand-section">
-            <div class="brand-logo">💰</div>
+            <img src="icon-192.png" alt="Finanças" class="brand-logo-img">
             <div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <span class="brand-title">Finanças Pessoais</span>
-                    <span class="brand-badge">SISTEMA COMPLETO</span>
-                </div>
-                <div style="font-size: 0.75rem; color: var(--text-secondary);">Controle financeiro para Computador e Mobbi</div>
+                <h1 class="brand-title">Finanças Pessoais</h1>
+                <div class="brand-sub">Computador & Mobbi</div>
             </div>
         </div>
 
-        <!-- SELETOR DE MODO: COMPUTADOR vs MOBBI -->
-        <div class="mode-toggle">
-            <button class="mode-btn active" id="btnModeDesktop" onclick="setAppMode('desktop')">
-                <i data-lucide="monitor" style="width: 15px; height: 15px;"></i>
-                <span>Computador</span>
-            </button>
-            <button class="mode-btn" id="btnModeMobbi" onclick="setAppMode('mobbi')">
-                <i data-lucide="smartphone" style="width: 15px; height: 15px;"></i>
-                <span>Mobbi</span>
-            </button>
-        </div>
+        <div class="top-actions">
+            <!-- Seletor de Ano Base -->
+            <select id="anoBaseSelector" class="ano-select-box" onchange="selecionarAno(this.value)">
+                <!-- Injetado via JS -->
+            </select>
 
-        <!-- CLUSTER DE AÇÕES E CONTROLES -->
-        <div class="actions-cluster">
-            <!-- Modo Privacidade -->
-            <button class="btn-action-icon" onclick="togglePrivacyMode()" title="Ocultar / Mostrar Valores">
-                <i data-lucide="eye" id="iconPrivacyOn" style="width: 18px; height: 18px; display: none;"></i>
-                <i data-lucide="eye-off" id="iconPrivacyOff" style="width: 18px; height: 18px; display: block;"></i>
+            <!-- Modo Privacidade (Ocultar/Mostrar Valores) -->
+            <button class="btn-icon-action" onclick="togglePrivacyMode()" title="Ocultar / Mostrar Valores">
+                <i data-lucide="eye" id="iconPrivacyOn" style="width: 17px; height: 17px; display: none;"></i>
+                <i data-lucide="eye-off" id="iconPrivacyOff" style="width: 17px; height: 17px; display: block;"></i>
             </button>
 
-            <!-- Zoom -->
-            <button class="btn-action-icon" onclick="zoomFinance(-0.1)" title="Diminuir Zoom">
-                <i data-lucide="zoom-out" style="width: 16px; height: 16px;"></i>
-            </button>
-            <button class="btn-action-icon" onclick="zoomFinance(0.1)" title="Aumentar Zoom">
-                <i data-lucide="zoom-in" style="width: 16px; height: 16px;"></i>
-            </button>
-
-            <!-- Forçar Sincronização -->
-            <button class="btn-action-icon" onclick="forceSync()" title="Sincronizar com Servidor">
+            <!-- Sincronizar -->
+            <button class="btn-icon-action" onclick="forceSync()" title="Atualizar / Sincronizar">
                 <i data-lucide="refresh-cw" style="width: 16px; height: 16px;"></i>
             </button>
 
-            <!-- Botão de Instalar App (PWA) -->
-            <button class="btn-action-icon" id="btnInstallPwa" onclick="triggerPwaInstall()" title="Baixar / Instalar App no Celular ou Computador" style="border-color: #3B82F6; color: #60A5FA;">
-                <i data-lucide="download" style="width: 16px; height: 16px;"></i>
+            <!-- Botão de Instalação (PWA) -->
+            <button class="btn-icon-action" id="btnInstallPwa" onclick="triggerPwaInstall()" title="Baixar / Instalar App">
+                <i data-lucide="download" style="width: 16px; height: 16px; color: #60A5FA;"></i>
             </button>
 
-            <!-- Perfil do Usuário e Logout -->
-            <div id="btnUserProfile" style="display: none; align-items: center; gap: 8px; background: #1E293B; padding: 4px 10px; border-radius: 8px; border: 1px solid var(--border-color);">
-                <i data-lucide="user" style="width: 15px; height: 15px; color: #10B981;"></i>
-                <span id="lblCurrentUserName" style="font-size: 0.8rem; font-weight: 600; color: white;">Usuário</span>
-                <button onclick="logout()" title="Sair / Trocar de Conta" style="background: transparent; border: none; color: #EF4444; cursor: pointer; padding: 2px 4px; display: flex; align-items: center;">
-                    <i data-lucide="log-out" style="width: 14px; height: 14px;"></i>
-                </button>
-            </div>
-
-            <!-- Botão Novo Lançamento -->
-            <button class="btn-primary-new" onclick="abrirModalLancamento()">
-                <i data-lucide="plus" style="width: 18px; height: 18px;"></i>
-                <span>Novo Lançamento</span>
+            <!-- Perfil / Login -->
+            <button class="btn-icon-action" onclick="showAuthScreen()" title="Conta e Sincronização">
+                <i data-lucide="user" style="width: 16px; height: 16px; color: #34D399;"></i>
             </button>
         </div>
     </header>
 
-    <!-- WRAPPER PRINCIPAL (ADAPTÁVEL DESKTOP / MOBBI) -->
-    <div class="app-wrapper">
-        <main id="finance-view" style="padding: 10px 0; overflow-y: auto;">
+    <!-- 2. CARROSSEL HORIZONTAL DE MESES -->
+    <div class="month-carousel-container">
+        <div class="month-carousel" id="monthGrid">
+            <!-- Injetado via JS -->
+        </div>
+    </div>
 
-            <!-- BARRA DE CONTROLE: ANO BASE, MÊS E NAVEGAÇÃO ENTRE ABAS -->
-            <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 18px; margin-bottom: 16px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-                    
-                    <!-- Seletor de Ano -->
-                    <div style="display: flex; align-items: center; gap: 10px;">
-                        <span style="color: var(--text-secondary); font-weight: 600; font-size: 0.9rem;">Ano Base:</span>
-                        <select id="anoBaseSelector" onchange="selecionarAno(this.value)" style="background: #0F172A; color: white; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 8px; font-weight: bold; outline: none; cursor: pointer;">
-                            <!-- Injetado via JS -->
-                        </select>
-                    </div>
+    <!-- 3. HERO CARD DE SALDO PRINCIPAL (ESTILO FINTECH) -->
+    <div class="content-wrapper">
+        <div class="hero-balance-card">
+            <div class="hero-balance-header">
+                <span class="hero-label">Saldo Livre Estimado</span>
+                <span class="hero-badge-status" id="lblFaturaMesHero">Mês Ativo</span>
+            </div>
+            
+            <div class="hero-main-value" id="valSaldoHero">
+                R$ 0,00
+            </div>
 
-                    <!-- Navegação entre Abas Principais -->
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button class="nav-btn active" id="navPainel" onclick="switchFinanceTab('Painel')" style="padding: 8px 16px; border-radius: 8px; background: #2563EB; color: white; border: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
-                            <span>📊 Painel Resumo</span>
-                        </button>
-                        <button class="nav-btn" id="navPowerBI" onclick="exibirAbaPowerBI()" style="padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
-                            <span>📈 Dashboard Power BI</span>
-                        </button>
-                        <button class="nav-btn" id="navAPagar" onclick="switchFinanceTab('APagar')" style="padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
-                            <span>📉 Contas a Pagar</span>
-                        </button>
-                        <button class="nav-btn" id="navDesejos" onclick="switchFinanceTab('Desejos')" style="padding: 8px 16px; border-radius: 8px; background: transparent; color: var(--text-primary); border: 1px solid var(--border-color); cursor: pointer; display: flex; align-items: center; gap: 6px; font-weight: 600;">
-                            <span>🎁 Lista de Desejos</span>
-                        </button>
-                    </div>
-
-                    <!-- Status de Conexão -->
-                    <div style="display: flex; align-items: center; gap: 6px; font-size: 0.8rem;" id="statusContainer">
-                        <span id="statusDot" style="width: 8px; height: 8px; border-radius: 50%; background: #10B981;"></span>
-                        <span id="syncStatusIndicator" style="color: #10B981; font-weight: 600;">Sincronizado</span>
-                    </div>
+            <div class="hero-kpis-grid">
+                <div class="kpi-col">
+                    <span class="kpi-title" style="color: #34D399;">
+                        <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#10B981;"></span> Receitas
+                    </span>
+                    <span class="kpi-val-primary" id="valReceitaRealizado" style="color: #34D399;">R$ 0,00</span>
+                    <span class="kpi-val-sub" id="valReceitaOrcado">Orç: R$ 0,00</span>
                 </div>
 
-                <!-- GRADE DOS 12 MESES -->
-                <div class="month-grid" id="monthGrid">
-                    <!-- Injetado via JS -->
+                <div class="kpi-col">
+                    <span class="kpi-title" style="color: #F87171;">
+                        <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#EF4444;"></span> Despesas
+                    </span>
+                    <span class="kpi-val-primary" id="valDespesaRealizado" style="color: #F87171;">R$ 0,00</span>
+                    <span class="kpi-val-sub" id="valDespesaOrcado">Orç: R$ 0,00</span>
+                </div>
+
+                <div class="kpi-col">
+                    <span class="kpi-title" style="color: #C084FC;">
+                        <span style="display:inline-block; width:6px; height:6px; border-radius:50%; background:#8B5CF6;"></span> Invest/Reserva
+                    </span>
+                    <span class="kpi-val-primary" id="valInvestimentoRealizado" style="color: #C084FC;">R$ 0,00</span>
+                    <span class="kpi-val-sub" id="valReservaRealizado">Res: R$ 0,00</span>
                 </div>
             </div>
+        </div>
+
+        <!-- 4. NAVEGAÇÃO DE ABAS NO COMPUTADOR (DESKTOP) -->
+        <nav class="desktop-tabs-bar">
+            <button class="tab-pill active" id="navPainel" onclick="switchFinanceTab('Painel')">
+                <i data-lucide="layout-dashboard" style="width: 17px; height: 17px;"></i>
+                <span>Resumo Mensal</span>
+            </button>
+            <button class="tab-pill" id="navLancamentos" onclick="switchFinanceTab('Lancamentos')">
+                <i data-lucide="list" style="width: 17px; height: 17px;"></i>
+                <span>Lançamentos</span>
+            </button>
+            <button class="tab-pill" id="navAPagar" onclick="switchFinanceTab('APagar')">
+                <i data-lucide="credit-card" style="width: 17px; height: 17px;"></i>
+                <span>Cartão & Contas</span>
+            </button>
+            <button class="tab-pill" id="navPowerBI" onclick="switchFinanceTab('PowerBI')">
+                <i data-lucide="pie-chart" style="width: 17px; height: 17px;"></i>
+                <span>Dashboard Power BI</span>
+            </button>
+            <button class="tab-pill" id="navDesejos" onclick="switchFinanceTab('Desejos')">
+                <i data-lucide="gift" style="width: 17px; height: 17px;"></i>
+                <span>Metas & Desejos</span>
+            </button>
+        </nav>
+    </div>
+
+    <!-- 5. CONTEÚDO DAS ABAS -->
+    <div class="content-wrapper">
+        <main id="finance-view">
 
             <!-- ABA 1: PAINEL PRINCIPAL -->
             <div id="tabPainel" class="tab-content" style="display: block;">
@@ -326,8 +327,56 @@
                 </div>
             </div>
 
+            <!-- ABA 5: EXTRATO COMPLETO DE LANÇAMENTOS -->
+            <div id="tabLancamentos" class="tab-content" style="display: none;">
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 14px 18px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                    <div>
+                        <h2 style="font-size: 1.15rem; color: #60A5FA; margin-bottom: 2px;">Extrato de Lançamentos</h2>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary);">Histórico completo de receitas e despesas do mês selecionado</p>
+                    </div>
+                    <div style="display: flex; gap: 8px;" id="filtrosExtratoContainer">
+                        <button class="tab-pill active" style="padding: 6px 14px; font-size: 0.8rem;" onclick="filtrarExtratoTab('todos', this)">Todos</button>
+                        <button class="tab-pill" style="padding: 6px 14px; font-size: 0.8rem; color: #10B981;" onclick="filtrarExtratoTab('receitas', this)">Receitas</button>
+                        <button class="tab-pill" style="padding: 6px 14px; font-size: 0.8rem; color: #EF4444;" onclick="filtrarExtratoTab('despesas', this)">Despesas</button>
+                    </div>
+                </div>
+
+                <div class="card-list" id="listaExtratoContainer">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+
         </main>
     </div>
+
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA DISPOSITIVOS MÓVEIS (FIXA) -->
+    <nav class="mobile-bottom-nav">
+        <button class="mobile-nav-item active" id="mNavPainel" onclick="switchFinanceTab('Painel')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+            <span>Resumo</span>
+        </button>
+        <button class="mobile-nav-item" id="mNavLancamentos" onclick="switchFinanceTab('Lancamentos')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            <span>Extrato</span>
+        </button>
+        <button class="mobile-nav-item" id="mNavAPagar" onclick="switchFinanceTab('APagar')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            <span>Contas</span>
+        </button>
+        <button class="mobile-nav-item" id="mNavPowerBI" onclick="switchFinanceTab('PowerBI')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>Power BI</span>
+        </button>
+        <button class="mobile-nav-item" id="mNavDesejos" onclick="switchFinanceTab('Desejos')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+            <span>Desejos</span>
+        </button>
+    </nav>
+
+    <!-- BOTÃO FLUTUANTE DE NOVO LANÇAMENTO (FAB) -->
+    <button class="fab-add-button" onclick="abrirModalLancamento()" title="Novo Lançamento">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
 
     <!-- MODAL DE NOVO LANÇAMENTO / EDIÇÃO -->
     <div id="modalLancamento" class="modal-overlay" style="display: none;">
@@ -569,17 +618,7 @@
         }
 
         function exibirAbaPowerBI() {
-            document.getElementById('tabPainel').style.display = 'none';
-            document.getElementById('tabAPagar').style.display = 'none';
-            document.getElementById('tabDesejos').style.display = 'none';
-            document.getElementById('tabPowerBI').style.display = 'block';
-
-            document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
-            document.getElementById('navPowerBI').classList.add('active');
-
-            if (typeof renderPowerBIDashboard === 'function') {
-                renderPowerBIDashboard();
-            }
+            switchFinanceTab('PowerBI');
         }
 
         // Registro do Service Worker (PWA)
