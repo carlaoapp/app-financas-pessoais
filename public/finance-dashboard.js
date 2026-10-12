@@ -1075,9 +1075,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Zoom para Gestao Financeira
 let financeZoom = parseFloat(localStorage.getItem('financeZoom')) || 1.0;
 function applyFinanceZoom() {
-    const tabs = document.querySelectorAll('#finance-view .tab-content, .hero-balance-card');
-    tabs.forEach(tab => {
-        tab.style.zoom = financeZoom;
+    const wrappers = document.querySelectorAll('.content-wrapper');
+    wrappers.forEach(w => {
+        w.style.zoom = financeZoom;
     });
     const lbl = document.getElementById('lblZoomPercent');
     if (lbl) {

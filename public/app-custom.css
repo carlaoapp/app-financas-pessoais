@@ -513,6 +513,9 @@ body {
 
 /* RESPONSIVIDADE CELULAR VS DESKTOP */
 @media (max-width: 768px) {
+    .content-wrapper {
+        padding: 0 12px !important;
+    }
     .mobile-bottom-nav {
         display: flex;
     }
@@ -523,8 +526,16 @@ body {
         grid-template-columns: 1fr;
     }
     .hero-balance-card {
-        margin: 12px 12px;
-        padding: 16px 14px;
+        margin: 12px 0 14px 0 !important;
+        padding: 16px 16px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+    }
+    .summary-table-card {
+        margin: 0 0 14px 0 !important;
+        padding: 16px 16px !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
     }
     .hero-main-value {
         font-size: 1.8rem;
