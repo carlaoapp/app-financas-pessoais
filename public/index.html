@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.1.5">
+    <meta name="app-build-version" content="1.1.6">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.0.8">
+    <link rel="stylesheet" href="app-custom.css?v=1.1.6">
 </head>
 <body class="mode-desktop">
 
@@ -521,35 +521,36 @@
 
             <!-- ABA 5: EXTRATO COMPLETO DE LANÇAMENTOS -->
             <div id="tabLancamentos" class="tab-content" style="display: none;">
-                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 18px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px;">
+                <div class="card-extrato-header" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px;">
                     <div>
                         <h2 style="font-size: 1.15rem; color: #60A5FA; margin: 0 0 2px 0;">Extrato de Lançamentos</h2>
                         <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Histórico completo de receitas e despesas do mês selecionado</p>
                     </div>
 
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <!-- LINHA ÚNICA: Filtros + Botões Bakap e Estrato (mesma linha, distribuídos uniformemente) -->
+                    <div class="extrato-toolbar-row">
                         <!-- Filtros de Tipo -->
-                        <div style="display: flex; gap: 6px;" id="filtrosExtratoContainer">
-                            <button class="tab-pill active" style="padding: 6px 13px; font-size: 0.8rem;" onclick="filtrarExtratoTab('todos', this)">Todos</button>
-                            <button class="tab-pill" style="padding: 6px 13px; font-size: 0.8rem; color: #10B981;" onclick="filtrarExtratoTab('receitas', this)">Receitas</button>
-                            <button class="tab-pill" style="padding: 6px 13px; font-size: 0.8rem; color: #EF4444;" onclick="filtrarExtratoTab('despesas', this)">Despesas</button>
+                        <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;" id="filtrosExtratoContainer">
+                            <button class="tab-pill active" style="padding: 5px 8px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;" onclick="filtrarExtratoTab('todos', this)">Todos</button>
+                            <button class="tab-pill" style="padding: 5px 8px; font-size: 0.75rem; font-weight: 700; color: #10B981; white-space: nowrap;" onclick="filtrarExtratoTab('receitas', this)">Receitas</button>
+                            <button class="tab-pill" style="padding: 5px 8px; font-size: 0.75rem; font-weight: 700; color: #EF4444; white-space: nowrap;" onclick="filtrarExtratoTab('despesas', this)">Despesas</button>
                         </div>
 
-                        <!-- Botões de Ação Solicitados: Bakap (Exportar), Bakap (Importar) e Estrato (PDF) -->
-                        <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                        <!-- Botões de Ação na Mesma Linha: Exportar Bakap, Importar Bakap e Estrato PDF -->
+                        <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
                             <!-- Botão Exportar Backup -->
-                            <button type="button" class="btn-extrato-top-action" onclick="exportarBackupFinancas()" title="Exportar Bakap dos Dados" style="background: #1E293B; border: 1px solid #3B82F6; color: #60A5FA; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <button type="button" class="btn-extrato-top-action" onclick="exportarBackupFinancas()" title="Exportar Backup dos Dados (Bakap)" style="background: #1E293B; border: 1px solid #3B82F6; color: #60A5FA; padding: 5px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
                                 <span>📤</span> <span>Bakap</span>
                             </button>
 
                             <!-- Botão Importar Backup -->
-                            <button type="button" class="btn-extrato-top-action" onclick="document.getElementById('inputImportarBakap').click()" title="Importar Bakap dos Dados" style="background: #1E293B; border: 1px solid #10B981; color: #34D399; padding: 6px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                            <button type="button" class="btn-extrato-top-action" onclick="document.getElementById('inputImportarBakap').click()" title="Importar Backup dos Dados (Bakap)" style="background: #1E293B; border: 1px solid #10B981; color: #34D399; padding: 5px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
                                 <span>📥</span> <span>Bakap</span>
                             </button>
                             <input type="file" id="inputImportarBakap" accept=".json" style="display: none;" onchange="importarBackupFinancas(event)">
 
                             <!-- Botão Gerar Extrato PDF ("Estrato") -->
-                            <button type="button" class="btn-extrato-top-action" onclick="gerarExtratoPDF()" title="Gerar Extrato em PDF (Estrato)" style="background: linear-gradient(135deg, #EF4444, #DC2626); border: none; color: #FFFFFF; padding: 6px 14px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);">
+                            <button type="button" class="btn-extrato-top-action" onclick="gerarExtratoPDF()" title="Gerar Extrato em PDF (Estrato)" style="background: linear-gradient(135deg, #EF4444, #DC2626); border: none; color: #FFFFFF; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); white-space: nowrap;">
                                 <span>📄</span> <span>Estrato</span>
                             </button>
                         </div>
@@ -787,12 +788,12 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.1.5"></script>
-    <script src="finance-sync.js?v=1.1.5"></script>
-    <script src="finance-powerbi.js?v=1.1.5"></script>
-    <script src="finance-dashboard.js?v=1.1.5"></script>
-    <script src="auth.js?v=1.1.5"></script>
-    <script src="auto-update.js?v=1.1.5"></script>
+    <script src="finance-db.js?v=1.1.6"></script>
+    <script src="finance-sync.js?v=1.1.6"></script>
+    <script src="finance-powerbi.js?v=1.1.6"></script>
+    <script src="finance-dashboard.js?v=1.1.6"></script>
+    <script src="auth.js?v=1.1.6"></script>
+    <script src="auto-update.js?v=1.1.6"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -841,7 +842,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.1.5')
+                navigator.serviceWorker.register('/sw.js?v=1.1.6')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor

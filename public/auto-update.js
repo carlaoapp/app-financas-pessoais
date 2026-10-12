@@ -3,7 +3,7 @@
 function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
-    return localStorage.getItem('app_installed_version') || '1.1.5';
+    return localStorage.getItem('app_installed_version') || '1.1.6';
 }
 
 function isNewerVersion(serverVer, currentVer) {
