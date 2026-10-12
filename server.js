@@ -7,7 +7,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json({ limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ limit: '50mb', extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Status da API
@@ -170,8 +171,8 @@ app.post('/api/sync/push', (req, res) => {
         // Movimentacoes
         if (movimentacoes.length > 0) {
             const stmtMov = db.prepare(`
-                INSERT INTO movimentacoes (id, descricao, valor_total, valor_realizado, data_lancamento, tipo_gasto, status, conta_id, parcelado, total_parcelas, parcela_atual, id_grupo, updated_at, deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO movimentacoes (id, descricao, valor_total, valor_realizado, data_lancamento, tipo_gasto, status, conta_id, parcelado, total_parcelas, parcela_atual, id_grupo, link_url, midia_url, midia_tipo, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     descricao = excluded.descricao,
                     valor_total = excluded.valor_total,
@@ -184,6 +185,9 @@ app.post('/api/sync/push', (req, res) => {
                     total_parcelas = excluded.total_parcelas,
                     parcela_atual = excluded.parcela_atual,
                     id_grupo = excluded.id_grupo,
+                    link_url = excluded.link_url,
+                    midia_url = excluded.midia_url,
+                    midia_tipo = excluded.midia_tipo,
                     updated_at = excluded.updated_at,
                     deleted = excluded.deleted
             `);
@@ -201,6 +205,9 @@ app.post('/api/sync/push', (req, res) => {
                     m.total_parcelas || 1,
                     m.parcela_atual || 1,
                     m.id_grupo || null,
+                    m.link_url || null,
+                    m.midia_url || null,
+                    m.midia_tipo || null,
                     serverTimestamp,
                     m.deleted || 0
                 ]);

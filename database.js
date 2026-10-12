@@ -43,9 +43,17 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 total_parcelas INTEGER,
                 parcela_atual INTEGER,
                 id_grupo TEXT,
+                link_url TEXT,
+                midia_url TEXT,
+                midia_tipo TEXT,
                 updated_at INTEGER,
                 deleted INTEGER DEFAULT 0
             )`);
+
+            // Migrações seguras de colunas caso a tabela já exista
+            db.run("ALTER TABLE movimentacoes ADD COLUMN link_url TEXT", () => {});
+            db.run("ALTER TABLE movimentacoes ADD COLUMN midia_url TEXT", () => {});
+            db.run("ALTER TABLE movimentacoes ADD COLUMN midia_tipo TEXT", () => {});
 
             // Tabela 4: users (Autenticação Local e Nuvem)
             db.run(`CREATE TABLE IF NOT EXISTS users (

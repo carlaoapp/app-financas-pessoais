@@ -537,12 +537,16 @@ function atualizarTextoStatus() {
     const statusSelect = document.getElementById('inputStatus');
     if (statusSelect && statusSelect.options.length > 1) {
         if (tipo === 'Lista de Desejos') {
-            statusSelect.options[1].text = 'Programar';
+            statusSelect.options[1].text = 'Programar / Conquistado';
         } else if (tipo === 'Conta a Pagar') {
             statusSelect.options[1].text = 'Programado';
         } else {
             statusSelect.options[1].text = 'Pago';
         }
+    }
+    const extras = document.getElementById('modalDesejoExtras');
+    if (extras) {
+        extras.style.display = (tipo === 'Lista de Desejos') ? 'block' : 'none';
     }
 }
 
@@ -562,6 +566,11 @@ function abrirModalLancamento() {
     if(btnExcluir) btnExcluir.style.display = 'none';
     if(document.getElementById('divDataFim')) document.getElementById('divDataFim').style.display = 'none';
     
+    // Resetar campos de Desejo do Modal
+    const modalInputLink = document.getElementById('modalInputLinkUrl');
+    if (modalInputLink) modalInputLink.value = '';
+    if (typeof removerMidiaModalDesejo === 'function') removerMidiaModalDesejo();
+
     // Preenche a data padrão com a data de hoje
     const inputData = document.getElementById('inputData');
     if (inputData) {
@@ -616,6 +625,15 @@ async function editarLancamento(id) {
     document.getElementById('inputData').value = item.data_lancamento;
     document.getElementById('inputStatus').value = item.status;
     
+    // Carregar extras de lista de desejos no modal
+    if (item.tipo_gasto === 'Lista de Desejos') {
+        const modalInputLink = document.getElementById('modalInputLinkUrl');
+        if (modalInputLink) modalInputLink.value = item.link_url || '';
+        if (item.midia_url && typeof carregarMidiaNoModal === 'function') {
+            carregarMidiaNoModal(item.midia_url, item.midia_tipo || 'foto');
+        }
+    }
+
     const btnExcluir = document.getElementById('btnExcluir');
     if(btnExcluir) btnExcluir.style.display = 'block';
 
@@ -683,9 +701,22 @@ async function salvarLancamento(event) {
     
     const timestamp = Date.now();
 
+    // Campos extras se for Lista de Desejos
+    let linkDesejo = '';
+    let midiaUrlDesejo = '';
+    let midiaTipoDesejo = '';
+    if (tipoGasto === 'Lista de Desejos') {
+        const inputLink = document.getElementById('modalInputLinkUrl');
+        if (inputLink) linkDesejo = inputLink.value.trim();
+        if (typeof midiaModalDesejoTemp !== 'undefined') {
+            midiaUrlDesejo = midiaModalDesejoTemp.url || '';
+            midiaTipoDesejo = midiaModalDesejoTemp.tipo || '';
+        }
+    }
+
     if (idAtual) {
         // UPDATE (Edição)
-        await dbLocal.movimentacoes.update(idAtual, {
+        const updateData = {
             descricao: descricao,
             valor_total: valorOrcado,
             valor_realizado: valorRealizado,
@@ -694,7 +725,18 @@ async function salvarLancamento(event) {
             status: status,
             sync_status: 'pending_update',
             updated_at: timestamp
-        });
+        };
+        if (tipoGasto === 'Lista de Desejos') {
+            updateData.link_url = linkDesejo;
+            if (midiaUrlDesejo) {
+                updateData.midia_url = midiaUrlDesejo;
+                updateData.midia_tipo = midiaTipoDesejo;
+            } else if (typeof midiaModalDesejoRemovida !== 'undefined' && midiaModalDesejoRemovida) {
+                updateData.midia_url = '';
+                updateData.midia_tipo = '';
+            }
+        }
+        await dbLocal.movimentacoes.update(idAtual, updateData);
         console.log('Lançamento atualizado localmente:', idAtual);
         showToast('Lançamento atualizado!');
     } else {
@@ -747,6 +789,9 @@ async function salvarLancamento(event) {
                 total_parcelas: isParcelado ? totalParcelas : 1,
                 parcela_atual: isParcelado ? (i + 1) : 1,
                 id_grupo: idGrupo,
+                link_url: linkDesejo,
+                midia_url: midiaUrlDesejo,
+                midia_tipo: midiaTipoDesejo,
                 deleted: 0,
                 sync_status: 'pending_insert',
                 updated_at: timestamp
@@ -866,48 +911,361 @@ async function carregarContasAPagar() {
     });
 }
 
+// ==================================================================
+// MÓDULO LISTA DE DESEJOS - FOTOS, VÍDEOS, LINK DA FONTE E LIGHTBOX
+// ==================================================================
+
+// Variáveis temporárias de mídia para a criação rápida e modal
+let midiaDesejoTemp = { url: '', tipo: '' };
+let midiaModalDesejoTemp = { url: '', tipo: '' };
+let midiaModalDesejoRemovida = false;
+
+// Otimização de imagem via Canvas para alta performance e leveza
+function otimizarImagemDesejo(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const img = new Image();
+            img.onload = () => {
+                let width = img.width;
+                let height = img.height;
+                if (width > maxWidth || height > maxHeight) {
+                    if (width > height) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    } else {
+                        width = Math.round((width * maxHeight) / height);
+                        height = maxHeight;
+                    }
+                }
+                const canvas = document.createElement('canvas');
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, width, height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => reject(new Error('Erro ao carregar imagem'));
+            img.src = e.target.result;
+        };
+        reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+        reader.readAsDataURL(file);
+    });
+}
+
+// Leitura de vídeo com validação de tamanho (máx 25MB)
+function lerVideoDesejo(file) {
+    return new Promise((resolve, reject) => {
+        if (file.size > 25 * 1024 * 1024) {
+            alert('O vídeo selecionado ultrapassa 25MB. Grave um vídeo mais curto (até 30 segundos).');
+            return reject(new Error('Vídeo muito grande'));
+        }
+        const reader = new FileReader();
+        reader.onload = (e) => resolve(e.target.result);
+        reader.onerror = () => reject(new Error('Erro ao ler vídeo'));
+        reader.readAsDataURL(file);
+    });
+}
+
+// Manipulador de upload para a criação rápida
+window.capturarMidiaDesejo = async function(input, tipoDesejado) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const isVideo = file.type.startsWith('video/') || tipoDesejado === 'video';
+
+    try {
+        showToast('Processando mídia...');
+        if (isVideo) {
+            const videoData = await lerVideoDesejo(file);
+            midiaDesejoTemp = { url: videoData, tipo: 'video' };
+        } else {
+            const fotoData = await otimizarImagemDesejo(file);
+            midiaDesejoTemp = { url: fotoData, tipo: 'foto' };
+        }
+        renderizarPreviewMidiaDesejo();
+        showToast('Mídia anexada com sucesso!');
+    } catch(err) {
+        console.error('Erro ao capturar mídia:', err);
+    }
+};
+
+function renderizarPreviewMidiaDesejo() {
+    const container = document.getElementById('previewMidiaContainer');
+    const thumb = document.getElementById('previewMidiaThumb');
+    const titulo = document.getElementById('previewMidiaTitulo');
+    const info = document.getElementById('previewMidiaInfo');
+    if (!container || !thumb) return;
+
+    if (!midiaDesejoTemp.url) {
+        container.style.display = 'none';
+        thumb.innerHTML = '';
+        return;
+    }
+
+    container.style.display = 'flex';
+    if (midiaDesejoTemp.tipo === 'video') {
+        thumb.innerHTML = `<video src="${midiaDesejoTemp.url}" muted style="width:100%; height:100%; object-fit:cover;"></video>`;
+        if (titulo) titulo.innerText = '🎥 Vídeo Gravado Anexado';
+        if (info) info.innerText = 'Pronto para salvar no seu desejo';
+    } else {
+        thumb.innerHTML = `<img src="${midiaDesejoTemp.url}" style="width:100%; height:100%; object-fit:cover;">`;
+        if (titulo) titulo.innerText = '📷 Foto Anexada';
+        if (info) info.innerText = 'Imagem otimizada em alta qualidade';
+    }
+}
+
+window.removerMidiaDesejo = function() {
+    midiaDesejoTemp = { url: '', tipo: '' };
+    ['inputCapturaFoto', 'inputCapturaVideo', 'inputCapturaGaleria'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    renderizarPreviewMidiaDesejo();
+};
+
+// Manipulador de upload para o Modal de Lançamento / Edição
+window.capturarMidiaModalDesejo = async function(input, tipoDesejado) {
+    if (!input || !input.files || input.files.length === 0) return;
+    const file = input.files[0];
+    const isVideo = file.type.startsWith('video/') || tipoDesejado === 'video';
+
+    try {
+        showToast('Processando mídia...');
+        if (isVideo) {
+            const videoData = await lerVideoDesejo(file);
+            midiaModalDesejoTemp = { url: videoData, tipo: 'video' };
+        } else {
+            const fotoData = await otimizarImagemDesejo(file);
+            midiaModalDesejoTemp = { url: fotoData, tipo: 'foto' };
+        }
+        midiaModalDesejoRemovida = false;
+        atualizarPreviewMidiaModal();
+        showToast('Mídia anexada ao lançamento!');
+    } catch(err) {
+        console.error('Erro ao capturar mídia modal:', err);
+    }
+};
+
+window.carregarMidiaNoModal = function(url, tipo) {
+    midiaModalDesejoTemp = { url: url || '', tipo: tipo || 'foto' };
+    midiaModalDesejoRemovida = false;
+    atualizarPreviewMidiaModal();
+};
+
+window.removerMidiaModalDesejo = function() {
+    midiaModalDesejoTemp = { url: '', tipo: '' };
+    midiaModalDesejoRemovida = true;
+    ['modalInputCapturaFoto', 'modalInputCapturaVideo', 'modalInputCapturaGaleria'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+    atualizarPreviewMidiaModal();
+};
+
+function atualizarPreviewMidiaModal() {
+    const container = document.getElementById('modalPreviewMidiaContainer');
+    const thumb = document.getElementById('modalPreviewMidiaThumb');
+    const label = document.getElementById('modalPreviewMidiaLabel');
+    if (!container || !thumb) return;
+
+    if (!midiaModalDesejoTemp.url) {
+        container.style.display = 'none';
+        thumb.innerHTML = '';
+        return;
+    }
+
+    container.style.display = 'flex';
+    if (midiaModalDesejoTemp.tipo === 'video') {
+        thumb.innerHTML = `<video src="${midiaModalDesejoTemp.url}" muted style="width:100%; height:100%; object-fit:cover;"></video>`;
+        if (label) label.innerText = '🎥 Vídeo anexado';
+    } else {
+        thumb.innerHTML = `<img src="${midiaModalDesejoTemp.url}" style="width:100%; height:100%; object-fit:cover;">`;
+        if (label) label.innerText = '📷 Foto anexada';
+    }
+}
+
+// Colar link da área de transferência
+window.colarLinkClipboard = async function() {
+    const input = document.getElementById('novoDesejoLink');
+    if (!input) return;
+    try {
+        if (navigator.clipboard && navigator.clipboard.readText) {
+            const texto = await navigator.clipboard.readText();
+            if (texto && texto.trim()) {
+                input.value = texto.trim();
+                showToast('Link colado com sucesso!');
+                return;
+            }
+        }
+    } catch (e) {
+        console.warn('Clipboard não liberado, solicitando Ctrl+V:', e);
+    }
+    input.focus();
+    input.select();
+    showToast('Pressione Ctrl + V para colar o link copiado');
+};
+
+// Formatação segura de URLs
+function formatarUrlLink(url) {
+    if (!url) return '';
+    let limpa = url.trim();
+    if (!/^https?:\/\//i.test(limpa)) {
+        limpa = 'https://' + limpa;
+    }
+    return limpa;
+}
+
+// Lightbox Modal para fotos e vídeos ampliados
+window.abrirModalLightbox = function(url, tipo, titulo) {
+    const modal = document.getElementById('modalMidiaLightbox');
+    const content = document.getElementById('modalMidiaLightboxContent');
+    const caption = document.getElementById('modalMidiaLightboxCaption');
+    if (!modal || !content) return;
+
+    if (tipo === 'video') {
+        content.innerHTML = `<video src="${url}" controls autoplay playsinline style="max-width:90vw; max-height:75vh; border-radius:10px; outline:none; background:#000;"></video>`;
+    } else {
+        content.innerHTML = `<img src="${url}" alt="${titulo || 'Mídia'}" style="max-width:90vw; max-height:75vh; object-fit:contain; border-radius:10px; background:#000;">`;
+    }
+
+    if (caption) caption.innerText = titulo || '';
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+};
+
+window.fecharModalLightbox = function() {
+    const modal = document.getElementById('modalMidiaLightbox');
+    const content = document.getElementById('modalMidiaLightboxContent');
+    if (content) {
+        const vid = content.querySelector('video');
+        if (vid) vid.pause();
+        content.innerHTML = '';
+    }
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = '';
+};
+
+// Marcar desejo como Conquistado / Realizado
+window.marcarDesejoConquistado = async function(id) {
+    if (!id) return;
+    let item = await dbLocal.movimentacoes.get(id);
+    if (!item && !isNaN(id)) item = await dbLocal.movimentacoes.get(Number(id));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+    }
+    if (!item) return;
+
+    await dbLocal.movimentacoes.update(item.id, {
+        status: 'Pago',
+        valor_realizado: item.valor_total,
+        sync_status: 'pending_update',
+        updated_at: Date.now()
+    });
+
+    showToast('Parabéns! Desejo conquistado com sucesso! 🎉');
+    carregarListaDesejos();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+};
+
 // --- CARREGAR LISTA DE DESEJOS ---
 async function carregarListaDesejos() {
     const movs = await dbLocal.movimentacoes.toArray();
     const desejos = movs.filter(m => m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Cancelado' && m.deleted !== 1);
     
     const container = document.getElementById('listaDesejosContainer');
+    if (!container) return;
     container.innerHTML = '';
 
     if (desejos.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding: 20px; color: #64748B;">Nenhum desejo na lista ainda. Clique no + para sonhar!</div>';
+        container.innerHTML = `
+            <div style="text-align:center; padding: 40px 20px; color: #64748B; background: var(--bg-card); border-radius: 16px; border: 1px dashed var(--border-color);">
+                <div style="font-size: 2.2rem; margin-bottom: 8px;">🎁</div>
+                <div style="font-weight: 700; color: #94A3B8; margin-bottom: 4px;">Nenhum desejo na lista ainda</div>
+                <div style="font-size: 0.85rem;">Adicione acima o que você quer conquistar com foto, vídeo e link da pesquisa!</div>
+            </div>
+        `;
         return;
     }
 
     desejos.forEach(d => {
         const div = document.createElement('div');
-        div.className = 'desejo-card';
-        if(d.status === 'Pago') {
-            div.style.borderLeftColor = '#10B981'; // Verde se já comprou
-            div.style.opacity = '0.7';
+        div.className = 'desejo-card-wrapper';
+
+        // Link da fonte
+        let linkBtnHtml = '';
+        if (d.link_url && d.link_url.trim()) {
+            const fullUrl = formatarUrlLink(d.link_url);
+            let domainLabel = 'Acessar Link da Fonte';
+            try {
+                const urlObj = new URL(fullUrl);
+                domainLabel = 'Ver em ' + urlObj.hostname.replace(/^www\./, '');
+            } catch(e) {}
+
+            linkBtnHtml = `
+                <a href="${fullUrl}" target="_blank" rel="noopener noreferrer" class="btn-desejo-link" title="Abrir link original: ${fullUrl}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                    <span>${domainLabel}</span>
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                </a>
+            `;
         }
 
+        // Mídia (Foto ou Vídeo)
+        let midiaHtml = '';
+        if (d.midia_url) {
+            const isVid = d.midia_tipo === 'video';
+            const safeDesc = (d.descricao || '').replace(/'/g, "\\'");
+            midiaHtml = `
+                <div class="desejo-midia-box" onclick="abrirModalLightbox('${d.midia_url}', '${isVid ? 'video' : 'foto'}', '${safeDesc}')" title="${isVid ? 'Assistir vídeo em tela cheia' : 'Ampliar foto'}">
+                    ${isVid ? 
+                        `<video src="${d.midia_url}" preload="metadata" muted></video><div class="desejo-midia-badge">▶ Vídeo</div>` : 
+                        `<img src="${d.midia_url}" alt="${d.descricao}" loading="lazy"><div class="desejo-midia-badge">🔍 Ampliar</div>`
+                    }
+                </div>
+            `;
+        }
+
+        const isPago = d.status === 'Pago';
+        const valorFormatado = window.privacyMode ? '•••••' : 'R$ ' + parseFloat(d.valor_total || 0).toFixed(2).replace('.', ',');
+
         div.innerHTML = `
-            <div class="card-details" style="flex:1;">
-                <h4 style="${d.status === 'Pago' ? 'text-decoration: line-through;' : ''}">${d.descricao}</h4>
-                <p>Estimado: ${window.privacyMode ? '•••••' : 'R$ ' + parseFloat(d.valor_total).toFixed(2).replace('.', ',')}</p>
-            </div>
-            <div class="desejo-actions">
-                ${d.status !== 'Pago' ? `<button class="btn-comprar" style="background:#3B82F6;" onclick="editarLancamento('${d.id}')">Editar</button>` : '<span style="color:#10B981; font-weight:bold; margin-right:10px;">Programado!</span>'}
-                <button class="btn-excluir" onclick="excluirLancamento('${d.id}')">Excluir</button>
+            <div class="desejo-item-card ${isPago ? 'desejo-conquistado' : ''}">
+                ${midiaHtml}
+                <div class="desejo-conteudo">
+                    <div class="desejo-cabecalho">
+                        <h4 class="desejo-titulo" style="${isPago ? 'text-decoration: line-through;' : ''}">${d.descricao}</h4>
+                        <span class="desejo-preco">${valorFormatado}</span>
+                    </div>
+                    
+                    ${linkBtnHtml}
+
+                    <div class="desejo-rodape">
+                        <div class="desejo-status">
+                            ${isPago ? '<span class="badge-conquistado">✨ Conquistado!</span>' : '<span class="badge-planejado">🎯 Planejado</span>'}
+                        </div>
+                        <div class="desejo-acoes">
+                            ${!isPago ? `<button class="btn-acao-conquistar" onclick="marcarDesejoConquistado('${d.id}')" title="Marcar como realizado/comprado">✓ Conquistado</button>` : ''}
+                            <button class="btn-acao-editar" onclick="editarLancamento('${d.id}')" title="Editar">✏️ Editar</button>
+                            <button class="btn-acao-excluir" onclick="excluirLancamento('${d.id}')" title="Excluir">🗑️</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         `;
         container.appendChild(div);
     });
 }
 
-// Ação de Salvar Desejo Rápido
+// Ação de Salvar Desejo Rápido (com Mídia e Link)
 async function adicionarDesejoRapido() {
-    const desc = document.getElementById('novoDesejoDesc').value;
+    const desc = document.getElementById('novoDesejoDesc').value.trim();
     const valor = parseFloat(document.getElementById('novoDesejoValor').value);
+    const linkInput = document.getElementById('novoDesejoLink');
+    const linkUrl = linkInput ? linkInput.value.trim() : '';
 
-    if (!desc || !valor) {
-        alert("Preencha o desejo e o valor estimado.");
+    if (!desc || isNaN(valor) || valor <= 0) {
+        alert("Por favor, preencha o nome do desejo e o valor estimado.");
         return;
     }
 
@@ -916,7 +1274,7 @@ async function adicionarDesejoRapido() {
         descricao: desc,
         valor_total: valor,
         valor_realizado: 0,
-        data_lancamento: '', // Deixa livre
+        data_lancamento: new Date().toISOString().split('T')[0],
         tipo_gasto: 'Lista de Desejos',
         status: 'Pendente',
         conta_id: '1',
@@ -924,6 +1282,9 @@ async function adicionarDesejoRapido() {
         total_parcelas: 1,
         parcela_atual: 1,
         id_grupo: '',
+        link_url: linkUrl,
+        midia_url: midiaDesejoTemp.url || '',
+        midia_tipo: midiaDesejoTemp.tipo || '',
         deleted: 0,
         sync_status: 'pending_insert',
         updated_at: Date.now()
@@ -931,12 +1292,15 @@ async function adicionarDesejoRapido() {
 
     await dbLocal.movimentacoes.put(novoLancamento);
     
-    // Limpa os campos
+    // Limpa os campos e mídia
     document.getElementById('novoDesejoDesc').value = '';
     document.getElementById('novoDesejoValor').value = '';
+    if (linkInput) linkInput.value = '';
+    removerMidiaDesejo();
     
+    showToast('Desejo adicionado com sucesso!');
     carregarListaDesejos();
-    if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
 }
 
 // Ação de Salvar Conta Rápida
