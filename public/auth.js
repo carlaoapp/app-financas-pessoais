@@ -56,7 +56,9 @@ function updateUserHeader() {
     const btnUser = document.getElementById('btnUserProfile');
     if (user && lblUser) {
         lblUser.innerText = user.name || user.email.split('@')[0];
-        if (btnUser) btnUser.style.display = 'flex';
+    }
+    if (btnUser) {
+        btnUser.style.display = user ? 'flex' : 'none';
     }
 }
 
