@@ -1579,4 +1579,404 @@ function renderizarExtratoCompleto() {
     });
 }
 
+// ==========================================================================
+// AÇÕES DO EXTRATO: BAKAP (EXPORTAR / IMPORTAR) E ESTRATO (PDF)
+// ==========================================================================
+
+// 1. Exportar Backup Completo ("Bakap")
+async function exportarBackupFinancas() {
+    try {
+        const movs = await dbLocal.movimentacoes.toArray();
+        const contas = await dbLocal.contas_bancarias.toArray();
+        const origens = await dbLocal.origens_renda.toArray();
+
+        const backupData = {
+            app: "Finanças Pessoais",
+            versao: "1.1.4",
+            data_exportacao: new Date().toISOString(),
+            total_lancamentos: movs.length,
+            movimentacoes: movs,
+            contas_bancarias: contas,
+            origens_renda: origens
+        };
+
+        const jsonStr = JSON.stringify(backupData, null, 2);
+        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+
+        const now = new Date();
+        const dataStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `backup_financas_${dataStr}.json`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        if (typeof showToast === 'function') {
+            showToast(`✅ Backup exportado com sucesso! (${movs.length} lançamentos)`);
+        } else {
+            alert(`Backup exportado com sucesso! (${movs.length} lançamentos)`);
+        }
+    } catch (err) {
+        console.error('Erro ao exportar backup:', err);
+        alert('Erro ao exportar backup: ' + err.message);
+    }
+}
+
+// 2. Importar Backup ("Bakap")
+async function importarBackupFinancas(event) {
+    const file = event.target.files && event.target.files[0];
+    if (!file) return;
+
+    try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+
+        let movsParaImportar = [];
+        let contasParaImportar = [];
+        let origensParaImportar = [];
+
+        if (Array.isArray(data)) {
+            movsParaImportar = data;
+        } else if (data && typeof data === 'object') {
+            if (Array.isArray(data.movimentacoes)) movsParaImportar = data.movimentacoes;
+            if (Array.isArray(data.contas_bancarias)) contasParaImportar = data.contas_bancarias;
+            if (Array.isArray(data.origens_renda)) origensParaImportar = data.origens_renda;
+        }
+
+        if (movsParaImportar.length === 0 && contasParaImportar.length === 0) {
+            alert('Arquivo de backup inválido ou sem dados para importar.');
+            event.target.value = '';
+            return;
+        }
+
+        const confirmou = confirm(`Deseja importar este backup contendo ${movsParaImportar.length} lançamento(s)?\n\nOs registros serão salvos no aplicativo e sincronizados.`);
+        if (!confirmou) {
+            event.target.value = '';
+            return;
+        }
+
+        // Salva movimentações
+        for (const m of movsParaImportar) {
+            if (!m.id) m.id = generateUUID();
+            m.sync_status = 'pending_insert';
+            m.updated_at = Date.now();
+            await dbLocal.movimentacoes.put(m);
+        }
+
+        // Salva contas
+        for (const c of contasParaImportar) {
+            if (!c.id) c.id = generateUUID();
+            c.sync_status = 'pending_insert';
+            c.updated_at = Date.now();
+            await dbLocal.contas_bancarias.put(c);
+        }
+
+        // Salva origens
+        for (const o of origensParaImportar) {
+            if (!o.id) o.id = generateUUID();
+            o.sync_status = 'pending_insert';
+            o.updated_at = Date.now();
+            await dbLocal.origens_renda.put(o);
+        }
+
+        event.target.value = '';
+
+        if (typeof syncFinanceWithServer === 'function') {
+            syncFinanceWithServer();
+        }
+
+        if (typeof carregarPlanejamento === 'function') {
+            await carregarPlanejamento();
+        }
+        if (typeof renderizarExtratoCompleto === 'function') {
+            renderizarExtratoCompleto();
+        }
+
+        if (typeof showToast === 'function') {
+            showToast(`✅ Backup importado com sucesso! (${movsParaImportar.length} lançamentos carregados)`);
+        } else {
+            alert(`Backup importado com sucesso! (${movsParaImportar.length} lançamentos)`);
+        }
+    } catch (err) {
+        console.error('Erro ao importar backup:', err);
+        alert('Erro ao importar backup: ' + err.message);
+        event.target.value = '';
+    }
+}
+
+// 3. Gerar Extrato em PDF ("Estrato")
+async function gerarExtratoPDF() {
+    try {
+        let itens = (window.currentMesItens || []).slice();
+        if (window.extratoFiltroAtual === 'receitas') {
+            itens = itens.filter(i => i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
+        } else if (window.extratoFiltroAtual === 'despesas') {
+            itens = itens.filter(i => i.tipo_gasto !== 'Receita' && i.tipo_gasto !== 'Resgate de Reserva');
+        }
+
+        if (itens.length === 0) {
+            alert('Não há lançamentos no mês selecionado para gerar o extrato em PDF.');
+            return;
+        }
+
+        itens.sort((a, b) => new Date(a.data_lancamento || '1970-01-01') - new Date(b.data_lancamento || '1970-01-01'));
+
+        const mesesNomes = [
+            'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+            'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+        ];
+        const mesIdx = (typeof currentViewDate !== 'undefined') ? currentViewDate.getMonth() : new Date().getMonth();
+        const anoNum = (typeof currentViewDate !== 'undefined') ? currentViewDate.getFullYear() : new Date().getFullYear();
+        const nomeMes = mesesNomes[mesIdx] || 'Mês Atual';
+
+        let totalReceitas = 0;
+        let totalDespesas = 0;
+
+        itens.forEach(item => {
+            if (item.status === 'Cancelado') return;
+            const vReal = parseFloat(item.valor_realizado || 0);
+            const vOrc = parseFloat(item.valor_total || 0);
+            const valorFinal = vReal > 0 ? vReal : vOrc;
+
+            if (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva') {
+                totalReceitas += valorFinal;
+            } else {
+                totalDespesas += valorFinal;
+            }
+        });
+
+        const saldoMes = totalReceitas - totalDespesas;
+        const fmtMoeda = (val) => 'R$ ' + (val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        const user = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+        const nomeUsuario = user ? (user.name || user.email) : 'Usuário Finanças';
+
+        // Se jsPDF estiver disponível, gera arquivo PDF formatado direto
+        if (window.jspdf && window.jspdf.jsPDF) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
+
+            // Top Banner Escuro
+            doc.setFillColor(15, 23, 42); // #0F172A
+            doc.rect(0, 0, 210, 32, 'F');
+
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(15);
+            doc.setFont('helvetica', 'bold');
+            doc.text('FINANÇAS PESSOAIS - EXTRATO MENSAL', 14, 13);
+
+            doc.setFontSize(8.5);
+            doc.setFont('helvetica', 'normal');
+            doc.setTextColor(148, 163, 184); // #94A3B8
+            const dataEmissao = new Date().toLocaleString('pt-BR');
+            doc.text(`Titular: ${nomeUsuario}   |   Mês Referência: ${nomeMes} de ${anoNum}   |   Emitido em: ${dataEmissao}`, 14, 23);
+
+            // Bloco de Resumo (KPIs)
+            doc.setFillColor(248, 250, 252);
+            doc.setDrawColor(226, 232, 240);
+            doc.roundedRect(14, 38, 182, 22, 3, 3, 'FD');
+
+            // Receitas
+            doc.setFontSize(7.5);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(100, 116, 139);
+            doc.text('TOTAL RECEITAS', 20, 45);
+            doc.setFontSize(10.5);
+            doc.setTextColor(16, 185, 129); // Verde
+            doc.text(fmtMoeda(totalReceitas), 20, 53);
+
+            // Despesas
+            doc.setFontSize(7.5);
+            doc.setTextColor(100, 116, 139);
+            doc.text('TOTAL DESPESAS', 82, 45);
+            doc.setFontSize(10.5);
+            doc.setTextColor(239, 68, 68); // Vermelho
+            doc.text(fmtMoeda(totalDespesas), 82, 53);
+
+            // Saldo
+            doc.setFontSize(7.5);
+            doc.setTextColor(100, 116, 139);
+            doc.text('SALDO DO MÊS', 144, 45);
+            doc.setFontSize(10.5);
+            if (saldoMes >= 0) {
+                doc.setTextColor(37, 99, 235); // Azul
+            } else {
+                doc.setTextColor(239, 68, 68); // Vermelho
+            }
+            doc.text(fmtMoeda(saldoMes), 144, 53);
+
+            // Tabela de Dados
+            const tableBody = itens.map(item => {
+                const [y, m, d] = (item.data_lancamento || '2026-01-01').split('-');
+                const dataBr = `${d}/${m}/${y}`;
+                const isReceita = (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva');
+                const vReal = parseFloat(item.valor_realizado || 0);
+                const vOrc = parseFloat(item.valor_total || 0);
+                const valorFinal = vReal > 0 ? vReal : vOrc;
+                const sinal = isReceita ? '+ ' : '- ';
+                const statusTexto = item.status === 'Pago' ? 'Pago' : (item.status === 'Cancelado' ? 'Cancelado' : 'Pendente');
+
+                return [
+                    dataBr,
+                    item.descricao || 'Sem descrição',
+                    item.tipo_gasto || 'Geral',
+                    statusTexto,
+                    sinal + fmtMoeda(valorFinal)
+                ];
+            });
+
+            doc.autoTable({
+                startY: 66,
+                head: [['Data', 'Descrição', 'Categoria / Tipo', 'Status', 'Valor (R$)']],
+                body: tableBody,
+                headStyles: {
+                    fillColor: [37, 99, 235], // #2563EB
+                    textColor: [255, 255, 255],
+                    fontSize: 8.5,
+                    fontStyle: 'bold'
+                },
+                alternateRowStyles: {
+                    fillColor: [248, 250, 252]
+                },
+                styles: {
+                    fontSize: 8,
+                    cellPadding: 3,
+                    textColor: [30, 41, 59]
+                },
+                columnStyles: {
+                    0: { cellWidth: 22, halign: 'center' },
+                    1: { cellWidth: 72 },
+                    2: { cellWidth: 38 },
+                    3: { cellWidth: 22, halign: 'center' },
+                    4: { cellWidth: 28, halign: 'right', fontStyle: 'bold' }
+                },
+                didDrawPage: function(data) {
+                    const pageSize = doc.internal.pageSize;
+                    const pageHeight = pageSize.height || pageSize.getHeight();
+                    doc.setFontSize(7.5);
+                    doc.setTextColor(148, 163, 184);
+                    doc.text(
+                        `Finanças Pessoais - Computador & Mobbi • Página ${doc.internal.getNumberOfPages()}`,
+                        14,
+                        pageHeight - 8
+                    );
+                }
+            });
+
+            const nomeArquivo = `extrato_${nomeMes.toLowerCase()}_${anoNum}.pdf`;
+            doc.save(nomeArquivo);
+
+            if (typeof showToast === 'function') {
+                showToast('📄 Extrato gerado e baixado em PDF com sucesso!');
+            }
+        } else {
+            // Fallback de impressão / Salvar PDF do navegador
+            imprimirExtratoHTML(nomeMes, anoNum, nomeUsuario, totalReceitas, totalDespesas, saldoMes, itens);
+        }
+    } catch (err) {
+        console.error('Erro ao gerar extrato em PDF:', err);
+        alert('Erro ao gerar extrato em PDF: ' + err.message);
+    }
+}
+
+// Fallback: visualização para impressão/salvar PDF nativo
+function imprimirExtratoHTML(nomeMes, anoNum, nomeUsuario, totalReceitas, totalDespesas, saldoMes, itens) {
+    const fmtMoeda = (val) => 'R$ ' + (val || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    let rowsHtml = '';
+    itens.forEach(item => {
+        const [y, m, d] = (item.data_lancamento || '2026-01-01').split('-');
+        const dataBr = `${d}/${m}/${y}`;
+        const isReceita = (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva');
+        const vReal = parseFloat(item.valor_realizado || 0);
+        const vOrc = parseFloat(item.valor_total || 0);
+        const valorFinal = vReal > 0 ? vReal : vOrc;
+        const cor = isReceita ? '#10B981' : '#EF4444';
+        const sinal = isReceita ? '+ ' : '- ';
+        rowsHtml += `
+            <tr style="border-bottom: 1px solid #E2E8F0;">
+                <td style="padding: 8px; text-align: center;">${dataBr}</td>
+                <td style="padding: 8px;">${item.descricao || ''}</td>
+                <td style="padding: 8px;">${item.tipo_gasto || ''}</td>
+                <td style="padding: 8px; text-align: center;">${item.status || 'Pendente'}</td>
+                <td style="padding: 8px; text-align: right; font-weight: bold; color: ${cor};">${sinal}${fmtMoeda(valorFinal)}</td>
+            </tr>
+        `;
+    });
+
+    const janela = window.open('', '_blank');
+    if (!janela) {
+        alert('Por favor, permita pop-ups para imprimir ou salvar o extrato como PDF.');
+        return;
+    }
+    janela.document.write(`
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>Extrato - ${nomeMes} / ${anoNum}</title>
+            <style>
+                body { font-family: sans-serif; padding: 24px; color: #1E293B; }
+                h1 { margin: 0 0 4px 0; color: #1E3A8A; font-size: 1.4rem; }
+                .sub { color: #64748B; font-size: 0.85rem; margin-bottom: 20px; }
+                .kpis { display: flex; gap: 20px; margin-bottom: 24px; }
+                .kpi-card { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 18px; flex: 1; }
+                .kpi-title { font-size: 0.75rem; text-transform: uppercase; color: #64748B; font-weight: bold; }
+                .kpi-val { font-size: 1.15rem; font-weight: 800; margin-top: 4px; }
+                table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+                th { background: #2563EB; color: white; padding: 10px 8px; text-align: left; }
+                @media print { button { display: none !important; } }
+            </style>
+        </head>
+        <body>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <h1>FINANÇAS PESSOAIS - EXTRATO MENSAL</h1>
+                    <div class="sub">Titular: ${nomeUsuario} | Período: ${nomeMes} de ${anoNum}</div>
+                </div>
+                <button onclick="window.print()" style="padding: 8px 16px; background:#2563EB; color:white; border:none; border-radius:6px; font-weight:bold; cursor:pointer;">Imprimir / Salvar PDF</button>
+            </div>
+            <div class="kpis">
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Receitas</div>
+                    <div class="kpi-val" style="color: #10B981;">${fmtMoeda(totalReceitas)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Total Despesas</div>
+                    <div class="kpi-val" style="color: #EF4444;">${fmtMoeda(totalDespesas)}</div>
+                </div>
+                <div class="kpi-card">
+                    <div class="kpi-title">Saldo Líquido</div>
+                    <div class="kpi-val" style="color: #2563EB;">${fmtMoeda(saldoMes)}</div>
+                </div>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th style="text-align: center;">Data</th>
+                        <th>Descrição</th>
+                        <th>Categoria</th>
+                        <th style="text-align: center;">Status</th>
+                        <th style="text-align: right;">Valor</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${rowsHtml}
+                </tbody>
+            </table>
+        </body>
+        </html>
+    `);
+    janela.document.close();
+    janela.focus();
+    setTimeout(() => { janela.print(); }, 500);
+}
+
+
 
