@@ -2,7 +2,6 @@
 
 const AUTH_TOKEN_KEY = 'financas_auth_token';
 const AUTH_USER_KEY = 'financas_auth_user';
-const AUTH_OFFLINE_KEY = 'financas_auth_offline_mode';
 
 function getAuthToken() {
     return localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY);
@@ -14,15 +13,10 @@ function getAuthUser() {
     try { return JSON.parse(str); } catch (e) { return null; }
 }
 
-function isOfflineMode() {
-    return localStorage.getItem(AUTH_OFFLINE_KEY) === 'true';
-}
-
 function saveAuthSession(token, user, remember = true) {
     const storage = remember ? localStorage : sessionStorage;
     storage.setItem(AUTH_TOKEN_KEY, token);
     storage.setItem(AUTH_USER_KEY, JSON.stringify(user));
-    localStorage.removeItem(AUTH_OFFLINE_KEY);
 }
 
 function logout() {
@@ -30,7 +24,6 @@ function logout() {
     localStorage.removeItem(AUTH_USER_KEY);
     sessionStorage.removeItem(AUTH_TOKEN_KEY);
     sessionStorage.removeItem(AUTH_USER_KEY);
-    localStorage.removeItem(AUTH_OFFLINE_KEY);
     showAuthScreen();
 }
 
@@ -63,9 +56,6 @@ function updateUserHeader() {
     const btnUser = document.getElementById('btnUserProfile');
     if (user && lblUser) {
         lblUser.innerText = user.name || user.email.split('@')[0];
-        if (btnUser) btnUser.style.display = 'flex';
-    } else if (isOfflineMode() && lblUser) {
-        lblUser.innerText = 'Modo Local';
         if (btnUser) btnUser.style.display = 'flex';
     }
 }
@@ -166,25 +156,19 @@ async function handleAuthSubmit() {
         btnSubmit.disabled = false;
         btnSubmit.innerText = currentAuthTab === 'register' ? 'Criar Minha Conta' : 'Entrar no Finanças';
         if (errorBox) {
-            errorBox.innerText = 'Erro ao conectar ao servidor. Você pode entrar em Modo Offline.';
+            errorBox.innerText = 'Erro ao conectar ao servidor. Verifique sua conexão e tente novamente.';
             errorBox.style.display = 'block';
         }
     }
 }
 
-function enterOfflineMode() {
-    localStorage.setItem(AUTH_OFFLINE_KEY, 'true');
-    hideAuthScreen();
-    if (typeof showToast === 'function') {
-        showToast('Modo Local / Offline ativado!');
-    }
-}
-
 // Checar sessão ao carregar a página
 window.addEventListener('DOMContentLoaded', () => {
+    // Remove qualquer resquício antigo de modo offline
+    localStorage.removeItem('financas_auth_offline_mode');
+    
     const user = getAuthUser();
-    const offline = isOfflineMode();
-    if (user || offline) {
+    if (user) {
         hideAuthScreen();
     } else {
         showAuthScreen();
