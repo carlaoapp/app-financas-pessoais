@@ -548,7 +548,9 @@ function atualizarTextoStatus() {
 
 
 function fecharModalLancamento() {
-    document.getElementById('modalLancamento').style.display = 'none';
+    const m = document.getElementById('modalLancamento');
+    if (m) m.style.display = 'none';
+    document.body.style.overflow = '';
 }
 
 function abrirModalLancamento() {
@@ -559,8 +561,25 @@ function abrirModalLancamento() {
     const btnExcluir = document.getElementById('btnExcluir');
     if(btnExcluir) btnExcluir.style.display = 'none';
     if(document.getElementById('divDataFim')) document.getElementById('divDataFim').style.display = 'none';
+    
+    // Preenche a data padrão com a data de hoje
+    const inputData = document.getElementById('inputData');
+    if (inputData) {
+        const hoje = new Date();
+        const yyyy = hoje.getFullYear();
+        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoje.getDate()).padStart(2, '0');
+        inputData.value = `${yyyy}-${mm}-${dd}`;
+    }
+
     document.getElementById('btnSalvar').innerText = 'Salvar Lançamento';
-    document.getElementById('modalLancamento').style.display = 'flex';
+    const m = document.getElementById('modalLancamento');
+    if (m) {
+        m.style.display = 'flex';
+        const content = m.querySelector('.modal-content');
+        if (content) content.scrollTop = 0;
+    }
+    document.body.style.overflow = 'hidden';
     atualizarTextoStatus();
 }
 

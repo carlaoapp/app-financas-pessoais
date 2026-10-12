@@ -666,3 +666,153 @@ body {
     color: #FFFFFF;
 }
 
+/* ==========================================================================
+   SISTEMA DE MODAIS GLOBAIS (SOBREPOSIÇÃO TOTAL / FULL OVERLAY)
+   ========================================================================== */
+.modal-overlay {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    bottom: 0 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: rgba(11, 17, 32, 0.85) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    display: none;
+    justify-content: center !important;
+    align-items: center !important;
+    z-index: 99999 !important;
+    padding: 16px !important;
+    box-sizing: border-box !important;
+    overflow-y: auto !important;
+}
+
+.modal-content {
+    background: #1E293B !important;
+    color: #FFFFFF !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 20px !important;
+    width: 100% !important;
+    max-width: 520px !important;
+    padding: 24px 22px !important;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.85), 0 0 40px rgba(37, 99, 235, 0.25) !important;
+    box-sizing: border-box !important;
+    max-height: 90vh !important;
+    overflow-y: auto !important;
+    position: relative !important;
+    animation: modalPopIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+@keyframes modalPopIn {
+    from {
+        opacity: 0;
+        transform: scale(0.92) translateY(16px);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+    }
+}
+
+.modal-header {
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+    padding-bottom: 14px !important;
+    margin-bottom: 16px !important;
+    display: flex !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+}
+
+.modal-header h3 {
+    font-size: 1.25rem !important;
+    font-weight: 800 !important;
+    color: #FFFFFF !important;
+    margin: 0 !important;
+    letter-spacing: -0.3px !important;
+}
+
+.modal-header .close-btn {
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #94A3B8 !important;
+    width: 32px !important;
+    height: 32px !important;
+    border-radius: 50% !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    cursor: pointer !important;
+    font-size: 1.1rem !important;
+    line-height: 1 !important;
+    transition: all 0.2s !important;
+}
+
+.modal-header .close-btn:hover {
+    background: rgba(239, 68, 68, 0.25) !important;
+    color: #F87171 !important;
+    border-color: #EF4444 !important;
+}
+
+.modal-content .form-group {
+    margin-bottom: 14px !important;
+}
+
+.modal-content .form-group label {
+    display: block !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    color: #94A3B8 !important;
+    margin-bottom: 6px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.modal-content .form-group input,
+.modal-content .form-group select {
+    width: 100% !important;
+    padding: 12px 14px !important;
+    border: 1px solid #334155 !important;
+    border-radius: 10px !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    color: #FFFFFF !important;
+    background-color: #0F172A !important;
+    outline: none !important;
+    box-sizing: border-box !important;
+    transition: all 0.2s !important;
+}
+
+.modal-content .form-group input:focus,
+.modal-content .form-group select:focus {
+    border-color: #3B82F6 !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+    background-color: #131E35 !important;
+}
+
+.modal-content .form-group-row {
+    display: flex !important;
+    gap: 12px !important;
+    margin-bottom: 14px !important;
+}
+
+.modal-content .primary-button {
+    background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
+    color: #FFFFFF !important;
+    border: none !important;
+    border-radius: 10px !important;
+    padding: 12px 18px !important;
+    font-size: 0.95rem !important;
+    font-weight: 800 !important;
+    cursor: pointer !important;
+    box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4) !important;
+    transition: all 0.2s !important;
+}
+
+.modal-content .primary-button:hover,
+.modal-content .primary-button:active {
+    transform: translateY(-1px) !important;
+    box-shadow: 0 6px 20px rgba(37, 99, 235, 0.55) !important;
+}
+

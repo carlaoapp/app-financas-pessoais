@@ -24,8 +24,8 @@
     <script src="lucide.min.js"></script>
     
     <!-- Estilos -->
-    <link rel="stylesheet" href="finance-style.css">
-    <link rel="stylesheet" href="app-custom.css">
+    <link rel="stylesheet" href="finance-style.css?v=1.0.7">
+    <link rel="stylesheet" href="app-custom.css?v=1.0.7">
 </head>
 <body class="mode-desktop">
 
@@ -248,10 +248,8 @@
                 <span>Metas & Desejos</span>
             </button>
         </nav>
-    </div>
 
-    <!-- 5. CONTEÚDO DAS ABAS -->
-    <div class="content-wrapper">
+        <!-- 5. CONTEÚDO DAS ABAS -->
         <main id="finance-view">
 
             <!-- ABA 1: PAINEL PRINCIPAL -->
@@ -499,12 +497,12 @@
         <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
     </button>
 
-    <!-- MODAL DE NOVO LANÇAMENTO / EDIÇÃO -->
-    <div id="modalLancamento" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="background: #1E293B; color: white; border: 1px solid var(--border-color); border-radius: 16px; max-width: 500px; width: 90%;">
-            <div class="modal-header" style="border-bottom: 1px solid var(--border-color); padding-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-                <h3 style="font-size: 1.2rem; margin: 0;">Lançamento Financeiro</h3>
-                <button class="close-btn" onclick="fecharModalLancamento()" style="background: transparent; border: none; color: var(--text-secondary); font-size: 1.3rem; cursor: pointer;">✕</button>
+    <!-- MODAL DE NOVO LANÇAMENTO / EDIÇÃO (SOBREPOSIÇÃO TOTAL) -->
+    <div id="modalLancamento" class="modal-overlay" onclick="if(event.target === this) fecharModalLancamento()" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Lançamento Financeiro</h3>
+                <button class="close-btn" onclick="fecharModalLancamento()" title="Fechar">✕</button>
             </div>
             <form id="formLancamento" onsubmit="salvarLancamento(event)" style="padding-top: 16px;">
                 <input type="hidden" id="inputIdMovimentacao" value="">
@@ -592,12 +590,12 @@
         </div>
     </div>
 
-    <!-- MODAL DE FATURA DO CARTÃO -->
-    <div id="modalFatura" class="modal-overlay" style="display: none;">
-        <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column; background: #1E293B; color: white; border-radius: 16px; border: 1px solid var(--border-color); max-width: 520px; width: 90%;">
-            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px;">
-                <h3 style="color: var(--text-secondary); margin: 0; font-size: 1.1rem;">Fatura do Cartão</h3>
-                <button onclick="fecharModalFatura()" style="background: transparent; border: none; color: white; font-size: 1.2rem; cursor: pointer;">✕</button>
+    <!-- MODAL DE FATURA DO CARTÃO (SOBREPOSIÇÃO TOTAL) -->
+    <div id="modalFatura" class="modal-overlay" onclick="if(event.target === this) fecharModalFatura()" style="display: none;">
+        <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h3>Fatura do Cartão</h3>
+                <button class="close-btn" onclick="fecharModalFatura()" title="Fechar">✕</button>
             </div>
             
             <h2 id="lblFaturaTituloMes" style="font-size: 1.6rem; margin: 0 0 4px 0;">Mês</h2>
@@ -614,9 +612,9 @@
         </div>
     </div>
 
-    <!-- MODAL DE PERFIL / CONTA -->
-    <div id="modalPerfil" class="modal-overlay" style="display: none; z-index: 10000; background: rgba(11, 17, 32, 0.85); backdrop-filter: blur(12px);">
-        <div class="modal-content" style="max-width: 360px; width: 90%; text-align: center; background: #0F172A; border: 1px solid #334155; border-radius: 20px; padding: 26px 20px; box-shadow: 0 20px 50px rgba(0,0,0,0.6);">
+    <!-- MODAL DE PERFIL / CONTA (SOBREPOSIÇÃO TOTAL) -->
+    <div id="modalPerfil" class="modal-overlay" onclick="if(event.target === this) fecharModalPerfil()" style="display: none;">
+        <div class="modal-content" style="max-width: 360px; text-align: center;">
             <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(37, 99, 235, 0.2); border: 2px solid #3B82F6; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
                 <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
             </div>
@@ -645,12 +643,12 @@
     </div> <!-- FIM DO #view-app -->
 
     <!-- SCRIPTS DA APLICAÇÃO -->
-    <script src="finance-db.js"></script>
-    <script src="finance-sync.js"></script>
-    <script src="finance-powerbi.js"></script>
-    <script src="finance-dashboard.js"></script>
-    <script src="auth.js"></script>
-    <script src="auto-update.js"></script>
+    <script src="finance-db.js?v=1.0.7"></script>
+    <script src="finance-sync.js?v=1.0.7"></script>
+    <script src="finance-powerbi.js?v=1.0.7"></script>
+    <script src="finance-dashboard.js?v=1.0.7"></script>
+    <script src="auth.js?v=1.0.7"></script>
+    <script src="auto-update.js?v=1.0.7"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
