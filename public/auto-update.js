@@ -1,6 +1,6 @@
 // auto-update.js - Notificação Automática de Atualização no Celular e Computador
 
-const DEFAULT_BASE_VERSION = '1.0.3';
+const DEFAULT_BASE_VERSION = '1.0.4';
 
 function getInstalledVersion() {
     return localStorage.getItem('app_installed_version') || DEFAULT_BASE_VERSION;

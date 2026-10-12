@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais
-const CACHE_NAME = 'financas-pessoais-v1';
+// Service Worker - APP Finanças Pessoais v1.0.4
+const CACHE_NAME = 'financas-pessoais-v1.0.4';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -14,16 +14,18 @@ const ASSETS_TO_CACHE = [
     '/lucide.min.js',
     '/manifest.json',
     '/icon-192.png',
-    '/icon-512.png'
+    '/icon-512.png',
+    '/favicon.png'
 ];
 
 self.addEventListener('install', event => {
+    self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(cache => {
             return cache.addAll(ASSETS_TO_CACHE).catch(err => {
                 console.warn('Cache parcial durante install:', err);
             });
-        }).then(() => self.skipWaiting())
+        })
     );
 });
 
@@ -33,6 +35,7 @@ self.addEventListener('activate', event => {
             return Promise.all(
                 keys.map(key => {
                     if (key !== CACHE_NAME) {
+                        console.log('[SW] Apagando cache antigo:', key);
                         return caches.delete(key);
                     }
                 })
