@@ -3,7 +3,7 @@
 function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
-    return localStorage.getItem('app_installed_version') || '1.0.8';
+    return localStorage.getItem('app_installed_version') || '1.1.3';
 }
 
 let isUpdateBannerVisible = false;

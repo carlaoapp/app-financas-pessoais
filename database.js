@@ -63,6 +63,15 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 password TEXT,
                 created_at INTEGER
             )`);
+
+            // Tabela 5: password_resets (Recuperação de Senha)
+            db.run(`CREATE TABLE IF NOT EXISTS password_resets (
+                id TEXT PRIMARY KEY,
+                email TEXT,
+                code TEXT,
+                created_at INTEGER,
+                expires_at INTEGER
+            )`);
         });
     }
 });

@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.1.2">
+    <meta name="app-build-version" content="1.1.3">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -81,13 +81,15 @@
                     </div>
                 </div>
 
-                <!-- Lembrar-me -->
+                <!-- Lembrar-me e Esqueci a Senha -->
                 <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: #94A3B8; margin-top: 2px;">
                     <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
                         <input type="checkbox" id="auth-remember" checked style="width: 16px; height: 16px; cursor: pointer;">
                         <span>Lembrar-me</span>
                     </label>
-                    <span style="color: #10B981; font-size: 0.8rem; font-weight: 600;">● Conexão Segura</span>
+                    <button type="button" onclick="abrirModalEsqueciSenha()" style="background: transparent; border: none; color: #60A5FA; cursor: pointer; font-size: 0.82rem; font-weight: 500; padding: 0; text-decoration: underline;">
+                        Esqueci a senha
+                    </button>
                 </div>
 
                 <!-- Botão Primário -->
@@ -99,6 +101,50 @@
             <div style="margin-top: 24px; text-align: center; border-top: 1px solid #1E293B; padding-top: 14px;">
                 <div style="font-size: 0.75rem; color: #64748B;">
                     🛡️ Conexão Segura & Banco de Dados Privado
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Recuperação de Senha (Esqueci a Senha) -->
+        <div id="modalEsqueciSenha" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999999; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(5px);">
+            <div style="background: #0F172A; border: 1px solid #334155; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); padding: 24px; position: relative; box-sizing: border-box;">
+                <button type="button" onclick="fecharModalEsqueciSenha()" style="position: absolute; right: 16px; top: 16px; background: transparent; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer;">✕</button>
+
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="width: 48px; height: 48px; background: rgba(59, 130, 246, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 1.5rem; color: #60A5FA;">🔑</div>
+                    <h3 style="margin: 0; color: #F8FAFC; font-size: 1.25rem; font-weight: 700;">Recuperar Senha</h3>
+                    <p style="margin: 6px 0 0; color: #94A3B8; font-size: 0.85rem;" id="esqueciPassoDesc">Informe seu e-mail cadastrado para enviarmos um código de verificação.</p>
+                </div>
+
+                <div id="esqueci-alerta-msg" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; text-align: center; line-height: 1.4;"></div>
+
+                <!-- ETAPA 1: Digitar E-mail -->
+                <div id="esqueci-passo-1">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">E-mail Cadastrado</label>
+                        <input type="email" id="esqueci-email" placeholder="seuemail@exemplo.com" class="auth-input-field" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <button type="button" id="btn-enviar-codigo" onclick="solicitarCodigoRecuperacao()" class="auth-btn-primary" style="width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 0.95rem;">
+                        Enviar Código de Recuperação
+                    </button>
+                </div>
+
+                <!-- ETAPA 2: Digitar Código e Nova Senha -->
+                <div id="esqueci-passo-2" style="display: none;">
+                    <div style="margin-bottom: 14px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">Código de Verificação (6 dígitos)</label>
+                        <input type="text" id="esqueci-codigo" placeholder="Ex: 123456" maxlength="6" class="auth-input-field" style="width: 100%; box-sizing: border-box; text-align: center; letter-spacing: 4px; font-size: 1.3rem; font-weight: 800; color: #34D399;">
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">Nova Senha</label>
+                        <input type="password" id="esqueci-nova-senha" placeholder="Digite sua nova senha" class="auth-input-field" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <button type="button" id="btn-salvar-senha" onclick="confirmarNovaSenha()" class="auth-btn-primary" style="width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; background: linear-gradient(135deg, #059669, #10B981);">
+                        Salvar Nova Senha
+                    </button>
+                    <div style="text-align: center; margin-top: 14px;">
+                        <button type="button" onclick="voltarPasso1Esqueci()" style="background: transparent; border: none; color: #94A3B8; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">Voltar / Digitar outro e-mail</button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -716,12 +762,12 @@
     </div> <!-- FIM DO #view-app -->
 
     <!-- SCRIPTS DA APLICAÇÃO -->
-    <script src="finance-db.js?v=1.1.2"></script>
-    <script src="finance-sync.js?v=1.1.2"></script>
-    <script src="finance-powerbi.js?v=1.1.2"></script>
-    <script src="finance-dashboard.js?v=1.1.2"></script>
-    <script src="auth.js?v=1.1.2"></script>
-    <script src="auto-update.js?v=1.1.2"></script>
+    <script src="finance-db.js?v=1.1.3"></script>
+    <script src="finance-sync.js?v=1.1.3"></script>
+    <script src="finance-powerbi.js?v=1.1.3"></script>
+    <script src="finance-dashboard.js?v=1.1.3"></script>
+    <script src="auth.js?v=1.1.3"></script>
+    <script src="auto-update.js?v=1.1.3"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -770,7 +816,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.1.2')
+                navigator.serviceWorker.register('/sw.js?v=1.1.3')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor
