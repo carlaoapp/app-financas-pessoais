@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.2.7">
+    <meta name="app-build-version" content="1.2.8">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.2.7">
+    <link rel="stylesheet" href="app-custom.css?v=1.2.8">
 </head>
 <body class="mode-desktop">
 
@@ -1009,12 +1009,12 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.2.7"></script>
-    <script src="finance-sync.js?v=1.2.7"></script>
-    <script src="finance-powerbi.js?v=1.2.7"></script>
-    <script src="finance-dashboard.js?v=1.2.7"></script>
-    <script src="auth.js?v=1.2.7"></script>
-    <script src="auto-update.js?v=1.2.7"></script>
+    <script src="finance-db.js?v=1.2.8"></script>
+    <script src="finance-sync.js?v=1.2.8"></script>
+    <script src="finance-powerbi.js?v=1.2.8"></script>
+    <script src="finance-dashboard.js?v=1.2.8"></script>
+    <script src="auth.js?v=1.2.8"></script>
+    <script src="auto-update.js?v=1.2.8"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -1063,7 +1063,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.2.7')
+                navigator.serviceWorker.register('/sw.js?v=1.2.8')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor

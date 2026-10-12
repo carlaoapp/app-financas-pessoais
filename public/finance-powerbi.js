@@ -243,6 +243,7 @@ async function renderPowerBIDashboard() {
         let totalReceitasMes = 0;
         let totalDespesasMes = 0;
         let totalInvestimentosMes = 0;
+        let totalReservaMes = 0;
         let reservaAcumuladaTotal = 0;
 
         const receitasPorCat = {};
@@ -275,7 +276,7 @@ async function renderPowerBIDashboard() {
                 } else if (m.tipo_gasto === 'Investimento') {
                     totalInvestimentosMes += vReal;
                 } else if (m.tipo_gasto === 'Reserva de Emergência') {
-                    // Contabilizado no acumulado da reserva
+                    totalReservaMes += vReal;
                 } else if (m.tipo_gasto !== 'Lista de Desejos' && m.tipo_gasto !== 'Conta a Pagar') {
                     totalDespesasMes += vReal;
                     despesasPorCat[descName] = (despesasPorCat[descName] || 0) + vReal;
@@ -283,7 +284,7 @@ async function renderPowerBIDashboard() {
             }
         });
 
-        const saldoMes = totalReceitasMes - totalDespesasMes - totalInvestimentosMes;
+        const saldoMes = totalReceitasMes - totalDespesasMes - totalInvestimentosMes - totalReservaMes;
 
         // Atualizar os 4 Cards de Demonstrativo (KPIs)
         const elRec = document.getElementById('pbiValReceitas');

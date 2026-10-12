@@ -321,10 +321,11 @@ async function carregarPlanejamento() {
         }
     });
 
-    // --- CÁLCULO DO PAINEL DE RESUMO (ORÃ‡ADO VS REALIZADO) ---
+    // --- CÁLCULO DO PAINEL DE RESUMO (ORÇADO VS REALIZADO) ---
     let recRealizado = 0, recOrcado = 0;
     let despRealizado = 0, despOrcado = 0;
     let invRealizado = 0, invOrcado = 0;
+    let resMesRealizado = 0, resMesOrcado = 0;
 
     itensDoMes.forEach(item => {
         if (item.status === 'Cancelado') return;
@@ -336,9 +337,14 @@ async function carregarPlanejamento() {
             // Resgate entra como "Receita" do mês para cobrir o buraco
             recOrcado += vOrcado; 
             recRealizado += vRealizado; 
-        } else if (item.tipo_gasto === 'Investimento' || item.tipo_gasto === 'Reserva de Emergência') {
+        } else if (item.tipo_gasto === 'Investimento') {
+            // Investimento tem seu totalizador próprio e isolado
             invOrcado += vOrcado;
             invRealizado += vRealizado;
+        } else if (item.tipo_gasto === 'Reserva de Emergência') {
+            // Reserva de Emergência tem seu totalizador próprio e isolado
+            resMesOrcado += vOrcado;
+            resMesRealizado += vRealizado;
         } else {
             despOrcado += vOrcado;
             despRealizado += vRealizado;
@@ -360,13 +366,13 @@ async function carregarPlanejamento() {
     document.getElementById('valInvestimentoRealizado').innerText = formatCurrency(invRealizado);
     document.getElementById('valInvestimentoOrcado').innerText = formatCurrency(invOrcado);
     
-    // Atualiza o novo cartão da Reserva Histórica Acumulada
+    // Atualiza o cartão da Reserva (exibe a reserva acumulada histórica)
     document.getElementById('valReservaRealizado').innerText = formatCurrency(reservaRealizadoTotal);
     document.getElementById('valReservaOrcado').innerText = formatCurrency(reservaOrcadoTotal);
     
-    // Atualizado: Saldo = Receitas - Despesas - Investimentos
-    const saldoRealizado = recRealizado - despRealizado - invRealizado;
-    const saldoOrcado = recOrcado - despOrcado - invOrcado;
+    // Atualizado: Saldo Livre = Receitas - Despesas - Investimentos - Reserva de Emergência do Mês
+    const saldoRealizado = recRealizado - despRealizado - invRealizado - resMesRealizado;
+    const saldoOrcado = recOrcado - despOrcado - invOrcado - resMesOrcado;
     
     const formatCurrencyDiff = (val) => {
         if (window.privacyMode) return '•••••';
@@ -499,10 +505,31 @@ function renderizarLista(itens) {
                 <button onclick="excluirLancamento('${item.id}')" style="background:#FEE2E2; color:#EF4444; border:none; padding:4px 8px; border-radius:4px; font-size:0.75rem; cursor:pointer;">Excluir</button>
             </div>`;
 
+        let tagTipo = '';
+        let borderLeftColor = '#EF4444';
+        if (item.tipo_gasto === 'Receita') {
+            borderLeftColor = '#10B981';
+            tagTipo = '<span class="badge" style="background:rgba(16,185,129,0.15); color:#10B981; margin-left:6px;">Entrada</span>';
+        } else if (item.tipo_gasto === 'Reserva de Emergência') {
+            borderLeftColor = '#F59E0B';
+            tagTipo = '<span class="badge" style="background:rgba(245,158,11,0.2); color:#F59E0B; margin-left:6px;">🛡️ Reserva</span>';
+        } else if (item.tipo_gasto === 'Investimento') {
+            borderLeftColor = '#8B5CF6';
+            tagTipo = '<span class="badge" style="background:rgba(139,92,246,0.2); color:#A78BFA; margin-left:6px;">📈 Investimento</span>';
+        } else if (item.tipo_gasto === 'Resgate de Reserva') {
+            borderLeftColor = '#10B981';
+            tagTipo = '<span class="badge" style="background:rgba(16,185,129,0.15); color:#34D399; margin-left:6px;">💰 Resgate</span>';
+        } else if (item.tipo_gasto === 'Despesa Fixa') {
+            tagTipo = '<span class="badge" style="background:rgba(239,68,68,0.15); color:#F87171; margin-left:6px;">Fixa</span>';
+        } else if (item.tipo_gasto === 'Despesa Variável') {
+            tagTipo = '<span class="badge" style="background:rgba(239,68,68,0.15); color:#F87171; margin-left:6px;">Variável</span>';
+        }
+
         const div = document.createElement('div');
         div.className = `card ${cssClass}`;
         div.style.flexDirection = 'column';
         div.style.alignItems = 'flex-start';
+        div.style.borderLeft = '4px solid ' + borderLeftColor;
         
         const vOrcado = window.privacyMode ? '•••••' : parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
         const vRealizado = window.privacyMode ? '•••••' : parseFloat(item.valor_realizado || 0).toFixed(2).replace('.', ',');
@@ -510,7 +537,7 @@ function renderizarLista(itens) {
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; width:100%;">
                 <div class="card-details">
-                    <h4>${item.descricao} ${tagCancelado}</h4>
+                    <h4 style="display:flex; align-items:center; gap:6px;">${item.descricao} ${tagTipo} ${tagCancelado}</h4>
                     <p>Venc: ${dataBr} &nbsp; ${tagParcela} ${tagVirtual}</p>
                 </div>
                 <div class="card-value" style="text-align: right; ${item.status === 'Cancelado' ? 'text-decoration: line-through; color:#94A3B8;' : ''}">
@@ -1783,17 +1810,43 @@ function renderizarExtratoCompleto() {
         const vOrcado = window.privacyMode ? '•••••' : parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
         const vRealizado = window.privacyMode ? '•••••' : parseFloat(item.valor_realizado || 0).toFixed(2).replace('.', ',');
 
+        const isReceita = (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva');
+        const isReserva = (item.tipo_gasto === 'Reserva de Emergência');
+        const isInvestimento = (item.tipo_gasto === 'Investimento');
+
+        let borderLeftColor = '#EF4444';
+        let iconCat = '📤';
+        let corValor = '#EF4444';
+        let sinalValor = '-';
+
+        if (isReceita) {
+            borderLeftColor = '#10B981';
+            iconCat = '📥';
+            corValor = '#10B981';
+            sinalValor = '+';
+        } else if (isReserva) {
+            borderLeftColor = '#F59E0B';
+            iconCat = '🛡️';
+            corValor = '#F59E0B';
+            sinalValor = '-';
+        } else if (isInvestimento) {
+            borderLeftColor = '#8B5CF6';
+            iconCat = '📈';
+            corValor = '#8B5CF6';
+            sinalValor = '-';
+        }
+
         const div = document.createElement('div');
         div.className = `card ${cssClass}`;
         div.style.flexDirection = 'column';
         div.style.alignItems = 'flex-start';
-        div.style.borderLeft = isReceita ? '4px solid #10B981' : '4px solid #EF4444';
+        div.style.borderLeft = '4px solid ' + borderLeftColor;
 
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                 <div class="card-details">
                     <h4 style="display:flex; align-items:center; gap:6px; font-size: 0.95rem;">
-                        <span>${isReceita ? '📥' : '📤'}</span>
+                        <span>${iconCat}</span>
                         ${item.descricao} ${tagCancelado} ${tagStatus}
                     </h4>
                     <p style="color:#94A3B8; font-size:0.8rem; margin-top:3px;">
@@ -1801,8 +1854,8 @@ function renderizarExtratoCompleto() {
                     </p>
                 </div>
                 <div class="card-value" style="text-align: right; ${item.status === 'Cancelado' ? 'text-decoration: line-through; opacity:0.6;' : ''}">
-                    <div style="font-size:1.05rem; font-weight:800; color:${isReceita ? '#10B981' : '#EF4444'};">
-                        ${isReceita ? '+' : '-'} R$ ${vRealizado !== '0,00' ? vRealizado : vOrcado}
+                    <div style="font-size:1.05rem; font-weight:800; color:${corValor};">
+                        ${sinalValor} R$ ${vRealizado !== '0,00' ? vRealizado : vOrcado}
                     </div>
                     <div style="font-size:0.75rem; color:#64748B;">Previsto: R$ ${vOrcado}</div>
                 </div>
