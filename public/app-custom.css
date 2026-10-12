@@ -119,65 +119,131 @@ body {
     border-color: #64748B;
 }
 
-.ano-select-box {
+.ano-select-box, .mes-select-box {
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     color: #FFFFFF;
     font-weight: 700;
-    font-size: 0.85rem;
+    font-size: 0.82rem;
     padding: 6px 10px;
     border-radius: 10px;
     outline: none;
     cursor: pointer;
+    transition: all 0.2s;
 }
 
-/* ==========================================================================
-   CARROSSEL HORIZONTAL DE MESES
-   ========================================================================== */
-.month-carousel-container {
-    padding: 10px 16px;
-    background: var(--bg-secondary);
-    border-bottom: 1px solid var(--border-color);
-}
-
-.month-carousel {
-    display: flex;
-    gap: 6px;
-    overflow-x: auto;
-    scroll-behavior: smooth;
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-    padding: 2px 0;
-}
-.month-carousel::-webkit-scrollbar {
-    display: none;
-}
-
-.month-chip {
-    flex: 0 0 auto;
-    padding: 7px 16px;
-    border-radius: 20px;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: var(--text-secondary);
-    font-size: 0.82rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    user-select: none;
-}
-
-.month-chip:hover {
-    color: #FFFFFF;
+.ano-select-box:hover, .mes-select-box:hover {
+    border-color: #3B82F6;
     background: var(--bg-card-hover);
 }
 
-.month-chip.active {
-    background: linear-gradient(135deg, #2563EB, #10B981);
-    color: #FFFFFF;
-    border-color: transparent;
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
-    transform: scale(1.02);
+/* ==========================================================================
+   LINHA 2: SUB-BARRA DE FERRAMENTAS (ZOOM, BAIXAR E SAIR)
+   ========================================================================== */
+.sub-toolbar-container {
+    padding: 8px 16px;
+    background: rgba(15, 23, 42, 0.95);
+    border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 57px;
+    z-index: 95;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.sub-toolbar-inner {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    max-width: 1400px;
+    margin: 0 auto;
+    gap: 10px;
+}
+
+.zoom-controls-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(20, 31, 54, 0.8);
+    padding: 3px 8px;
+    border-radius: 10px;
+    border: 1px solid var(--border-color);
+}
+
+.zoom-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    display: none;
+}
+
+@media (min-width: 480px) {
+    .zoom-label {
+        display: inline-block;
+    }
+}
+
+.btn-sub-tool {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: var(--text-primary);
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.btn-sub-tool:hover, .btn-sub-tool:active {
+    background: #2563EB;
+    border-color: #3B82F6;
+    color: white;
+}
+
+.sub-actions-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.btn-sub-action {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+}
+
+.btn-install-app {
+    background: rgba(37, 99, 235, 0.2);
+    border: 1px solid rgba(59, 130, 246, 0.4);
+    color: #93C5FD;
+}
+
+.btn-install-app:hover, .btn-install-app:active {
+    background: #2563EB;
+    color: white;
+    border-color: #3B82F6;
+}
+
+.btn-logout-app {
+    background: rgba(239, 68, 68, 0.15);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #FCA5A5;
+}
+
+.btn-logout-app:hover, .btn-logout-app:active {
+    background: #EF4444;
+    color: white;
+    border-color: #DC2626;
 }
 
 /* ==========================================================================

@@ -32,30 +32,26 @@ window.privacyMode = false;
 
 window.togglePrivacyMode = function() {
     window.privacyMode = !window.privacyMode;
-    const iconOn = document.getElementById('iconPrivacyOn');
-    const iconOff = document.getElementById('iconPrivacyOff');
-    if(iconOn) iconOn.style.display = window.privacyMode ? 'block' : 'none';
-    if(iconOff) iconOff.style.display = window.privacyMode ? 'none' : 'block';
+    const iconOpen = document.getElementById('iconPrivacyOpen');
+    const iconClosed = document.getElementById('iconPrivacyClosed');
     
-    const iconHeaderOn = document.getElementById('iconPrivacyHeaderOn');
-    const iconHeaderOff = document.getElementById('iconPrivacyHeaderOff');
-    const textHeader = document.getElementById('textPrivacyHeader');
-    if(iconHeaderOn) iconHeaderOn.style.display = window.privacyMode ? 'block' : 'none';
-    if(iconHeaderOff) iconHeaderOff.style.display = window.privacyMode ? 'none' : 'block';
-    if(textHeader) textHeader.innerText = window.privacyMode ? 'Ocultar' : 'Mostrar';
-
+    // Quando privacyMode === false (visível): mostra Olho Aberto
+    // Quando privacyMode === true (oculto): mostra Olho Riscado/Fechado
+    if(iconOpen) iconOpen.style.display = window.privacyMode ? 'none' : 'block';
+    if(iconClosed) iconClosed.style.display = window.privacyMode ? 'block' : 'none';
+    
     carregarPlanejamento();
-    if(document.getElementById('tabAPagar').style.display === 'block') {
+    if(document.getElementById('tabAPagar') && document.getElementById('tabAPagar').style.display === 'block') {
         if(typeof carregarContasAPagar === 'function') carregarContasAPagar();
     }
-    if(document.getElementById('tabDesejos').style.display === 'block') {
+    if(document.getElementById('tabDesejos') && document.getElementById('tabDesejos').style.display === 'block') {
         if(typeof carregarListaDesejos === 'function') carregarListaDesejos();
     }
-    if(document.getElementById('modalFatura').style.display === 'flex') {
-        const mesAtualLabel = document.getElementById('lblFaturaTituloMes').innerText;
+    if(document.getElementById('modalFatura') && document.getElementById('modalFatura').style.display === 'flex') {
+        const mesAtualLabel = document.getElementById('lblFaturaTituloMes') ? document.getElementById('lblFaturaTituloMes').innerText : '';
         abrirModalFatura(mesAtualLabel);
     }
-    if(typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI').style.display !== 'none') {
+    if(typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
         renderPowerBIDashboard();
     }
 };
@@ -958,12 +954,16 @@ document.addEventListener('DOMContentLoaded', () => {
 // Zoom para Gestao Financeira
 let financeZoom = parseFloat(localStorage.getItem('financeZoom')) || 1.0;
 function applyFinanceZoom() {
-    const tabs = document.querySelectorAll('#finance-view .tab-content');
+    const tabs = document.querySelectorAll('#finance-view .tab-content, .hero-balance-card');
     tabs.forEach(tab => {
         tab.style.zoom = financeZoom;
     });
+    const lbl = document.getElementById('lblZoomPercent');
+    if (lbl) {
+        lbl.innerText = Math.round(financeZoom * 100) + '%';
+    }
     // Trigger resize on charts to fix rendering issues
-    if(typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI').style.display !== 'none') {
+    if(typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
         setTimeout(() => {
             window.dispatchEvent(new Event('resize'));
             if(window.pbiChartDiff) window.pbiChartDiff.resize();
@@ -974,15 +974,24 @@ function applyFinanceZoom() {
     }
 }
 function zoomFinance(step) {
-    financeZoom += step;
-    if (financeZoom < 0.6) financeZoom = 0.6;
-    if (financeZoom > 1.5) financeZoom = 1.5;
+    financeZoom = Math.round((financeZoom + step) * 10) / 10;
+    if (financeZoom < 0.7) financeZoom = 0.7;
+    if (financeZoom > 1.4) financeZoom = 1.4;
     localStorage.setItem('financeZoom', financeZoom.toFixed(1));
     applyFinanceZoom();
 }
 document.addEventListener('DOMContentLoaded', () => {
     applyFinanceZoom();
 });
+
+// Ação de Sair do Aplicativo
+function confirmarSairApp() {
+    if (confirm("Deseja realmente sair do aplicativo e desconectar sua conta?")) {
+        if (typeof logout === 'function') {
+            logout();
+        }
+    }
+}
 
 // ==========================================================================
 // ABA EXTRATO COMPLETO DE LANÇAMENTOS
