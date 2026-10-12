@@ -1,4 +1,4 @@
-﻿// auth.js - Sistema de Autenticação do APP Finanças Pessoais
+// auth.js - Sistema de Autenticação do APP Finanças Pessoais
 
 const AUTH_TOKEN_KEY = 'financas_auth_token';
 const AUTH_USER_KEY = 'financas_auth_user';
@@ -35,18 +35,26 @@ function logout() {
 }
 
 function showAuthScreen() {
-    const authModal = document.getElementById('auth-modal');
-    if (authModal) {
-        authModal.style.display = 'flex';
-    }
+    const viewAuth = document.getElementById('view-auth');
+    const viewApp = document.getElementById('view-app');
+    if (viewAuth) viewAuth.style.display = 'flex';
+    if (viewApp) viewApp.style.display = 'none';
+
+    // Oculta qualquer banner de notificação para não poluir a entrada
+    const banner = document.getElementById('update-notification-banner');
+    if (banner) banner.style.display = 'none';
 }
 
 function hideAuthScreen() {
-    const authModal = document.getElementById('auth-modal');
-    if (authModal) {
-        authModal.style.display = 'none';
-    }
+    const viewAuth = document.getElementById('view-auth');
+    const viewApp = document.getElementById('view-app');
+    if (viewAuth) viewAuth.style.display = 'none';
+    if (viewApp) viewApp.style.display = 'block';
+
     updateUserHeader();
+    if (typeof carregarPlanejamento === 'function') {
+        carregarPlanejamento();
+    }
 }
 
 function updateUserHeader() {

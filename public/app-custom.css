@@ -1,4 +1,4 @@
-﻿/* ==========================================================================
+/* ==========================================================================
    APP FINANÇAS PESSOAIS - DESIGN SYSTEM PROFISSIONAL (DESKTOP & MOBBI)
    ========================================================================== */
 
@@ -456,3 +456,122 @@ body {
         right: 30px;
     }
 }
+
+/* ==========================================================================
+   TELA DE ENTRADA DEDICADA E ISOLADA (#view-auth)
+   ========================================================================== */
+#view-auth {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: radial-gradient(circle at 50% 20%, #172554 0%, #070D18 70%);
+    padding: 24px 16px;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 1000;
+}
+
+.auth-card-container {
+    max-width: 420px;
+    width: 100%;
+    background: rgba(15, 23, 42, 0.95);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    border-radius: 24px;
+    padding: 32px 24px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.7), 0 0 35px rgba(37, 99, 235, 0.2);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    animation: fadeInAuth 0.4s ease-out;
+}
+
+@keyframes fadeInAuth {
+    from { opacity: 0; transform: translateY(12px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.auth-logo-badge {
+    width: 74px;
+    height: 74px;
+    border-radius: 20px;
+    object-fit: cover;
+    box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
+    border: 2px solid rgba(255, 255, 255, 0.15);
+    margin-bottom: 12px;
+}
+
+.auth-tab-btn {
+    flex: 1;
+    padding: 11px;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.auth-input-field {
+    width: 100%;
+    padding: 13px 14px;
+    font-size: 0.95rem;
+    border: 1px solid #334155;
+    border-radius: 12px;
+    box-sizing: border-box;
+    background: #0B1120;
+    color: #FFFFFF;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.auth-input-field:focus {
+    border-color: #3B82F6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+.auth-btn-primary {
+    width: 100%;
+    padding: 14px;
+    font-size: 1rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #2563EB, #1D4ED8);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.45);
+    transition: all 0.2s;
+}
+
+.auth-btn-primary:active {
+    transform: scale(0.98);
+}
+
+.auth-btn-guest {
+    width: 100%;
+    padding: 12px 14px;
+    font-size: 0.88rem;
+    font-weight: 700;
+    background: rgba(30, 41, 59, 0.8);
+    border: 1px solid rgba(59, 130, 246, 0.3);
+    color: #93C5FD;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: all 0.2s;
+}
+
+.auth-btn-guest:hover, .auth-btn-guest:active {
+    background: rgba(37, 99, 235, 0.15);
+    border-color: #3B82F6;
+    color: #FFFFFF;
+}
+

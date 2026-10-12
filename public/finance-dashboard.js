@@ -28,7 +28,7 @@ if (typeof window.showToast !== 'function') {
   };
 }
 
-window.privacyMode = true;
+window.privacyMode = false;
 
 window.togglePrivacyMode = function() {
     window.privacyMode = !window.privacyMode;
@@ -331,10 +331,18 @@ async function carregarPlanejamento() {
     // Atualiza KPIs no Hero Card
     const elKpiRec = document.getElementById('kpiHeroReceitas');
     if (elKpiRec) elKpiRec.innerText = formatCurrency(recRealizado);
+    const elKpiRecOrc = document.getElementById('kpiHeroReceitasOrc');
+    if (elKpiRecOrc) elKpiRecOrc.innerText = 'Orç: ' + formatCurrency(recOrcado);
+
     const elKpiDesp = document.getElementById('kpiHeroDespesas');
     if (elKpiDesp) elKpiDesp.innerText = formatCurrency(despRealizado);
+    const elKpiDespOrc = document.getElementById('kpiHeroDespesasOrc');
+    if (elKpiDespOrc) elKpiDespOrc.innerText = 'Orç: ' + formatCurrency(despOrcado);
+
     const elKpiInv = document.getElementById('kpiHeroInvestimentos');
     if (elKpiInv) elKpiInv.innerText = formatCurrency(invRealizado);
+    const elKpiRes = document.getElementById('kpiHeroReserva');
+    if (elKpiRes) elKpiRes.innerText = 'Res: ' + formatCurrency(reservaRealizadoTotal);
 
     // Salva itens globalmente para filtros e extrato
     window.currentMesItens = itensDoMes;

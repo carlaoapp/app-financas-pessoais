@@ -1,25 +1,45 @@
-﻿// auto-update.js - Notificação Automática de Atualização no Celular e Computador
+// auto-update.js - Notificação Automática de Atualização no Celular e Computador
 
-const CURRENT_APP_VERSION = '1.0.0';
+const DEFAULT_BASE_VERSION = '1.0.2';
+
+function getInstalledVersion() {
+    return localStorage.getItem('app_installed_version') || DEFAULT_BASE_VERSION;
+}
+
+function setInstalledVersion(ver) {
+    localStorage.setItem('app_installed_version', ver);
+}
 
 let isUpdateBannerVisible = false;
 
 async function checkAppVersion() {
     if (!navigator.onLine) return;
-    
+
+    // Se estiver na tela de login/entrada, NÃO exibir o pop-up para não atrapalhar
+    const authView = document.getElementById('view-auth');
+    if (authView && authView.style.display !== 'none') {
+        return;
+    }
+
     try {
         const response = await fetch('/api/version?t=' + Date.now(), { cache: 'no-store' });
         if (!response.ok) return;
 
         const data = await response.json();
         const serverVersion = data.version;
+        const currentVersion = getInstalledVersion();
 
-        if (serverVersion && serverVersion !== CURRENT_APP_VERSION) {
-            console.log(`[Auto-Update] Nova versão detectada: ${serverVersion} (Atual: ${CURRENT_APP_VERSION})`);
+        // Se o usuário dispensou nesta sessão, respeita
+        if (sessionStorage.getItem('dismissed_update_' + serverVersion) === 'true') {
+            return;
+        }
+
+        if (serverVersion && serverVersion !== currentVersion) {
+            console.log(`[Auto-Update] Nova versão detectada: ${serverVersion} (Instalada: ${currentVersion})`);
             showUpdateBanner(serverVersion);
         }
     } catch (error) {
-        console.warn('[Auto-Update] Verificação temporariamente indisponível:', error);
+        console.warn('[Auto-Update] Verificação indisponível:', error);
     }
 }
 
@@ -32,39 +52,41 @@ function showUpdateBanner(newVersion) {
     const banner = document.createElement('div');
     banner.id = 'update-notification-banner';
     banner.style.position = 'fixed';
-    banner.style.bottom = '24px';
+    banner.style.top = '14px';
     banner.style.left = '50%';
     banner.style.transform = 'translateX(-50%)';
-    banner.style.zIndex = '999999';
-    banner.style.width = 'calc(100% - 32px)';
+    banner.style.zIndex = '99999';
+    banner.style.width = 'calc(100% - 24px)';
     banner.style.maxWidth = '460px';
-    banner.style.background = 'linear-gradient(135deg, #1E1B4B, #0F172A)';
-    banner.style.border = '2px solid #3B82F6';
-    banner.style.borderRadius = '18px';
-    banner.style.padding = '16px 20px';
-    banner.style.boxShadow = '0 20px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(59, 130, 246, 0.4)';
+    banner.style.background = 'rgba(15, 23, 42, 0.95)';
+    banner.style.backdropFilter = 'blur(16px)';
+    banner.style.webkitBackdropFilter = 'blur(16px)';
+    banner.style.border = '1px solid rgba(59, 130, 246, 0.6)';
+    banner.style.borderRadius = '14px';
+    banner.style.padding = '12px 16px';
+    banner.style.boxShadow = '0 12px 30px rgba(0, 0, 0, 0.6), 0 0 15px rgba(37, 99, 235, 0.25)';
     banner.style.color = '#FFFFFF';
-    banner.style.animation = 'slideUpUpdate 0.4s ease-out';
+    banner.style.animation = 'slideDownUpdate 0.3s ease-out';
 
     banner.innerHTML = `
-        <div style="display: flex; align-items: flex-start; gap: 14px;">
-            <div style="font-size: 28px; line-height: 1;">🚀</div>
-            <div style="flex: 1;">
-                <div style="display: flex; align-items: center; justify-content: space-between;">
-                    <strong style="font-size: 1rem; color: #60A5FA;">Nova Versão Disponível!</strong>
-                    <span style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #93C5FD; padding: 2px 8px; border-radius: 10px; font-weight: 700;">v${newVersion}</span>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 22px;">🚀</span>
+                <div>
+                    <div style="font-size: 0.88rem; font-weight: 700; color: #60A5FA; display: flex; align-items: center; gap: 6px;">
+                        <span>Nova Atualização</span>
+                        <span style="font-size: 0.7rem; background: rgba(59, 130, 246, 0.25); color: #93C5FD; padding: 1px 6px; border-radius: 8px;">v${newVersion}</span>
+                    </div>
+                    <div style="font-size: 0.75rem; color: #94A3B8;">Melhorias e novo visual prontos.</div>
                 </div>
-                <p style="font-size: 0.85rem; color: #CBD5E1; margin: 6px 0 12px 0; line-height: 1.4;">
-                    Uma nova atualização do Finanças Pessoais está pronta. Clique abaixo para atualizar agora.
-                </p>
-                <div style="display: flex; gap: 10px;">
-                    <button onclick="applyAppUpdate()" style="flex: 2; background: linear-gradient(135deg, #2563EB, #10B981); color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4); display: flex; align-items: center; justify-content: center; gap: 6px;">
-                        <span>⚡ Atualizar App Agora</span>
-                    </button>
-                    <button onclick="dismissUpdateBanner()" style="flex: 1; background: #334155; color: #94A3B8; border: none; padding: 10px 12px; border-radius: 10px; font-size: 0.8rem; font-weight: 600; cursor: pointer;">
-                        Depois
-                    </button>
-                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 6px;">
+                <button onclick="applyAppUpdate('${newVersion}')" style="background: linear-gradient(135deg, #2563EB, #10B981); color: white; border: none; padding: 7px 12px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; white-space: nowrap;">
+                    Atualizar
+                </button>
+                <button onclick="dismissUpdateBanner('${newVersion}')" style="background: transparent; color: #64748B; border: none; padding: 6px; font-size: 1rem; cursor: pointer;">
+                    ✕
+                </button>
             </div>
         </div>
     `;
@@ -72,18 +94,32 @@ function showUpdateBanner(newVersion) {
     document.body.appendChild(banner);
 }
 
-function dismissUpdateBanner() {
+function dismissUpdateBanner(version) {
+    if (version) {
+        sessionStorage.setItem('dismissed_update_' + version, 'true');
+    }
     const banner = document.getElementById('update-notification-banner');
     if (banner) {
         banner.style.opacity = '0';
-        banner.style.transition = 'opacity 0.3s ease';
-        setTimeout(() => banner.remove(), 300);
+        banner.style.transition = 'opacity 0.2s ease';
+        setTimeout(() => banner.remove(), 200);
     }
+    isUpdateBannerVisible = false;
 }
 
-async function applyAppUpdate() {
-    const btn = event ? event.target : null;
-    if (btn) btn.innerText = 'Atualizando...';
+async function applyAppUpdate(newVersion) {
+    if (newVersion) {
+        setInstalledVersion(newVersion);
+    }
+
+    const banner = document.getElementById('update-notification-banner');
+    if (banner) {
+        banner.innerHTML = `
+            <div style="text-align: center; padding: 8px; font-size: 0.85rem; color: #34D399; font-weight: 700;">
+                ⚡ Atualizando aplicativo, aguarde um instante...
+            </div>
+        `;
+    }
 
     // Limpa caches do Service Worker
     if ('caches' in window) {
@@ -93,7 +129,7 @@ async function applyAppUpdate() {
         } catch (e) {}
     }
 
-    // Força atualização do Service Worker
+    // Atualiza registrations
     if ('serviceWorker' in navigator) {
         try {
             const registrations = await navigator.serviceWorker.getRegistrations();
@@ -103,7 +139,6 @@ async function applyAppUpdate() {
         } catch (e) {}
     }
 
-    // Recarrega a página com a nova versão
     setTimeout(() => {
         window.location.reload(true);
     }, 400);
@@ -111,17 +146,12 @@ async function applyAppUpdate() {
 
 // Inicia verificação automática
 window.addEventListener('DOMContentLoaded', () => {
-    // Verifica logo após carregar
-    setTimeout(checkAppVersion, 2000);
+    setTimeout(checkAppVersion, 2500);
+    setInterval(checkAppVersion, 35000);
 
-    // Verifica a cada 30 segundos
-    setInterval(checkAppVersion, 30000);
-
-    // Verifica quando o usuário volta para o app (celular ou navegador)
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             checkAppVersion();
         }
     });
-    window.addEventListener('focus', checkAppVersion);
 });
