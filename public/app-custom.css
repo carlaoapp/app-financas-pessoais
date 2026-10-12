@@ -53,28 +53,36 @@ body {
    CABEÇALHO PRINCIPAL LIMPO E COMPACTO
    ========================================================================== */
 .top-navbar {
-    background: rgba(15, 23, 42, 0.85);
+    background: rgba(15, 23, 42, 0.95);
     backdrop-filter: blur(16px);
     -webkit-backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border-color);
-    padding: 10px 18px;
+    padding: 10px 16px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
+    flex-direction: column;
+    gap: 10px;
     position: sticky;
     top: 0;
     z-index: 100;
 }
 
-.brand-section {
+.brand-header-row {
     display: flex;
     align-items: center;
+    justify-content: space-between;
+    width: 100%;
     gap: 10px;
 }
 
+.brand-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
 .brand-logo-img {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     border-radius: 10px;
     object-fit: cover;
     box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
@@ -82,7 +90,7 @@ body {
 }
 
 .brand-title {
-    font-size: 1.1rem;
+    font-size: 1.15rem;
     font-weight: 800;
     color: #FFFFFF;
     letter-spacing: -0.5px;
@@ -94,18 +102,86 @@ body {
     color: var(--text-secondary);
 }
 
-.top-actions {
+.btn-user-badge {
+    background: rgba(30, 41, 59, 0.7);
+    border: 1px solid var(--border-color);
+    color: #94A3B8;
+    padding: 6px 12px;
+    border-radius: 10px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s;
+}
+
+.btn-user-badge:hover {
+    background: #1E293B;
+    color: #FFFFFF;
+    border-color: #3B82F6;
+}
+
+.user-name-text {
+    max-width: 120px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Linha 2 de Filtros (Ano, Mês e Botão Ocultar) Distribuídos Uniformemente */
+.filters-header-row {
     display: flex;
     align-items: center;
     gap: 8px;
+    width: 100%;
 }
 
-.btn-icon-action {
+.filters-header-row .ano-select-box {
+    flex: 1;
+    min-width: 80px;
+    height: 38px;
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: #FFFFFF;
+    border-radius: 10px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filters-header-row .mes-select-box {
+    flex: 2;
+    min-width: 120px;
+    height: 38px;
+    font-size: 0.85rem;
+    font-weight: 700;
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    color: #FFFFFF;
+    border-radius: 10px;
+    outline: none;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.filters-header-row .ano-select-box:hover,
+.filters-header-row .mes-select-box:hover {
+    border-color: #3B82F6;
+    background: var(--bg-card-hover);
+}
+
+.filters-header-row .btn-icon-action {
+    flex-shrink: 0;
+    width: 42px;
+    height: 38px;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-    width: 36px;
-    height: 36px;
     border-radius: 10px;
     display: flex;
     align-items: center;
@@ -114,27 +190,10 @@ body {
     transition: all 0.2s;
 }
 
-.btn-icon-action:hover, .btn-icon-action:active {
+.filters-header-row .btn-icon-action:hover,
+.filters-header-row .btn-icon-action:active {
     background: var(--bg-card-hover);
     border-color: #64748B;
-}
-
-.ano-select-box, .mes-select-box {
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
-    color: #FFFFFF;
-    font-weight: 700;
-    font-size: 0.82rem;
-    padding: 6px 10px;
-    border-radius: 10px;
-    outline: none;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-
-.ano-select-box:hover, .mes-select-box:hover {
-    border-color: #3B82F6;
-    background: var(--bg-card-hover);
 }
 
 /* ==========================================================================
@@ -145,7 +204,7 @@ body {
     background: rgba(15, 23, 42, 0.95);
     border-bottom: 1px solid var(--border-color);
     position: sticky;
-    top: 57px;
+    top: 96px;
     z-index: 95;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
