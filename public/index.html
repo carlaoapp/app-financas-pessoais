@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.1.6">
+    <meta name="app-build-version" content="1.1.7">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.1.6">
+    <link rel="stylesheet" href="app-custom.css?v=1.1.7">
 </head>
 <body class="mode-desktop">
 
@@ -468,27 +468,23 @@
                             </button>
                         </div>
 
-                        <!-- Linha 3: Botões de Captura de Mídia (Foto / Filmagem / Galeria) -->
-                        <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center; padding: 12px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-color); border-radius: 12px;">
-                            <span style="font-size: 0.85rem; font-weight: 700; color: #A78BFA; margin-right: 4px; display: flex; align-items: center; gap: 6px;">
-                                📸 Anexar Mídia:
-                            </span>
-                            
+                        <!-- Linha 3: Botões de Captura de Mídia (Linha Única Uniforme) -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; box-sizing: border-box; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-color); border-radius: 12px;">
                             <!-- Botão Tirar Foto -->
-                            <button type="button" onclick="document.getElementById('inputCapturaFoto').click()" class="btn-midia-captura" style="background: #1E293B; border: 1px solid #8B5CF6; color: #DDD6FE; padding: 9px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                📷 Tirar Foto
+                            <button type="button" onclick="document.getElementById('inputCapturaFoto').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #8B5CF6; color: #DDD6FE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                <span>📷</span> <span>Tirar Foto</span>
                             </button>
                             <input type="file" id="inputCapturaFoto" accept="image/*" capture="environment" style="display: none;" onchange="capturarMidiaDesejo(this, 'foto')">
 
-                            <!-- Botão Gravar Vídeo / Filmar -->
-                            <button type="button" onclick="document.getElementById('inputCapturaVideo').click()" class="btn-midia-captura" style="background: #1E293B; border: 1px solid #EC4899; color: #FBCFE8; padding: 9px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                🎥 Filmar / Gravar
+                            <!-- Botão Filmar -->
+                            <button type="button" onclick="document.getElementById('inputCapturaVideo').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #EC4899; color: #FBCFE8; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                <span>🎥</span> <span>Filmar</span>
                             </button>
                             <input type="file" id="inputCapturaVideo" accept="video/*" capture="camcorder" style="display: none;" onchange="capturarMidiaDesejo(this, 'video')">
 
-                            <!-- Botão Galeria / Arquivos -->
-                            <button type="button" onclick="document.getElementById('inputCapturaGaleria').click()" class="btn-midia-captura" style="background: #1E293B; border: 1px solid #3B82F6; color: #BFDBFE; padding: 9px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                📁 Galeria
+                            <!-- Botão Galeria -->
+                            <button type="button" onclick="document.getElementById('inputCapturaGaleria').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #3B82F6; color: #BFDBFE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                <span>📁</span> <span>Galeria</span>
                             </button>
                             <input type="file" id="inputCapturaGaleria" accept="image/*,video/*" style="display: none;" onchange="capturarMidiaDesejo(this, 'auto')">
                         </div>
@@ -788,12 +784,12 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.1.6"></script>
-    <script src="finance-sync.js?v=1.1.6"></script>
-    <script src="finance-powerbi.js?v=1.1.6"></script>
-    <script src="finance-dashboard.js?v=1.1.6"></script>
-    <script src="auth.js?v=1.1.6"></script>
-    <script src="auto-update.js?v=1.1.6"></script>
+    <script src="finance-db.js?v=1.1.7"></script>
+    <script src="finance-sync.js?v=1.1.7"></script>
+    <script src="finance-powerbi.js?v=1.1.7"></script>
+    <script src="finance-dashboard.js?v=1.1.7"></script>
+    <script src="auth.js?v=1.1.7"></script>
+    <script src="auto-update.js?v=1.1.7"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -842,7 +838,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.1.6')
+                navigator.serviceWorker.register('/sw.js?v=1.1.7')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor
