@@ -45,21 +45,36 @@ let filtrosAtivosDemo = {
     reserva: true
 };
 
-// Abrir / Fechar menu dropdown
-function toggleMenuFiltroDemo(event) {
+// Abrir modal expandido de filtros
+function abrirModalFiltroDemo(event) {
     if (event) event.stopPropagation();
-    const menu = document.getElementById('demoDropdownMenu');
-    if (!menu) return;
-    const isVisible = menu.style.display === 'block';
-    menu.style.display = isVisible ? 'none' : 'block';
+    const modal = document.getElementById('modalFiltroDemo');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
 }
 
-// Fechar menu ao clicar fora
+// Fechar modal expandido de filtros
+function fecharModalFiltroDemo() {
+    const modal = document.getElementById('modalFiltroDemo');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = '';
+    }
+}
+
+// Confirmar escolha: fecha o modal e mantém exatamente o que foi escolhido na tela
+function confirmarFiltrosDemo() {
+    fecharModalFiltroDemo();
+    aplicarFiltrosDemonstrativo();
+}
+
+// Fechar modal ao clicar fora da caixa interna
 document.addEventListener('click', function(e) {
-    const wrapper = document.getElementById('demoDropdownWrapper');
-    const menu = document.getElementById('demoDropdownMenu');
-    if (menu && wrapper && !wrapper.contains(e.target)) {
-        menu.style.display = 'none';
+    const modal = document.getElementById('modalFiltroDemo');
+    if (modal && e.target === modal) {
+        fecharModalFiltroDemo();
     }
 });
 
@@ -511,7 +526,9 @@ async function renderPowerBIDashboard() {
 
 window.renderPowerBIDashboard = renderPowerBIDashboard;
 window.filtrarDemonstrativo = filtrarDemonstrativo;
-window.toggleMenuFiltroDemo = toggleMenuFiltroDemo;
+window.abrirModalFiltroDemo = abrirModalFiltroDemo;
+window.fecharModalFiltroDemo = fecharModalFiltroDemo;
+window.confirmarFiltrosDemo = confirmarFiltrosDemo;
 window.selecionarFiltroDemoTudo = selecionarFiltroDemoTudo;
 window.toggleOpcaoFiltroDemo = toggleOpcaoFiltroDemo;
 window.aplicarFiltrosDemonstrativo = aplicarFiltrosDemonstrativo;

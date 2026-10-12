@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.2.1">
+    <meta name="app-build-version" content="1.2.2">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.2.1">
+    <link rel="stylesheet" href="app-custom.css?v=1.2.2">
 </head>
 <body class="mode-desktop">
 
@@ -366,64 +366,91 @@
                         </button>
                     </div>
 
-                    <!-- Botão Seletor com Menu Dropdown (Ver Tudo ou Selecionar Múltiplas Opções) -->
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 4px; position: relative;">
-                        <div style="font-size: 0.8rem; color: var(--text-secondary);">Exibir no demonstrativo:</div>
+                    <!-- Botão Centralizado para Selecionar o que quer ver -->
+                    <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 6px;">
                         
-                        <!-- Botão Dropdown Interativo -->
-                        <div style="position: relative;" id="demoDropdownWrapper">
-                            <button type="button" id="btnDemoDropdownToggle" onclick="toggleMenuFiltroDemo(event)" style="background: #0F172A; border: 1px solid #3B82F6; color: #FFFFFF; padding: 7px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.3); transition: all 0.2s;">
-                                <span style="font-size: 1rem;">⚙️</span>
-                                <span id="lblDemoFiltroSelecionado">Ver Tudo (Completo)</span>
-                                <span style="font-size: 0.75rem; color: #60A5FA;">▼</span>
-                            </button>
+                        <!-- Botão Centralizado em Destaque -->
+                        <button type="button" id="btnDemoDropdownToggle" onclick="abrirModalFiltroDemo(event)" style="background: linear-gradient(135deg, #1E293B, #0F172A); border: 1.5px solid #3B82F6; color: #FFFFFF; padding: 10px 22px; border-radius: 12px; font-size: 0.92rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25); transition: all 0.2s; min-width: 240px; max-width: 100%;">
+                            <span style="font-size: 1.15rem;">⚙️</span>
+                            <span id="lblDemoFiltroSelecionado">Ver Tudo (Completo)</span>
+                            <span style="font-size: 0.8rem; color: #60A5FA;">▼</span>
+                        </button>
 
-                            <!-- Caixa do Menu Dropdown com Checkboxes -->
-                            <div id="demoDropdownMenu" style="display: none; position: absolute; right: 0; top: 100%; margin-top: 6px; background: #0B1120; border: 1px solid #334155; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); min-width: 250px; padding: 8px; z-index: 999; backdrop-filter: blur(12px);">
-                                
-                                <!-- Opção: Ver Tudo -->
-                                <div onclick="selecionarFiltroDemoTudo(event)" style="display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s; background: rgba(59, 130, 246, 0.12); margin-bottom: 6px;" id="itemDemoTudo">
-                                    <input type="checkbox" id="chkDemoTudo" checked style="cursor: pointer; width: 16px; height: 16px; accent-color: #2563EB;" onchange="selecionarFiltroDemoTudo(event)">
-                                    <label for="chkDemoTudo" style="cursor: pointer; font-size: 0.85rem; font-weight: 800; color: #60A5FA; flex: 1;">
-                                        🌐 Ver Tudo (Completo)
-                                    </label>
-                                </div>
+                    </div>
+                </div>
 
-                                <div style="height: 1px; background: #1E293B; margin: 4px 0 6px 0;"></div>
+                <!-- MODAL EXPANDIDO DE SELEÇÃO: TELA MAIOR, MELHOR VISÃO E TOQUE CONFORTÁVEL -->
+                <div id="modalFiltroDemo" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.78); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); z-index: 99999; align-items: center; justify-content: center; padding: 16px;">
+                    <div style="background: #0B1120; border: 1.5px solid #334155; border-radius: 20px; width: 100%; max-width: 440px; box-shadow: 0 25px 60px rgba(0,0,0,0.85); padding: 22px 20px; box-sizing: border-box; animation: modalFadeIn 0.2s ease;">
+                        
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #1E293B; padding-bottom: 12px;">
+                            <div style="font-size: 1.15rem; font-weight: 800; color: #60A5FA; display: flex; align-items: center; gap: 8px;">
+                                <span>⚙️</span> Escolher o que Visualizar
+                            </div>
+                            <button type="button" onclick="fecharModalFiltroDemo()" style="background: transparent; border: none; color: #94A3B8; font-size: 1.4rem; cursor: pointer; padding: 4px 8px;">✕</button>
+                        </div>
 
-                                <!-- Opção 1: Receitas -->
-                                <div onclick="toggleOpcaoFiltroDemo('receitas', event)" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s;" class="demo-dropdown-item">
-                                    <input type="checkbox" id="chkDemoRec" checked style="cursor: pointer; width: 16px; height: 16px; accent-color: #10B981;" onchange="toggleOpcaoFiltroDemo('receitas', event)">
-                                    <label for="chkDemoRec" style="cursor: pointer; font-size: 0.82rem; font-weight: 700; color: #34D399; flex: 1;">
-                                        🟢 Receitas (Entradas)
-                                    </label>
-                                </div>
+                        <p style="font-size: 0.82rem; color: #94A3B8; margin-bottom: 16px;">Selecione uma ou mais opções que você deseja que apareçam no seu demonstrativo:</p>
 
-                                <!-- Opção 2: Despesas -->
-                                <div onclick="toggleOpcaoFiltroDemo('despesas', event)" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s;" class="demo-dropdown-item">
-                                    <input type="checkbox" id="chkDemoDes" checked style="cursor: pointer; width: 16px; height: 16px; accent-color: #EF4444;" onchange="toggleOpcaoFiltroDemo('despesas', event)">
-                                    <label for="chkDemoDes" style="cursor: pointer; font-size: 0.82rem; font-weight: 700; color: #F87171; flex: 1;">
-                                        🔴 Despesas (Saídas)
-                                    </label>
-                                </div>
-
-                                <!-- Opção 3: Investimentos -->
-                                <div onclick="toggleOpcaoFiltroDemo('investimentos', event)" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s;" class="demo-dropdown-item">
-                                    <input type="checkbox" id="chkDemoInv" checked style="cursor: pointer; width: 16px; height: 16px; accent-color: #8B5CF6;" onchange="toggleOpcaoFiltroDemo('investimentos', event)">
-                                    <label for="chkDemoInv" style="cursor: pointer; font-size: 0.82rem; font-weight: 700; color: #A78BFA; flex: 1;">
-                                        🟣 Investimentos
-                                    </label>
-                                </div>
-
-                                <!-- Opção 4: Reserva de Emergência -->
-                                <div onclick="toggleOpcaoFiltroDemo('reserva', event)" style="display: flex; align-items: center; gap: 10px; padding: 7px 12px; border-radius: 8px; cursor: pointer; transition: background 0.15s;" class="demo-dropdown-item">
-                                    <input type="checkbox" id="chkDemoRes" checked style="cursor: pointer; width: 16px; height: 16px; accent-color: #F59E0B;" onchange="toggleOpcaoFiltroDemo('reserva', event)">
-                                    <label for="chkDemoRes" style="cursor: pointer; font-size: 0.82rem; font-weight: 700; color: #FBBF24; flex: 1;">
-                                        🟡 Reserva de Emergência
-                                    </label>
+                        <!-- LISTA DE ESCOLHAS AMPLA E CONFORTÁVEL -->
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            
+                            <!-- Opção: Ver Tudo -->
+                            <div onclick="selecionarFiltroDemoTudo(event)" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; cursor: pointer; background: rgba(37, 99, 235, 0.15); border: 1px solid #2563EB;">
+                                <input type="checkbox" id="chkDemoTudo" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #2563EB;" onchange="selecionarFiltroDemoTudo(event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 0.95rem; font-weight: 800; color: #FFFFFF;">🌐 Ver Tudo (Completo)</div>
+                                    <div style="font-size: 0.74rem; color: #93C5FD;">Exibir todas as receitas, despesas, investimentos e reserva</div>
                                 </div>
                             </div>
+
+                            <div style="height: 1px; background: #1E293B; margin: 4px 0;"></div>
+
+                            <!-- Opção 1: Receitas -->
+                            <div onclick="toggleOpcaoFiltroDemo('receitas', event)" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; cursor: pointer; background: #141F36; border: 1px solid #1E293B;">
+                                <input type="checkbox" id="chkDemoRec" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #10B981;" onchange="toggleOpcaoFiltroDemo('receitas', event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 0.9rem; font-weight: 800; color: #34D399;">🟢 Receitas (Entradas)</div>
+                                    <div style="font-size: 0.73rem; color: #64748B;">Dinheiro que entrou no mês</div>
+                                </div>
+                            </div>
+
+                            <!-- Opção 2: Despesas -->
+                            <div onclick="toggleOpcaoFiltroDemo('despesas', event)" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; cursor: pointer; background: #141F36; border: 1px solid #1E293B;">
+                                <input type="checkbox" id="chkDemoDes" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #EF4444;" onchange="toggleOpcaoFiltroDemo('despesas', event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 0.9rem; font-weight: 800; color: #F87171;">🔴 Despesas (Saídas)</div>
+                                    <div style="font-size: 0.73rem; color: #64748B;">Contas e compras do mês</div>
+                                </div>
+                            </div>
+
+                            <!-- Opção 3: Investimentos -->
+                            <div onclick="toggleOpcaoFiltroDemo('investimentos', event)" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; cursor: pointer; background: #141F36; border: 1px solid #1E293B;">
+                                <input type="checkbox" id="chkDemoInv" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #8B5CF6;" onchange="toggleOpcaoFiltroDemo('investimentos', event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 0.9rem; font-weight: 800; color: #A78BFA;">🟣 Investimentos</div>
+                                    <div style="font-size: 0.73rem; color: #64748B;">Aplicações e patrimônio futuro</div>
+                                </div>
+                            </div>
+
+                            <!-- Opção 4: Reserva de Emergência -->
+                            <div onclick="toggleOpcaoFiltroDemo('reserva', event)" style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border-radius: 12px; cursor: pointer; background: #141F36; border: 1px solid #1E293B;">
+                                <input type="checkbox" id="chkDemoRes" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #F59E0B;" onchange="toggleOpcaoFiltroDemo('reserva', event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 0.9rem; font-weight: 800; color: #FBBF24;">🟡 Reserva de Emergência</div>
+                                    <div style="font-size: 0.73rem; color: #64748B;">Fundo seguro para imprevistos</div>
+                                </div>
+                            </div>
+
                         </div>
+
+                        <!-- Botão Aplicar Escolha que fecha o modal imediatamente -->
+                        <div style="margin-top: 20px;">
+                            <button type="button" onclick="confirmarFiltrosDemo()" style="width: 100%; padding: 13px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; border-radius: 12px; color: #FFFFFF; font-weight: 800; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4);">
+                                ✓ Confirmar e Visualizar
+                            </button>
+                        </div>
+
                     </div>
                 </div>
 
@@ -917,12 +944,12 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.2.1"></script>
-    <script src="finance-sync.js?v=1.2.1"></script>
-    <script src="finance-powerbi.js?v=1.2.1"></script>
-    <script src="finance-dashboard.js?v=1.2.1"></script>
-    <script src="auth.js?v=1.2.1"></script>
-    <script src="auto-update.js?v=1.2.1"></script>
+    <script src="finance-db.js?v=1.2.2"></script>
+    <script src="finance-sync.js?v=1.2.2"></script>
+    <script src="finance-powerbi.js?v=1.2.2"></script>
+    <script src="finance-dashboard.js?v=1.2.2"></script>
+    <script src="auth.js?v=1.2.2"></script>
+    <script src="auto-update.js?v=1.2.2"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -971,7 +998,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.2.1')
+                navigator.serviceWorker.register('/sw.js?v=1.2.2')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor
