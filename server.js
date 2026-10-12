@@ -9,6 +9,18 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
+
+// Previne cache em navegadores para arquivos criticos de controle
+app.use((req, res, next) => {
+    const p = req.path;
+    if (p === '/' || p === '/index.html' || p === '/sw.js' || p === '/version.json' || p === '/auto-update.js') {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+    }
+    next();
+});
+
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Status da API
