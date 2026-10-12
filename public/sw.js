@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.0.4
-const CACHE_NAME = 'financas-pessoais-v1.0.4';
+// Service Worker - APP Finanças Pessoais v1.0.6
+const CACHE_NAME = 'financas-pessoais-v1.0.6';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',

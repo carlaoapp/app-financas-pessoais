@@ -163,7 +163,7 @@
                     <button class="btn-sub-tool" onclick="zoomFinance(-0.1)" title="Diminuir Visualização (Lupa -)">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
                     </button>
-                    <span id="lblZoomPercent" style="font-size: 0.78rem; font-weight: 700; color: #94A3B8; min-width: 40px; text-align: center;">100%</span>
+                    <span id="lblZoomPercent" onclick="resetFinanceZoom()" title="Clique para resetar para 100%" style="font-size: 0.78rem; font-weight: 700; color: #94A3B8; min-width: 40px; text-align: center; cursor: pointer;">100%</span>
                     <button class="btn-sub-tool" onclick="zoomFinance(0.1)" title="Aumentar Visualização (Lupa +)">
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
                     </button>
@@ -191,7 +191,7 @@
         <div class="hero-balance-card">
             <div class="hero-balance-header">
                 <span class="hero-label">Saldo Livre Estimado</span>
-                <span class="hero-badge-status" id="lblFaturaMesHero">Mês Ativo</span>
+                <span class="hero-badge-status" id="lblFaturaMesHero" onclick="selecionarMesAtual()" style="cursor: pointer;" title="Clique para voltar ao mês atual">Mês Ativo</span>
             </div>
             
             <div class="hero-main-value" id="valSaldoHero">
@@ -258,49 +258,59 @@
             <div id="tabPainel" class="tab-content" style="display: block;">
                 
                 <!-- Resumo Geral do Mês (Tabela Orçado vs Realizado) -->
-                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 16px; margin-bottom: 18px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.2);">
+                <div class="summary-table-card">
                     <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; font-weight: 700; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px; font-size: 0.85rem; text-transform: uppercase;">
                         <div>Categoria</div>
                         <div style="text-align: right;">Orçado</div>
                         <div style="text-align: right;">Realizado</div>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; margin-bottom: 12px; font-size: 0.95rem;">
-                        <div style="color: #10B981; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981;"></span> Receitas
+                    <div class="summary-row-interactive" onclick="irParaSecao('listaEntradas')" title="Clique para ver Entradas (Receitas)">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #10B981; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981;"></span> Receitas
+                            </div>
+                            <div id="valReceitaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valReceitaRealizado" style="text-align: right; font-weight: bold; color: #10B981;">R$ 0,00</div>
                         </div>
-                        <div id="valReceitaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
-                        <div id="valReceitaRealizado" style="text-align: right; font-weight: bold; color: #10B981;">R$ 0,00</div>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; margin-bottom: 12px; font-size: 0.95rem;">
-                        <div style="color: #EF4444; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#EF4444;"></span> Despesas
+                    <div class="summary-row-interactive" onclick="irParaSecao('listaMovimentacoes')" title="Clique para ver Contas e Saídas">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #EF4444; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#EF4444;"></span> Despesas
+                            </div>
+                            <div id="valDespesaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valDespesaRealizado" style="text-align: right; font-weight: bold; color: #EF4444;">R$ 0,00</div>
                         </div>
-                        <div id="valDespesaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
-                        <div id="valDespesaRealizado" style="text-align: right; font-weight: bold; color: #EF4444;">R$ 0,00</div>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; margin-bottom: 12px; font-size: 0.95rem;">
-                        <div style="color: #8B5CF6; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#8B5CF6;"></span> Investimentos
+                    <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Investimento')" title="Clique para lançar Investimento">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #8B5CF6; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#8B5CF6;"></span> Investimentos
+                            </div>
+                            <div id="valInvestimentoOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valInvestimentoRealizado" style="text-align: right; font-weight: bold; color: #8B5CF6;">R$ 0,00</div>
                         </div>
-                        <div id="valInvestimentoOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
-                        <div id="valInvestimentoRealizado" style="text-align: right; font-weight: bold; color: #8B5CF6;">R$ 0,00</div>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; margin-bottom: 12px; font-size: 0.95rem;">
-                        <div style="color: #F59E0B; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#F59E0B;"></span> Reserva de Emergência
+                    <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Reserva de Emergência')" title="Clique para lançar Reserva">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #F59E0B; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#F59E0B;"></span> Reserva de Emergência
+                            </div>
+                            <div id="valReservaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valReservaRealizado" style="text-align: right; font-weight: bold; color: #F59E0B;">R$ 0,00</div>
                         </div>
-                        <div id="valReservaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
-                        <div id="valReservaRealizado" style="text-align: right; font-weight: bold; color: #F59E0B;">R$ 0,00</div>
                     </div>
                     
-                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-color); font-size: 1.05rem;">
-                        <div style="color: #3B82F6; font-weight: 700;">Saldo Livre</div>
-                        <div id="valSaldoOrcado" style="text-align: right; font-weight: bold; color: #60A5FA;">R$ 0,00</div>
-                        <div id="valSaldoRealizado" style="text-align: right; font-weight: 800; color: #3B82F6;">R$ 0,00</div>
+                    <div class="summary-row-interactive" onclick="switchFinanceTab('Lancamentos')" title="Clique para abrir Extrato Completo" style="margin-bottom: 0;">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-color); font-size: 1.05rem;">
+                            <div style="color: #3B82F6; font-weight: 700;">Saldo Livre</div>
+                            <div id="valSaldoOrcado" style="text-align: right; font-weight: bold; color: #60A5FA;">R$ 0,00</div>
+                            <div id="valSaldoRealizado" style="text-align: right; font-weight: 800; color: #3B82F6;">R$ 0,00</div>
+                        </div>
                     </div>
                 </div>
 
@@ -616,6 +626,10 @@
                 <button onclick="forceSync(); fecharModalPerfil();" style="padding: 12px; background: #2563EB; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>
                     <span>Sincronizar Dados Agora</span>
+                </button>
+                <button onclick="zerarTodosLancamentos()" style="padding: 12px; background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px dashed rgba(239, 68, 68, 0.5); border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>Zerar Lançamentos (Iniciar do Zero)</span>
                 </button>
                 <button onclick="logout(); fecharModalPerfil();" style="padding: 12px; background: rgba(239, 68, 68, 0.15); color: #FCA5A5; border: 1px solid #EF4444; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>

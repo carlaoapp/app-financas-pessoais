@@ -247,17 +247,42 @@ body {
 }
 
 /* ==========================================================================
-   HERO CARD DE SALDO (ESTILO FINTECH)
+   HERO CARD DE SALDO (ESTILO FINTECH) E CARD DE RESUMO GERAL
    ========================================================================== */
 .hero-balance-card {
     background: linear-gradient(145deg, #132247, #0D162B);
     border: 1px solid rgba(59, 130, 246, 0.25);
-    border-radius: var(--radius-lg);
+    border-radius: 14px;
     padding: 18px 20px;
-    margin: 14px 16px;
+    margin: 14px 0 16px 0;
+    width: 100%;
+    box-sizing: border-box;
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.5), 0 0 20px rgba(37, 99, 235, 0.15);
     position: relative;
     overflow: hidden;
+}
+
+.summary-table-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 14px;
+    padding: 18px 20px;
+    margin: 0 0 18px 0;
+    width: 100%;
+    box-sizing: border-box;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+}
+
+.summary-row-interactive {
+    transition: all 0.2s ease;
+    border-radius: 8px;
+    padding: 4px 6px;
+    margin: 0 -6px 10px -6px;
+    cursor: pointer;
+}
+
+.summary-row-interactive:hover {
+    background: rgba(255, 255, 255, 0.05);
 }
 
 .hero-balance-card::after {

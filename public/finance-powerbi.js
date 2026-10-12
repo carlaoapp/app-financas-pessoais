@@ -2,12 +2,17 @@
 
 let pbiChartDiff, pbiChartFontesRec, pbiChartFontesDes, pbiChartGauge;
 
+function getOrCreateChart(domId) {
+    const el = document.getElementById(domId);
+    if (!el) return null;
+    return echarts.getInstanceByDom(el) || echarts.init(el, 'dark');
+}
+
 function initPowerBICharts() {
-    // Inicializa instâncias do ECharts
-    window.pbiChartDiff = pbiChartDiff = echarts.init(document.getElementById('pbiChartDiff'), 'dark');
-    window.pbiChartFontesRec = pbiChartFontesRec = echarts.init(document.getElementById('pbiChartFontesRec'), 'dark');
-    window.pbiChartFontesDes = pbiChartFontesDes = echarts.init(document.getElementById('pbiChartFontesDes'), 'dark');
-    window.pbiChartGauge = pbiChartGauge = echarts.init(document.getElementById('pbiChartGauge'), 'dark');
+    window.pbiChartDiff = pbiChartDiff = getOrCreateChart('pbiChartDiff');
+    window.pbiChartFontesRec = pbiChartFontesRec = getOrCreateChart('pbiChartFontesRec');
+    window.pbiChartFontesDes = pbiChartFontesDes = getOrCreateChart('pbiChartFontesDes');
+    window.pbiChartGauge = pbiChartGauge = getOrCreateChart('pbiChartGauge');
 
     window.addEventListener('resize', function() {
         if(pbiChartDiff) pbiChartDiff.resize();

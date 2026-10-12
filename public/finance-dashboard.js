@@ -1,4 +1,4 @@
-let currentViewDate = new Date(2026, 5, 14); // Iniciando com data de exemplo
+let currentViewDate = new Date(); // Inicia com o mês e ano atuais (Hoje)
 
 if (typeof window.showToast !== 'function') {
   window.showToast = function(message) {
@@ -28,6 +28,23 @@ if (typeof window.showToast !== 'function') {
   };
 }
 
+// Reset inicial único para iniciar do zero conforme solicitação
+async function checarResetInicialDoZero() {
+    const CLEAN_KEY = 'financas_clean_slate_v1_0_6';
+    if (!localStorage.getItem(CLEAN_KEY)) {
+        try {
+            if (typeof dbLocal !== 'undefined' && dbLocal) {
+                await dbLocal.movimentacoes.clear();
+            }
+            localStorage.setItem('lastSyncTimestamp', '0');
+            localStorage.setItem(CLEAN_KEY, 'done');
+            console.log('Base de dados zerada com sucesso para início do zero.');
+        } catch (e) {
+            console.warn('Reset inicial:', e);
+        }
+    }
+}
+
 window.privacyMode = false;
 
 window.togglePrivacyMode = function() {
@@ -54,6 +71,9 @@ window.togglePrivacyMode = function() {
     if(typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
         renderPowerBIDashboard();
     }
+    if(typeof renderizarExtratoCompleto === 'function') {
+        renderizarExtratoCompleto();
+    }
 };
 
 function initHeader() {
@@ -67,28 +87,26 @@ function initHeader() {
             option.text = i;
             anoSelect.appendChild(option);
         }
-        anoSelect.value = currentViewDate.getFullYear();
     }
+    if (anoSelect) anoSelect.value = currentViewDate.getFullYear();
+
+    const mesSelect = document.getElementById('mesBaseSelector');
+    if (mesSelect) mesSelect.value = currentViewDate.getMonth();
     
     // Aplicar tema salvo
     const temaSalvo = localStorage.getItem('app_tema');
     if (temaSalvo) {
-        document.getElementById('temaSelector').value = temaSalvo;
+        const sel = document.getElementById('temaSelector');
+        if (sel) sel.value = temaSalvo;
         aplicarTema(temaSalvo);
     }
 }
 
 function updateMonthLabel() {
-    const mesesCompletos = ['janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+    const mesesCompletos = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
     const diasSemana = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
     
-    // Usa data de hoje se o mês e ano baterem com o currentViewDate
-    const hoje = new Date();
-    let displayDate = currentViewDate;
-    if (hoje.getMonth() === currentViewDate.getMonth() && hoje.getFullYear() === currentViewDate.getFullYear()) {
-        displayDate = hoje;
-    }
-    
+    const displayDate = currentViewDate;
     const diaNome = diasSemana[displayDate.getDay()];
     const diaNum = displayDate.getDate();
     const mesNome = mesesCompletos[displayDate.getMonth()];
@@ -103,33 +121,79 @@ function updateMonthLabel() {
     const mesSelect = document.getElementById('mesBaseSelector');
     if (mesSelect) mesSelect.value = displayDate.getMonth();
 
-    const monthGrid = document.getElementById('monthGrid');
-    if (monthGrid) {
-        monthGrid.innerHTML = '';
-        const mesesCurtos = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-        mesesCurtos.forEach((mesStr, index) => {
-            const isActive = index === currentViewDate.getMonth() ? 'active' : '';
-            monthGrid.innerHTML += `
-                <div class="month-chip ${isActive}" onclick="selecionarMes(${index})">
-                    ${mesStr}
-                </div>
-            `;
-        });
+    const badgeMesHero = document.getElementById('lblFaturaMesHero');
+    if (badgeMesHero) {
+        const hoje = new Date();
+        const isMesAtual = (hoje.getMonth() === displayDate.getMonth() && hoje.getFullYear() === displayDate.getFullYear());
+        badgeMesHero.innerText = isMesAtual ? 'Mês Ativo' : `${mesNome}/${ano}`;
+        badgeMesHero.title = isMesAtual ? 'Você está visualizando o mês atual' : 'Clique para voltar ao mês atual';
     }
 
     carregarPlanejamento();
+    if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
 }
 
 function selecionarMes(mesIndex) {
-    currentViewDate.setMonth(mesIndex);
+    currentViewDate.setMonth(parseInt(mesIndex));
     updateMonthLabel();
-    if(document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display === 'block' && typeof renderPowerBIDashboard === 'function') renderPowerBIDashboard();
+    if(document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display === 'block' && typeof renderPowerBIDashboard === 'function') {
+        renderPowerBIDashboard();
+    }
 }
 
 function selecionarAno(anoStr) {
     currentViewDate.setFullYear(parseInt(anoStr));
     updateMonthLabel();
-    if(document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display === 'block' && typeof renderPowerBIDashboard === 'function') renderPowerBIDashboard();
+    if(document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display === 'block' && typeof renderPowerBIDashboard === 'function') {
+        renderPowerBIDashboard();
+    }
+}
+
+function selecionarMesAtual() {
+    currentViewDate = new Date();
+    updateMonthLabel();
+    showToast('Visualizando o mês atual!');
+}
+
+function irParaSecao(elementId) {
+    const el = document.getElementById(elementId);
+    if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+}
+
+function abrirModalLancamentoComTipo(tipo) {
+    abrirModalLancamento();
+    const select = document.getElementById('inputTipoGasto');
+    if (select) {
+        select.value = tipo;
+        atualizarTextoStatus();
+    }
+}
+
+async function zerarTodosLancamentos() {
+    if (!confirm("⚠️ ATENÇÃO: Tem certeza de que deseja zerar todos os lançamentos existentes e iniciar do zero?\n\nEsta ação limpará todas as movimentações e receitas/despesas registradas.")) {
+        return;
+    }
+    
+    try {
+        if (typeof dbLocal !== 'undefined' && dbLocal) {
+            await dbLocal.movimentacoes.clear();
+        }
+        localStorage.setItem('lastSyncTimestamp', '0');
+        
+        await fetch('/api/database/reset', { method: 'POST' });
+        
+        showToast('Todos os lançamentos foram zerados! Pronto para iniciar do zero.');
+        fecharModalPerfil();
+        carregarPlanejamento();
+        if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+        if (typeof renderPowerBIDashboard === 'function') renderPowerBIDashboard();
+    } catch (e) {
+        console.error('Erro ao zerar dados:', e);
+        showToast('Dados locais zerados com sucesso!');
+        carregarPlanejamento();
+    }
 }
 
 // -- AÃ‡Ã•ES DO CABEÃ‡ALHO --
@@ -511,10 +575,19 @@ function toggleRecorrencia() {
 }
 
 async function editarLancamento(id) {
-    const item = await dbLocal.movimentacoes.get(id);
-    if (!item) return;
+    if (!id) return;
+    let item = await dbLocal.movimentacoes.get(id);
+    if (!item && !isNaN(id)) item = await dbLocal.movimentacoes.get(Number(id));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+    }
+    if (!item) {
+        showToast('Lançamento não encontrado.');
+        return;
+    }
 
-    await abrirModalLancamento(); // Prepara o modal e carrega as contas
+    abrirModalLancamento(); // Prepara o modal e carrega campos
 
     document.getElementById('inputIdMovimentacao').value = item.id;
     document.getElementById('inputTipoGasto').value = item.tipo_gasto;
@@ -535,19 +608,40 @@ async function editarLancamento(id) {
         document.getElementById('inputTotalParcelas').value = item.total_parcelas;
     }
 
-    document.getElementById('btnSalvar').innerText = 'Atualizar';
+    document.getElementById('btnSalvar').innerText = 'Atualizar Lançamento';
     atualizarTextoStatus();
 }
+window.editarLancamento = editarLancamento;
 
 async function excluirLancamento(id) {
-    if(!confirm("Tem certeza que deseja excluir permanentemente esta conta?")) return;
+    if (!id) return;
+    if(!confirm("Tem certeza que deseja excluir permanentemente este lançamento?")) return;
+    
+    let item = await dbLocal.movimentacoes.get(id);
+    let targetId = id;
+    if (!item && !isNaN(id)) {
+        item = await dbLocal.movimentacoes.get(Number(id));
+        if (item) targetId = Number(id);
+    }
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+        if (item) targetId = item.id;
+    }
     
     const timestamp = Date.now();
-    await dbLocal.movimentacoes.update(id, { deleted: 1, sync_status: 'pending_update', updated_at: timestamp });
+    if (item) {
+        await dbLocal.movimentacoes.update(targetId, { deleted: 1, sync_status: 'pending_update', updated_at: timestamp });
+    } else {
+        await dbLocal.movimentacoes.delete(targetId);
+    }
     
+    showToast('Lançamento excluído com sucesso!');
     carregarPlanejamento();
+    if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
     if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
 }
+window.excluirLancamento = excluirLancamento;
 
 async function salvarLancamento(event) {
     event.preventDefault();
@@ -649,11 +743,11 @@ async function salvarLancamento(event) {
     if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
     
     if (tipoGasto === 'Lista de Desejos') {
-        switchTab('Desejos');
+        switchFinanceTab('Desejos');
     } else if (tipoGasto === 'Conta a Pagar') {
-        switchTab('APagar');
+        switchFinanceTab('APagar');
     } else {
-        switchTab('Painel');
+        switchFinanceTab('Painel');
     }
 }
 
@@ -670,6 +764,7 @@ async function excluirLancamentoAtual() {
         showToast('Lançamento excluído!');
         fecharModalLancamento();
         carregarPlanejamento();
+        if(typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
         if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
         
         if (document.getElementById('modalFatura').style.display === 'flex') {
@@ -708,13 +803,17 @@ function switchFinanceTab(tabName) {
         carregarListaDesejos();
     } else if (tabName === 'APagar') {
         carregarContasAPagar();
-    } else if (tabName === 'Painel' || tabName === 'Lancamentos') {
+    } else if (tabName === 'Lancamentos') {
+        carregarPlanejamento();
+        if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+    } else if (tabName === 'Painel') {
         carregarPlanejamento();
     }
 
     // Rola para o topo suavemente
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+window.switchTab = switchFinanceTab;
 
 // --- CARREGAR CONTAS A PAGAR (GAVETA) ---
 async function carregarContasAPagar() {
@@ -944,12 +1043,15 @@ async function pagarFaturaCompleta() {
 }
 
 // Carregar Dados da Tela Inicial
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    if (typeof checarResetInicialDoZero === 'function') {
+        await checarResetInicialDoZero();
+    }
     initHeader();
     updateMonthLabel();
+    applyFinanceZoom();
     setInterval(syncFinanceWithServer, 10000);
 });
-
 
 // Zoom para Gestao Financeira
 let financeZoom = parseFloat(localStorage.getItem('financeZoom')) || 1.0;
@@ -973,6 +1075,7 @@ function applyFinanceZoom() {
         }, 100);
     }
 }
+
 function zoomFinance(step) {
     financeZoom = Math.round((financeZoom + step) * 10) / 10;
     if (financeZoom < 0.7) financeZoom = 0.7;
@@ -980,9 +1083,13 @@ function zoomFinance(step) {
     localStorage.setItem('financeZoom', financeZoom.toFixed(1));
     applyFinanceZoom();
 }
-document.addEventListener('DOMContentLoaded', () => {
+
+function resetFinanceZoom() {
+    financeZoom = 1.0;
+    localStorage.setItem('financeZoom', '1.0');
     applyFinanceZoom();
-});
+    showToast('Visualização resetada para 100%');
+}
 
 // Ação de Sair do Aplicativo
 function confirmarSairApp() {

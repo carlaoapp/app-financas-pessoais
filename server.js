@@ -220,6 +220,14 @@ app.get('/api/movimentacoes', (req, res) => {
     });
 });
 
+// Endpoint para zerar todos os lançamentos (Começar do Zero)
+app.post('/api/database/reset', (req, res) => {
+    db.run('DELETE FROM movimentacoes', function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, message: 'Todos os lançamentos foram zerados.', changes: this.changes });
+    });
+});
+
 // Endpoint para backup/exportacao completa
 app.get('/api/export', (req, res) => {
     db.all('SELECT * FROM origens_renda', [], (err, origens) => {
