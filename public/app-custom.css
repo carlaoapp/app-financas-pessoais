@@ -69,16 +69,80 @@ body {
 .brand-header-row {
     display: flex;
     align-items: center;
-    justify-content: flex-start;
+    justify-content: space-between;
     width: 100%;
-    gap: 12px;
+    gap: 8px;
 }
 
 .brand-section {
     display: flex;
     align-items: center;
-    gap: 12px;
-    width: 100%;
+    gap: 10px;
+    flex-shrink: 1;
+    min-width: 0;
+}
+
+/* Badge Discreta e Elegante da Versão do App */
+.app-version-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 3px 9px;
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(59, 130, 246, 0.35);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    user-select: none;
+    flex-shrink: 0;
+}
+
+.app-version-badge:hover {
+    border-color: #60A5FA;
+    background: rgba(30, 41, 59, 0.9);
+    transform: scale(1.02);
+}
+
+.version-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10B981;
+    box-shadow: 0 0 6px rgba(16, 185, 129, 0.8);
+    display: inline-block;
+    flex-shrink: 0;
+    transition: all 0.3s ease;
+}
+
+.version-text {
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #93C5FD;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+}
+
+/* Alerta Visual de Atualização Pendente na Badge */
+.app-version-badge.has-update {
+    border-color: #F59E0B !important;
+    background: rgba(245, 158, 11, 0.22) !important;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    animation: pulseBadge 2s infinite;
+}
+
+.app-version-badge.has-update .version-dot {
+    background: #F59E0B !important;
+    box-shadow: 0 0 8px #F59E0B !important;
+}
+
+.app-version-badge.has-update .version-text {
+    color: #FDE68A !important;
+}
+
+@keyframes pulseBadge {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.04); }
 }
 
 .brand-logo-img {
