@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.3.0">
+    <meta name="app-build-version" content="1.3.1">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.3.0">
+    <link rel="stylesheet" href="app-custom.css?v=1.3.1">
 </head>
 <body class="mode-desktop">
 
@@ -585,7 +585,7 @@
                     <!-- Formulário Rápido -->
                     <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
                         <input type="text" id="novaContaDesc" placeholder="Descrição da Conta (Ex: IPTU, Seguro)" style="flex: 2; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white;">
-                        <input type="number" step="0.01" id="novaContaValor" placeholder="R$ Valor" style="flex: 1; min-width: 120px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white;">
+                        <input type="text" inputmode="numeric" id="novaContaValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 120px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white; font-weight: 700;">
                         <button onclick="adicionarContaRapida()" style="background: #F59E0B; color: #0F172A; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">
                             + Adicionar Conta
                         </button>
@@ -630,7 +630,7 @@
                         <!-- Linha 1: Descrição e Valor -->
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <input type="text" id="novoDesejoDesc" placeholder="O que você quer conquistar? (Ex: iPhone 16, Viagem a Gramado, Sofá Novo)" style="flex: 2; min-width: 200px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.95rem;">
-                            <input type="number" step="0.01" id="novoDesejoValor" placeholder="R$ Estimado (0,00)" style="flex: 1; min-width: 140px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.95rem;">
+                            <input type="text" inputmode="numeric" id="novoDesejoValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 140px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.95rem; font-weight: 700;">
                         </div>
 
                         <!-- Linha 2: Link da Fonte Pesquisada -->
@@ -812,12 +812,12 @@
 
                 <div class="form-group-row" style="display: flex; gap: 12px; margin-bottom: 14px;">
                     <div class="form-group" style="flex: 1;">
-                        <label>Valor Orçado (R$)</label>
-                        <input type="number" step="0.01" id="inputValor" placeholder="0,00" required>
+                        <label>Valor Orçado</label>
+                        <input type="text" inputmode="numeric" id="inputValor" class="input-money-mask" placeholder="R$ 0,00" required style="font-weight: 700; color: #10B981;">
                     </div>
                     <div class="form-group" style="flex: 1;">
-                        <label>Valor Realizado (R$)</label>
-                        <input type="number" step="0.01" id="inputValorRealizado" placeholder="0,00" value="0">
+                        <label>Valor Realizado</label>
+                        <input type="text" inputmode="numeric" id="inputValorRealizado" class="input-money-mask" placeholder="R$ 0,00" value="R$ 0,00" style="font-weight: 700; color: #60A5FA;">
                     </div>
                 </div>
 
@@ -1026,12 +1026,12 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.3.0"></script>
-    <script src="finance-sync.js?v=1.3.0"></script>
-    <script src="finance-powerbi.js?v=1.3.0"></script>
-    <script src="finance-dashboard.js?v=1.3.0"></script>
-    <script src="auth.js?v=1.3.0"></script>
-    <script src="auto-update.js?v=1.3.0"></script>
+    <script src="finance-db.js?v=1.3.1"></script>
+    <script src="finance-sync.js?v=1.3.1"></script>
+    <script src="finance-powerbi.js?v=1.3.1"></script>
+    <script src="finance-dashboard.js?v=1.3.1"></script>
+    <script src="auth.js?v=1.3.1"></script>
+    <script src="auto-update.js?v=1.3.1"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -1080,7 +1080,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.3.0')
+                navigator.serviceWorker.register('/sw.js?v=1.3.1')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor

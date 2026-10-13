@@ -815,6 +815,88 @@ window.excluirCategoriaCustomizada = excluirCategoriaCustomizada;
 window.restaurarCategoriasPadrao = restaurarCategoriasPadrao;
 window.renderizarSelectCategorias = renderizarSelectCategorias;
 
+// ==================================================================
+// SISTEMA DE MÁSCARA MONETÁRIA BRASILEIRA (R$ COM PONTUAÇÃO DINÂMICA)
+// ==================================================================
+function desformatarMoedaInput(valorStr) {
+    if (typeof valorStr === 'number') return isNaN(valorStr) ? 0 : valorStr;
+    if (!valorStr) return 0;
+    const digitos = String(valorStr).replace(/\D/g, '');
+    if (!digitos) return 0;
+    return parseInt(digitos, 10) / 100;
+}
+
+function setarValorMoedaInput(input, valorNum) {
+    if (!input) return;
+    if (valorNum === '' || valorNum === null || valorNum === undefined) {
+        input.value = '';
+        return;
+    }
+    const num = typeof valorNum === 'number' ? valorNum : parseFloat(valorNum);
+    if (isNaN(num)) {
+        input.value = '';
+        return;
+    }
+    input.value = 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function aplicarMascaraMoedaEmElemento(input) {
+    if (!input || input.dataset.maskMoedaAtiva === 'true') return;
+    input.dataset.maskMoedaAtiva = 'true';
+
+    input.addEventListener('input', () => {
+        let digitos = input.value.replace(/\D/g, '');
+        if (!digitos) {
+            input.value = '';
+            return;
+        }
+        let centavos = parseInt(digitos, 10);
+        if (centavos === 0) {
+            input.value = 'R$ 0,00';
+            return;
+        }
+        let val = centavos / 100;
+        input.value = 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    });
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Backspace') {
+            const digitos = input.value.replace(/\D/g, '');
+            if (digitos.length <= 1 || digitos === '00' || digitos === '0') {
+                input.value = '';
+                e.preventDefault();
+            }
+        }
+    });
+
+    input.addEventListener('focus', () => {
+        if (!input.value || input.value.trim() === '') {
+            input.value = 'R$ 0,00';
+            setTimeout(() => {
+                input.setSelectionRange(input.value.length, input.value.length);
+            }, 10);
+        }
+    });
+
+    input.addEventListener('blur', () => {
+        if (input.value === 'R$ 0,00' && !input.required) {
+            input.value = '';
+        }
+    });
+}
+
+function inicializarMascarasMoeda() {
+    const ids = ['inputValor', 'inputValorRealizado', 'novaContaValor', 'novoDesejoValor'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) aplicarMascaraMoedaEmElemento(el);
+    });
+}
+
+window.desformatarMoedaInput = desformatarMoedaInput;
+window.setarValorMoedaInput = setarValorMoedaInput;
+window.inicializarMascarasMoeda = inicializarMascarasMoeda;
+
 function fecharModalLancamento() {
     const m = document.getElementById('modalLancamento');
     if (m) m.style.display = 'none';
@@ -824,6 +906,8 @@ function fecharModalLancamento() {
 function abrirModalLancamento() {
     document.getElementById('inputIdMovimentacao').value = '';
     document.getElementById('formLancamento').reset();
+    setarValorMoedaInput(document.getElementById('inputValor'), '');
+    setarValorMoedaInput(document.getElementById('inputValorRealizado'), 0);
     document.getElementById('inputParcelado').disabled = false;
     document.getElementById('divParcelas').style.display = 'none';
     const btnExcluir = document.getElementById('btnExcluir');
@@ -890,8 +974,8 @@ async function editarLancamento(id) {
     document.getElementById('inputDescricao').value = item.descricao;
     const selCatEdit = document.getElementById('selectCategoriaPredefinida');
     if (selCatEdit) selCatEdit.value = item.descricao || '';
-    document.getElementById('inputValor').value = item.valor_total;
-    document.getElementById('inputValorRealizado').value = item.valor_realizado || 0;
+    setarValorMoedaInput(document.getElementById('inputValor'), item.valor_total);
+    setarValorMoedaInput(document.getElementById('inputValorRealizado'), item.valor_realizado || 0);
     document.getElementById('inputData').value = item.data_lancamento;
     document.getElementById('inputStatus').value = item.status;
     
@@ -956,8 +1040,14 @@ async function salvarLancamento(event) {
     const idAtual = document.getElementById('inputIdMovimentacao').value;
     const tipoGasto = document.getElementById('inputTipoGasto').value;
     const descricao = document.getElementById('inputDescricao').value;
-    const valorOrcado = parseFloat(document.getElementById('inputValor').value) || 0;
-    const valorRealizado = parseFloat(document.getElementById('inputValorRealizado').value) || 0;
+    const valorOrcado = desformatarMoedaInput(document.getElementById('inputValor').value);
+    const valorRealizado = desformatarMoedaInput(document.getElementById('inputValorRealizado').value);
+
+    if (valorOrcado <= 0) {
+        alert("Por favor, digite um valor orçado maior que zero!");
+        document.getElementById('inputValor').focus();
+        return;
+    }
     const data = document.getElementById('inputData').value;
     const status = document.getElementById('inputStatus').value;
     const isParcelado = document.getElementById('inputParcelado').checked;
@@ -1530,7 +1620,7 @@ async function carregarListaDesejos() {
 // Ação de Salvar Desejo Rápido (com Mídia e Link)
 async function adicionarDesejoRapido() {
     const desc = document.getElementById('novoDesejoDesc').value.trim();
-    const valor = parseFloat(document.getElementById('novoDesejoValor').value);
+    const valor = desformatarMoedaInput(document.getElementById('novoDesejoValor').value);
     const linkInput = document.getElementById('novoDesejoLink');
     const linkUrl = linkInput ? linkInput.value.trim() : '';
 
@@ -1576,9 +1666,9 @@ async function adicionarDesejoRapido() {
 // Ação de Salvar Conta Rápida
 async function adicionarContaRapida() {
     const desc = document.getElementById('novaContaDesc').value;
-    const valor = parseFloat(document.getElementById('novaContaValor').value);
+    const valor = desformatarMoedaInput(document.getElementById('novaContaValor').value);
 
-    if (!desc || !valor) {
+    if (!desc || !valor || valor <= 0) {
         alert("Preencha a descrição e o valor da conta.");
         return;
     }
@@ -1703,6 +1793,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     initHeader();
     updateMonthLabel();
     applyFinanceZoom();
+    inicializarMascarasMoeda();
     setInterval(syncFinanceWithServer, 10000);
 });
 
