@@ -582,6 +582,8 @@ function atualizarTextoStatus() {
     if (extras) {
         extras.style.display = (tipo === 'Lista de Desejos') ? 'block' : 'none';
     }
+}
+
 // ==================================================================
 // GERENCIADOR DE TIPOS DE RECEITA E DESPESA (CATEGORIAS RÁPIDAS)
 // ==================================================================
@@ -1810,7 +1812,6 @@ function renderizarExtratoCompleto() {
         const vOrcado = window.privacyMode ? '•••••' : parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
         const vRealizado = window.privacyMode ? '•••••' : parseFloat(item.valor_realizado || 0).toFixed(2).replace('.', ',');
 
-        const isReceita = (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva');
         const isReserva = (item.tipo_gasto === 'Reserva de Emergência');
         const isInvestimento = (item.tipo_gasto === 'Investimento');
 

@@ -150,41 +150,67 @@ body {
     flex-shrink: 0;
 }
 
-.filters-header-row .ano-select-box {
-    width: 110px;
+.filter-field-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     height: 36px;
-    text-align: center;
-    font-size: 0.85rem;
-    font-weight: 700;
+    padding: 0 10px;
     background: var(--bg-card);
     border: 1px solid var(--border-color);
-    color: #FFFFFF;
     border-radius: 10px;
-    outline: none;
-    cursor: pointer;
+    box-sizing: border-box;
     transition: all 0.2s;
     flex-shrink: 0;
+}
+
+.filter-field-pill:hover,
+.filter-field-pill:focus-within {
+    border-color: #3B82F6;
+    background: var(--bg-card-hover);
+}
+
+.filter-field-label {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: #94A3B8;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    user-select: none;
+    white-space: nowrap;
+}
+
+.filters-header-row .ano-select-box {
+    width: 68px;
+    height: 100%;
+    text-align: center;
+    font-size: 0.86rem;
+    font-weight: 700;
+    background: transparent;
+    border: none;
+    color: #FFFFFF;
+    outline: none;
+    cursor: pointer;
+    padding: 0;
 }
 
 .filters-header-row .mes-select-box {
-    width: 140px;
-    height: 36px;
-    font-size: 0.85rem;
+    width: 105px;
+    height: 100%;
+    font-size: 0.86rem;
     font-weight: 700;
-    background: var(--bg-card);
-    border: 1px solid var(--border-color);
+    background: transparent;
+    border: none;
     color: #FFFFFF;
-    border-radius: 10px;
     outline: none;
     cursor: pointer;
-    transition: all 0.2s;
-    flex-shrink: 0;
+    padding: 0;
 }
 
-.filters-header-row .ano-select-box:hover,
-.filters-header-row .mes-select-box:hover {
-    border-color: #3B82F6;
-    background: var(--bg-card-hover);
+.filters-header-row .ano-select-box option,
+.filters-header-row .mes-select-box option {
+    background: #0F172A;
+    color: #FFFFFF;
 }
 
 .filters-header-row .btn-icon-action {
@@ -225,13 +251,13 @@ body {
     .filters-selectors-group {
         width: 100%;
     }
-    .filters-header-row .ano-select-box {
+    .filters-header-row .filter-field-pill {
         flex: 1;
-        width: auto;
+        justify-content: center;
     }
+    .filters-header-row .ano-select-box,
     .filters-header-row .mes-select-box {
-        flex: 2;
-        width: auto;
+        width: 100%;
     }
     .header-tools-desktop-row {
         justify-content: space-between;
