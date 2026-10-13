@@ -1,9 +1,11 @@
-// auto-update.js - Notificação e Aplicação Automática de Atualização
+// auto-update.js - Notificação e Aplicação Automática de Atualização Confiável
 
+// Identifica a versão REAL atualmente executada e renderizada no navegador (NUNCA usa localStorage como fallback)
 function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
-    return localStorage.getItem('app_installed_version') || '1.3.5';
+    if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
+    return '1.3.6';
 }
 
 function isNewerVersion(serverVer, currentVer) {
@@ -43,7 +45,7 @@ function atualizarBadgeVersao(versao, temNovaVersao = false, novaVersao = '') {
             badge.title = `⚡ Nova versão v${novaVersao} disponível! Clique para baixar e atualizar agora.`;
         } else {
             badge.classList.remove('has-update');
-            badge.title = `Versão v${versao} ativa. Clique para verificar atualizações do sistema.`;
+            badge.title = `Versão v${versao} ativa. Clique para verificar atualizações ou forçar recarga.`;
         }
     }
 }
@@ -65,7 +67,10 @@ async function checkAppVersion(isManual = false) {
     try {
         const response = await fetch('/api/version?t=' + Date.now(), { 
             cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache, no-store, must-revalidate' }
+            headers: { 
+                'Cache-Control': 'no-cache, no-store, must-revalidate',
+                'Pragma': 'no-cache'
+            }
         });
         if (!response.ok) return;
 
@@ -73,7 +78,7 @@ async function checkAppVersion(isManual = false) {
         const serverVersion = (data.version || '').trim();
         const currentVersion = getCurrentRunningVersion();
 
-        console.log(`[Auto-Update] Versão Atual: ${currentVersion} | Versão Servidor: ${serverVersion}`);
+        console.log(`[Auto-Update] Versão Renderizada: v${currentVersion} | Versão Servidor: v${serverVersion}`);
 
         if (isNewerVersion(serverVersion, currentVersion)) {
             // Sinaliza na badge do cabeçalho
@@ -99,7 +104,7 @@ async function checkAppVersion(isManual = false) {
 // Verificação manual disparada ao clicar na badge da versão
 window.verificarAtualizacaoManual = function() {
     if (typeof showToast === 'function') {
-        showToast('Verificando se há novas atualizações...');
+        showToast('Verificando atualizações no servidor...');
     }
     checkAppVersion(true);
 };
@@ -121,7 +126,7 @@ function showUpdateBanner(newVersion, currentVersion) {
     banner.style.transform = 'translateX(-50%)';
     banner.style.zIndex = '999999';
     banner.style.width = 'calc(100% - 20px)';
-    banner.style.maxWidth = '480px';
+    banner.style.maxWidth = '490px';
     banner.style.background = '#0F172A';
     banner.style.border = '2px solid #F59E0B';
     banner.style.borderRadius = '16px';
@@ -141,7 +146,7 @@ function showUpdateBanner(newVersion, currentVersion) {
                         <span style="font-size: 0.72rem; background: #F59E0B; color: #0F172A; font-weight: 900; padding: 2px 7px; border-radius: 6px;">v${newVersion}</span>
                     </div>
                     <div style="font-size: 0.78rem; color: #CBD5E1; margin-top: 3px;">
-                        Novas melhorias publicadas no sistema. Clique abaixo para aplicar:
+                        Novas melhorias publicadas. Não é necessário desinstalar o app!
                     </div>
                 </div>
             </div>
@@ -159,67 +164,103 @@ function showUpdateBanner(newVersion, currentVersion) {
     document.body.appendChild(banner);
 }
 
+// Aplicação atômica e limpa da atualização, sem necessidade de desinstalação
 async function applyAppUpdate(newVersion) {
-    if (newVersion) {
-        sessionStorage.setItem('just_updated_to', newVersion);
-        localStorage.setItem('app_installed_version', newVersion);
-    }
+    sessionStorage.setItem('updating_app', 'true');
 
     const banner = document.getElementById('update-notification-banner');
     if (banner) {
         banner.innerHTML = `
             <div style="text-align: center; padding: 14px; font-size: 0.95rem; color: #34D399; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span>⚡</span> <span>Baixando e instalando v${newVersion || ''}... Recarregando sistema!</span>
+                <span>⚡</span> <span>Baixando v${newVersion || ''} e limpando caches obsoletos... Recarregando!</span>
             </div>
         `;
     }
 
-    // 1. Limpa TODOS os caches do Service Worker
+    // 1. Notifica todos os Service Workers para limpar caches e dar skipWaiting
+    if ('serviceWorker' in navigator) {
+        try {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            for (let reg of regs) {
+                if (reg.active) reg.active.postMessage({ action: 'clearAllCaches' });
+                if (reg.waiting) reg.waiting.postMessage({ action: 'skipWaiting' });
+                await reg.update();
+            }
+        } catch (e) {
+            console.warn('[Auto-Update] Erro ao enviar mensagens aos SWs:', e);
+        }
+    }
+
+    // 2. Limpa TODOS os caches de armazenamento offline
     if ('caches' in window) {
         try {
             const cacheNames = await caches.keys();
             await Promise.all(cacheNames.map(name => caches.delete(name)));
-            console.log('[Auto-Update] Caches limpos com sucesso.');
+            console.log('[Auto-Update] Todos os caches de navegador foram limpos.');
         } catch (e) {
             console.warn('[Auto-Update] Erro ao limpar caches:', e);
         }
     }
 
-    // 2. Desregistra os Service Workers antigos
-    if ('serviceWorker' in navigator) {
-        try {
-            const registrations = await navigator.serviceWorker.getRegistrations();
-            for (let reg of registrations) {
-                await reg.unregister();
-            }
-            console.log('[Auto-Update] Service workers desregistrados.');
-        } catch (e) {
-            console.warn('[Auto-Update] Erro ao desregistrar SW:', e);
-        }
-    }
-
-    // 3. Recarrega a página forçando bypass de cache
+    // 3. Força recarga imediata com bypass estrito de cache
     setTimeout(() => {
-        window.location.replace(window.location.origin + window.location.pathname + '?v=' + Date.now());
-    }, 500);
+        window.location.replace(window.location.origin + window.location.pathname + '?reload=' + Date.now());
+    }, 400);
 }
+
+// Função pública para forçar atualização e limpeza a qualquer momento
+window.forcarRecargaLimpaApp = function() {
+    if (confirm('Deseja recarregar o sistema e limpar todos os caches temporários para garantir a versão mais recente?')) {
+        applyAppUpdate('recarregar');
+    }
+};
 
 window.applyAppUpdate = applyAppUpdate;
 window.dismissUpdateBanner = dismissUpdateBanner;
 window.forcarAtualizacaoApp = () => applyAppUpdate();
 
-// Inicia verificação imediata e periódica
+// Remove registros legados de Service Worker que foram registrados com query string (?v=...)
+async function limparServiceWorkersLegados() {
+    if (!('serviceWorker' in navigator)) return;
+    try {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        for (const reg of registrations) {
+            const scriptURL = (reg.active || reg.installing || reg.waiting)?.scriptURL || '';
+            if (scriptURL.includes('?v=')) {
+                console.log('[Auto-Update] Desregistrando Service Worker legado com querystring:', scriptURL);
+                await reg.unregister();
+            }
+        }
+    } catch (e) {
+        console.warn('[Auto-Update] Falha ao verificar registros legados:', e);
+    }
+}
+
+// Inicia verificação imediata, limpezas e monitoramento do Service Worker
 window.addEventListener('DOMContentLoaded', () => {
-    // Inicializa a badge com a versão atual em execução
+    // 1. Limpa Service Workers com query strings legadas
+    limparServiceWorkersLegados();
+
+    // 2. Escuta mensagens enviadas pelo Service Worker ativo
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', event => {
+            if (event.data && event.data.type === 'SW_ACTIVATED') {
+                console.log('[Auto-Update] Service Worker atualizado ativado:', event.data.version);
+                checkAppVersion(false);
+            }
+        });
+    }
+
+    // 3. Inicializa a badge com a versão atual em execução
     atualizarBadgeVersao(getCurrentRunningVersion(), false);
 
-    // Checa versão no servidor logo no início
+    // 4. Checa versão no servidor logo no início
     setTimeout(() => checkAppVersion(false), 800);
 
-    // Checa a cada 10 segundos
+    // 5. Checa a cada 10 segundos
     setInterval(() => checkAppVersion(false), 10000);
 
-    // Checa ao retornar à aba / focar
+    // 6. Checa ao retornar à aba / focar
     document.addEventListener('visibilitychange', () => {
         if (document.visibilityState === 'visible') {
             checkAppVersion(false);
