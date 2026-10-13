@@ -226,6 +226,13 @@ function filtrarDemonstrativo(tipo) {
     aplicarFiltrosDemonstrativo();
 }
 
+window.abrirModalFiltroDemo = abrirModalFiltroDemo;
+window.fecharModalFiltroDemo = fecharModalFiltroDemo;
+window.confirmarFiltrosDemo = confirmarFiltrosDemo;
+window.selecionarFiltroDemoTudo = selecionarFiltroDemoTudo;
+window.toggleOpcaoFiltroDemo = toggleOpcaoFiltroDemo;
+window.aplicarFiltrosDemonstrativo = aplicarFiltrosDemonstrativo;
+
 async function renderPowerBIDashboard() {
     if (typeof echarts === 'undefined') return;
 
