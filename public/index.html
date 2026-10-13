@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.3.7">
-    <script>window.APP_BUILD_VERSION = '1.3.7';</script>
+    <meta name="app-build-version" content="1.3.8">
+    <script>window.APP_BUILD_VERSION = '1.3.8';</script>
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -27,7 +27,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.3.7">
+    <link rel="stylesheet" href="app-custom.css?v=1.3.8">
 </head>
 <body class="mode-desktop">
 
@@ -171,7 +171,7 @@
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
                 <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Clique para verificar se há novas atualizações do sistema" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.3.7</span>
+                    <span id="lblVersaoApp" class="version-text">v1.3.8</span>
                 </div>
             </div>
 
@@ -259,11 +259,7 @@
 
         <!-- 4. NAVEGAÇÃO DE ABAS NO COMPUTADOR (DESKTOP) -->
         <nav class="desktop-tabs-bar">
-            <button class="tab-pill active" id="navPainel" onclick="switchFinanceTab('Painel')">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-                <span>Resumo Mensal</span>
-            </button>
-            <button class="tab-pill" id="navLancamentos" onclick="switchFinanceTab('Lancamentos')">
+            <button class="tab-pill active" id="navLancamentos" onclick="switchFinanceTab('Lancamentos')">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                 <span>Lançamentos</span>
             </button>
@@ -283,92 +279,6 @@
 
         <!-- 5. CONTEÚDO DAS ABAS -->
         <main id="finance-view">
-
-            <!-- ABA 1: PAINEL PRINCIPAL -->
-            <div id="tabPainel" class="tab-content" style="display: block;">
-                
-                <!-- Resumo Geral do Mês (Tabela Orçado vs Realizado) -->
-                <div class="summary-table-card">
-                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; font-weight: 700; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px; font-size: 0.85rem; text-transform: uppercase;">
-                        <div>Categoria</div>
-                        <div style="text-align: right;">Orçado</div>
-                        <div style="text-align: right;">Realizado</div>
-                    </div>
-                    
-                    <div class="summary-row-interactive" onclick="irParaSecao('listaEntradas')" title="Clique para ver Entradas (Receitas)">
-                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
-                            <div style="color: #10B981; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981;"></span> Receitas
-                            </div>
-                            <div id="valReceitaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
-                            <div id="valReceitaRealizado" style="text-align: right; font-weight: bold; color: #10B981;">R$ 0,00</div>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-row-interactive" onclick="irParaSecao('listaMovimentacoes')" title="Clique para ver Contas e Saídas">
-                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
-                            <div style="color: #EF4444; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#EF4444;"></span> Despesas
-                            </div>
-                            <div id="valDespesaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
-                            <div id="valDespesaRealizado" style="text-align: right; font-weight: bold; color: #EF4444;">R$ 0,00</div>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Investimento')" title="Clique para lançar Investimento">
-                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
-                            <div style="color: #8B5CF6; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#8B5CF6;"></span> Investimentos
-                            </div>
-                            <div id="valInvestimentoOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
-                            <div id="valInvestimentoRealizado" style="text-align: right; font-weight: bold; color: #8B5CF6;">R$ 0,00</div>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Reserva de Emergência')" title="Clique para lançar Reserva">
-                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
-                            <div style="color: #F59E0B; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#F59E0B;"></span> Reserva de Emergência
-                            </div>
-                            <div id="valReservaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
-                            <div id="valReservaRealizado" style="text-align: right; font-weight: bold; color: #F59E0B;">R$ 0,00</div>
-                        </div>
-                    </div>
-                    
-                    <div class="summary-row-interactive" onclick="switchFinanceTab('Lancamentos')" title="Clique para abrir Extrato Completo" style="margin-bottom: 0;">
-                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-color); font-size: 1.05rem;">
-                            <div style="color: #3B82F6; font-weight: 700;">Saldo Livre</div>
-                            <div id="valSaldoOrcado" style="text-align: right; font-weight: bold; color: #60A5FA;">R$ 0,00</div>
-                            <div id="valSaldoRealizado" style="text-align: right; font-weight: 800; color: #3B82F6;">R$ 0,00</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- COLUNAS DE ENTRADAS E SAÍDAS -->
-                <div class="desktop-columns">
-                    <div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h3 style="font-size: 1.1rem; color: #10B981; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                                <span>📥</span> Entradas (Receitas)
-                            </h3>
-                        </div>
-                        <div class="card-list" id="listaEntradas">
-                            <!-- Preenchido via JS -->
-                        </div>
-                    </div>
-
-                    <div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                            <h3 style="font-size: 1.1rem; color: #EF4444; font-weight: 700; display: flex; align-items: center; gap: 8px;">
-                                <span>📤</span> Contas a Pagar / Saídas
-                            </h3>
-                        </div>
-                        <div class="card-list" id="listaMovimentacoes">
-                            <!-- Preenchido via JS -->
-                        </div>
-                    </div>
-                </div>
-            </div>
 
             <!-- ABA 2: DEMONSTRATIVO FINANCEIRO SIMPLES (POWER BI) -->
             <div id="tabPowerBI" class="tab-content powerbi-container" style="display: none;">
@@ -718,38 +628,97 @@
                 </div>
             </div>
 
-            <!-- ABA 5: EXTRATO COMPLETO DE LANÇAMENTOS -->
-            <div id="tabLancamentos" class="tab-content" style="display: none;">
+            <!-- ABA: LANÇAMENTOS COM RESUMO DE CATEGORIAS (ORÇADO VS REALIZADO) -->
+            <div id="tabLancamentos" class="tab-content" style="display: block;">
+                
+                <!-- Resumo Geral do Mês (Tabela Orçado vs Realizado) inserido no topo da tela de Lançamentos -->
+                <div class="summary-table-card">
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; font-weight: 700; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px; font-size: 0.85rem; text-transform: uppercase;">
+                        <div>Categoria</div>
+                        <div style="text-align: right;">Orçado</div>
+                        <div style="text-align: right;">Realizado</div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="filtrarExtratoTab('receitas', document.getElementById('btnFiltroReceitas'))" title="Clique para filtrar Receitas no Extrato">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #10B981; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981;"></span> Receitas
+                            </div>
+                            <div id="valReceitaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valReceitaRealizado" style="text-align: right; font-weight: bold; color: #10B981;">R$ 0,00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="filtrarExtratoTab('despesas', document.getElementById('btnFiltroDespesas'))" title="Clique para filtrar Despesas no Extrato">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #EF4444; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#EF4444;"></span> Despesas
+                            </div>
+                            <div id="valDespesaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valDespesaRealizado" style="text-align: right; font-weight: bold; color: #EF4444;">R$ 0,00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Investimento')" title="Clique para lançar Investimento">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #8B5CF6; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#8B5CF6;"></span> Investimentos
+                            </div>
+                            <div id="valInvestimentoOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valInvestimentoRealizado" style="text-align: right; font-weight: bold; color: #8B5CF6;">R$ 0,00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Reserva de Emergência')" title="Clique para lançar Reserva">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #F59E0B; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#F59E0B;"></span> Reserva de Emergência
+                            </div>
+                            <div id="valReservaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valReservaRealizado" style="text-align: right; font-weight: bold; color: #F59E0B;">R$ 0,00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="filtrarExtratoTab('todos', document.getElementById('btnFiltroTodos'))" title="Clique para ver todos os lançamentos" style="margin-bottom: 0;">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-color); font-size: 1.05rem;">
+                            <div style="color: #3B82F6; font-weight: 700;">Saldo Livre</div>
+                            <div id="valSaldoOrcado" style="text-align: right; font-weight: bold; color: #60A5FA;">R$ 0,00</div>
+                            <div id="valSaldoRealizado" style="text-align: right; font-weight: 800; color: #3B82F6;">R$ 0,00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card de Extrato com Título e Barra de Ferramentas Organizada -->
                 <div class="card-extrato-header" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px;">
                     <div>
                         <h2 style="font-size: 1.15rem; color: #60A5FA; margin: 0 0 2px 0;">Extrato de Lançamentos</h2>
                         <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Histórico completo de receitas e despesas do mês selecionado</p>
                     </div>
 
-                    <!-- LINHA ÚNICA: Filtros + Botões Bakap e Estrato (mesma linha, distribuídos uniformemente) -->
+                    <!-- LINHA ÚNICA / RESPONSIVA: Filtros + Botões de Ação (Backup, Importar, Estrato) -->
                     <div class="extrato-toolbar-row">
                         <!-- Filtros de Tipo -->
-                        <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;" id="filtrosExtratoContainer">
-                            <button class="tab-pill active" style="padding: 5px 8px; font-size: 0.75rem; font-weight: 700; white-space: nowrap;" onclick="filtrarExtratoTab('todos', this)">Todos</button>
-                            <button class="tab-pill" style="padding: 5px 8px; font-size: 0.75rem; font-weight: 700; color: #10B981; white-space: nowrap;" onclick="filtrarExtratoTab('receitas', this)">Receitas</button>
-                            <button class="tab-pill" style="padding: 5px 8px; font-size: 0.75rem; font-weight: 700; color: #EF4444; white-space: nowrap;" onclick="filtrarExtratoTab('despesas', this)">Despesas</button>
+                        <div class="filtros-extrato-container" id="filtrosExtratoContainer">
+                            <button class="tab-pill active" id="btnFiltroTodos" onclick="filtrarExtratoTab('todos', this)">Todos</button>
+                            <button class="tab-pill btn-filtro-rec" id="btnFiltroReceitas" onclick="filtrarExtratoTab('receitas', this)">Receitas</button>
+                            <button class="tab-pill btn-filtro-des" id="btnFiltroDespesas" onclick="filtrarExtratoTab('despesas', this)">Despesas</button>
                         </div>
 
-                        <!-- Botões de Ação na Mesma Linha: Exportar Backup Excel, Importar Backup e Estrato PDF -->
-                        <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
+                        <!-- Botões de Ação Alinhados: Backup Excel, Importar Backup e Estrato PDF -->
+                        <div class="extrato-actions-container">
                             <!-- Botão Exportar Backup em Excel -->
-                            <button type="button" class="btn-extrato-top-action" onclick="exportarBackupFinancas()" title="Exportar Backup dos Dados em Excel (.xlsx)" style="background: #1E293B; border: 1px solid #3B82F6; color: #60A5FA; padding: 5px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
+                            <button type="button" class="btn-extrato-top-action btn-action-backup" onclick="exportarBackupFinancas()" title="Exportar Backup dos Dados em Excel (.xlsx)">
                                 <span>📤</span> <span>Backup</span>
                             </button>
 
                             <!-- Botão Importar Backup -->
-                            <button type="button" class="btn-extrato-top-action" onclick="document.getElementById('inputImportarBakap').click()" title="Importar Backup dos Dados em Excel ou JSON" style="background: #1E293B; border: 1px solid #10B981; color: #34D399; padding: 5px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
+                            <button type="button" class="btn-extrato-top-action btn-action-importar" onclick="document.getElementById('inputImportarBakap').click()" title="Importar Backup dos Dados em Excel ou JSON">
                                 <span>📥</span> <span>Importar</span>
                             </button>
                             <input type="file" id="inputImportarBakap" accept=".xlsx, .xls, .csv, .json" style="display: none;" onchange="importarBackupFinancas(event)">
 
                             <!-- Botão Gerar Extrato PDF ("Estrato") -->
-                            <button type="button" class="btn-extrato-top-action" onclick="gerarExtratoPDF()" title="Gerar Extrato em PDF (Estrato)" style="background: linear-gradient(135deg, #EF4444, #DC2626); border: none; color: #FFFFFF; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); white-space: nowrap;">
+                            <button type="button" class="btn-extrato-top-action btn-action-pdf" onclick="gerarExtratoPDF()" title="Gerar Extrato em PDF (Estrato)">
                                 <span>📄</span> <span>Estrato</span>
                             </button>
                         </div>
@@ -766,13 +735,9 @@
 
     <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA DISPOSITIVOS MÓVEIS (FIXA) -->
     <nav class="mobile-bottom-nav">
-        <button class="mobile-nav-item active" id="mNavPainel" onclick="switchFinanceTab('Painel')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-            <span>Resumo</span>
-        </button>
-        <button class="mobile-nav-item" id="mNavLancamentos" onclick="switchFinanceTab('Lancamentos')">
+        <button class="mobile-nav-item active" id="mNavLancamentos" onclick="switchFinanceTab('Lancamentos')">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
-            <span>Extrato</span>
+            <span>Lançamentos</span>
         </button>
         <button class="mobile-nav-item" id="mNavAPagar" onclick="switchFinanceTab('APagar')">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
@@ -1054,12 +1019,12 @@
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
     <script src="xlsx.mini.min.js"></script>
-    <script src="finance-db.js?v=1.3.7"></script>
-    <script src="finance-sync.js?v=1.3.7"></script>
-    <script src="finance-powerbi.js?v=1.3.7"></script>
-    <script src="finance-dashboard.js?v=1.3.7"></script>
-    <script src="auth.js?v=1.3.7"></script>
-    <script src="auto-update.js?v=1.3.7"></script>
+    <script src="finance-db.js?v=1.3.8"></script>
+    <script src="finance-sync.js?v=1.3.8"></script>
+    <script src="finance-powerbi.js?v=1.3.8"></script>
+    <script src="finance-dashboard.js?v=1.3.8"></script>
+    <script src="auth.js?v=1.3.8"></script>
+    <script src="auto-update.js?v=1.3.8"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

@@ -464,13 +464,14 @@ async function carregarPlanejamento() {
 function renderizarLista(itens) {
     const containerDespesas = document.getElementById('listaMovimentacoes');
     const containerEntradas = document.getElementById('listaEntradas');
+    if (!containerDespesas && !containerEntradas) return;
     
-    containerDespesas.innerHTML = '';
-    containerEntradas.innerHTML = '';
+    if (containerDespesas) containerDespesas.innerHTML = '';
+    if (containerEntradas) containerEntradas.innerHTML = '';
 
     if (itens.length === 0) {
-        containerDespesas.innerHTML = '<p style="text-align:center; color:#94A3B8;">Nenhuma saída pendente para este mês.</p>';
-        containerEntradas.innerHTML = '<p style="text-align:center; color:#94A3B8;">Nenhuma entrada pendente para este mês.</p>';
+        if (containerDespesas) containerDespesas.innerHTML = '<p style="text-align:center; color:#94A3B8;">Nenhuma saída pendente para este mês.</p>';
+        if (containerEntradas) containerEntradas.innerHTML = '<p style="text-align:center; color:#94A3B8;">Nenhuma entrada pendente para este mês.</p>';
         return;
     }
 
@@ -1207,7 +1208,7 @@ async function salvarLancamento(event) {
     } else if (tipoGasto === 'Conta a Pagar') {
         switchFinanceTab('APagar');
     } else {
-        switchFinanceTab('Painel');
+        switchFinanceTab('Lancamentos');
     }
 }
 
@@ -1235,7 +1236,10 @@ async function excluirLancamentoAtual() {
 
 // --- SISTEMA DE ABAS ORGANIZADO (DESKTOP & MOBILE) ---
 function switchFinanceTab(tabName) {
-    const tabs = ['Painel', 'Lancamentos', 'PowerBI', 'APagar', 'Desejos'];
+    // Redireciona qualquer chamada legada da aba Painel/Resumo para a aba Lançamentos
+    if (tabName === 'Painel') tabName = 'Lancamentos';
+
+    const tabs = ['Lancamentos', 'APagar', 'PowerBI', 'Desejos'];
     
     // Oculta todas as abas
     tabs.forEach(t => {
@@ -1266,8 +1270,6 @@ function switchFinanceTab(tabName) {
     } else if (tabName === 'Lancamentos') {
         carregarPlanejamento();
         if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
-    } else if (tabName === 'Painel') {
-        carregarPlanejamento();
     }
 
     // Rola para o topo suavemente
@@ -2266,7 +2268,15 @@ function filtrarExtratoTab(filtro, btn) {
     if (container) {
         container.querySelectorAll('button').forEach(b => b.classList.remove('active'));
     }
-    if (btn) btn.classList.add('active');
+    if (btn) {
+        btn.classList.add('active');
+    } else {
+        const idBtn = filtro === 'receitas' ? 'btnFiltroReceitas' : (filtro === 'despesas' ? 'btnFiltroDespesas' : (filtro === 'todos' ? 'btnFiltroTodos' : null));
+        if (idBtn) {
+            const b = document.getElementById(idBtn);
+            if (b) b.classList.add('active');
+        }
+    }
     renderizarExtratoCompleto();
 }
 
@@ -2279,6 +2289,10 @@ function renderizarExtratoCompleto() {
         itens = itens.filter(i => i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
     } else if (window.extratoFiltroAtual === 'despesas') {
         itens = itens.filter(i => i.tipo_gasto !== 'Receita' && i.tipo_gasto !== 'Resgate de Reserva');
+    } else if (window.extratoFiltroAtual === 'investimentos') {
+        itens = itens.filter(i => i.tipo_gasto === 'Investimento');
+    } else if (window.extratoFiltroAtual === 'reserva') {
+        itens = itens.filter(i => i.tipo_gasto === 'Reserva de Emergência');
     }
     
     container.innerHTML = '';
