@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.3.2">
+    <meta name="app-build-version" content="1.3.3">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.3.2">
+    <link rel="stylesheet" href="app-custom.css?v=1.3.3">
 </head>
 <body class="mode-desktop">
 
@@ -582,13 +582,24 @@
                     <h2 style="font-size: 1.2rem; color: #F59E0B; margin-bottom: 4px;">Contas a Pagar (Gaveta)</h2>
                     <p style="font-size: 0.85rem; color: var(--text-secondary);">Contas que vencem este mês ou despesas fixas para monitoramento contínuo</p>
 
-                    <!-- Formulário Rápido -->
-                    <div style="display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap;">
-                        <input type="text" id="novaContaDesc" placeholder="Descrição da Conta (Ex: IPTU, Seguro)" style="flex: 2; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white;">
-                        <input type="text" inputmode="numeric" id="novaContaValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 120px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white; font-weight: 700;">
-                        <button onclick="adicionarContaRapida()" style="background: #F59E0B; color: #0F172A; border: none; padding: 10px 20px; border-radius: 8px; font-weight: bold; cursor: pointer;">
-                            + Adicionar Conta
-                        </button>
+                    <!-- Formulário com Salvar, Edição e Exclusão -->
+                    <input type="hidden" id="idContaEmEdicao" value="">
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <input type="text" id="novaContaDesc" placeholder="Descrição da Conta (Ex: IPTU, Seguro)" style="flex: 2; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white; font-size: 0.95rem;">
+                            <input type="text" inputmode="numeric" id="novaContaValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 120px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white; font-weight: 700; font-size: 0.95rem;">
+                        </div>
+                        <div id="acoesContaFormContainer" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button id="btnSalvarConta" type="button" onclick="salvarContaFormulario()" style="flex: 2; min-width: 140px; background: #F59E0B; color: #0F172A; border: none; padding: 11px 20px; border-radius: 8px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+                                Salvar
+                            </button>
+                            <button id="btnExcluirContaForm" type="button" onclick="excluirContaEmEdicao()" style="display: none; flex: 1; min-width: 110px; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 11px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                                🗑️ Excluir
+                            </button>
+                            <button id="btnCancelarContaForm" type="button" onclick="cancelarEdicaoConta()" style="display: none; background: #1E293B; border: 1px solid #475569; color: #94A3B8; padding: 11px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                                ✕ Cancelar
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1035,12 +1046,12 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.3.2"></script>
-    <script src="finance-sync.js?v=1.3.2"></script>
-    <script src="finance-powerbi.js?v=1.3.2"></script>
-    <script src="finance-dashboard.js?v=1.3.2"></script>
-    <script src="auth.js?v=1.3.2"></script>
-    <script src="auto-update.js?v=1.3.2"></script>
+    <script src="finance-db.js?v=1.3.3"></script>
+    <script src="finance-sync.js?v=1.3.3"></script>
+    <script src="finance-powerbi.js?v=1.3.3"></script>
+    <script src="finance-dashboard.js?v=1.3.3"></script>
+    <script src="auth.js?v=1.3.3"></script>
+    <script src="auto-update.js?v=1.3.3"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -1089,7 +1100,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.3.2')
+                navigator.serviceWorker.register('/sw.js?v=1.3.3')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor

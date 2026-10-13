@@ -902,6 +902,7 @@ function fecharModalLancamento() {
     if (m) {
         m.style.display = 'none';
         delete m.dataset.origemDesejoId;
+        delete m.dataset.origemContaId;
     }
     document.body.style.overflow = '';
 }
@@ -1184,9 +1185,30 @@ async function salvarLancamento(event) {
             console.warn('Erro ao atualizar status do desejo de origem:', e);
         }
     }
+
+    // Se este lançamento veio de programar uma Conta a Pagar (Gaveta), marcar a conta como Programada/Paga
+    const origemContaId = modalEl ? modalEl.dataset.origemContaId : null;
+    if (origemContaId) {
+        try {
+            let contaOriginal = await dbLocal.movimentacoes.get(origemContaId);
+            if (!contaOriginal && !isNaN(origemContaId)) contaOriginal = await dbLocal.movimentacoes.get(Number(origemContaId));
+            if (contaOriginal) {
+                await dbLocal.movimentacoes.update(contaOriginal.id, {
+                    status: 'Pago',
+                    sync_status: 'pending_update',
+                    updated_at: timestamp
+                });
+                console.log('Conta da gaveta marcada como programada no orçamento:', contaOriginal.id);
+            }
+        } catch(e) {
+            console.warn('Erro ao atualizar status da conta de origem:', e);
+        }
+    }
     
     fecharModalLancamento();
     carregarPlanejamento();
+    if(typeof carregarContasAPagar === 'function') carregarContasAPagar();
+    if(typeof carregarListaDesejos === 'function') carregarListaDesejos();
     if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
     
     if (tipoGasto === 'Lista de Desejos') {
@@ -1268,26 +1290,44 @@ async function carregarContasAPagar() {
     const contasAPagar = movs.filter(m => m.tipo_gasto === 'Conta a Pagar' && m.deleted !== 1 && m.status !== 'Cancelado' && m.status !== 'Pago');
     
     const container = document.getElementById('listaAPagarContainer');
+    if (!container) return;
     container.innerHTML = '';
 
     if (contasAPagar.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding: 20px; color: #64748B;">Nenhuma conta na gaveta. Você está em dia!</div>';
+        container.innerHTML = `
+            <div style="text-align:center; padding: 26px 16px; color: #64748B; background: var(--bg-card); border-radius: 14px; border: 1px dashed var(--border-color);">
+                <div style="font-size: 2rem; margin-bottom: 6px;">📂</div>
+                <div style="font-weight: 700; color: #94A3B8; margin-bottom: 2px;">Nenhuma conta na gaveta</div>
+                <div style="font-size: 0.85rem;">Cadastre acima as contas que você quer monitorar para programar o pagamento!</div>
+            </div>
+        `;
         return;
     }
 
     contasAPagar.forEach(c => {
         const div = document.createElement('div');
-        div.className = 'desejo-card';
-        div.style.borderLeftColor = '#F59E0B'; // Laranja
+        div.className = 'conta-card-item';
+        div.style.cssText = 'background: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid #F59E0B; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; box-shadow: 0 2px 8px rgba(0,0,0,0.15);';
+
+        const valorFormatado = window.privacyMode ? '•••••' : 'R$ ' + parseFloat(c.valor_total || 0).toFixed(2).replace('.', ',');
 
         div.innerHTML = `
-            <div class="card-details" style="flex:1;">
-                <h4>${c.descricao}</h4>
-                <p>Valor Estimado: ${window.privacyMode ? '•••••' : 'R$ ' + parseFloat(c.valor_total).toFixed(2).replace('.', ',')}</p>
+            <div style="flex: 1; min-width: 170px;">
+                <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: #F8FAFC; font-weight: 700;">${c.descricao}</h4>
+                <div style="font-size: 0.88rem; color: #F59E0B; font-weight: 700;">
+                    Valor Estimado: ${valorFormatado}
+                </div>
             </div>
-            <div class="card-actions">
-                <button class="btn-editar" onclick="editarLancamento('${c.id}')">Editar</button>
-                <button class="btn-excluir" onclick="excluirLancamento('${c.id}')">Excluir</button>
+            <div style="display: flex; gap: 6px; align-items: center; flex-wrap: wrap;">
+                <button class="btn-acao-programar" onclick="programarConta('${c.id}')" title="Programar pagamento e abrir tela de lançamento">
+                    📅 Programar
+                </button>
+                <button class="btn-acao-editar" onclick="editarContaNoFormulario('${c.id}')" title="Editar conta no formulário">
+                    ✏️ Editar
+                </button>
+                <button class="btn-acao-excluir" onclick="excluirConta('${c.id}')" title="Excluir conta da gaveta">
+                    🗑️
+                </button>
             </div>
         `;
         container.appendChild(div);
@@ -1872,44 +1912,215 @@ async function darAndamentoAoDesejo(id) {
 }
 window.darAndamentoAoDesejo = darAndamentoAoDesejo;
 
-// Ação de Salvar Conta Rápida
-async function adicionarContaRapida() {
-    const desc = document.getElementById('novaContaDesc').value;
+// Salvar Conta a Pagar no Formulário (Novo ou Edição)
+async function salvarContaFormulario() {
+    const desc = document.getElementById('novaContaDesc').value.trim();
     const valor = desformatarMoedaInput(document.getElementById('novaContaValor').value);
+    const idInput = document.getElementById('idContaEmEdicao');
+    const idEdicao = idInput ? idInput.value : '';
 
-    if (!desc || !valor || valor <= 0) {
-        alert("Preencha a descrição e o valor da conta.");
+    if (!desc || isNaN(valor) || valor <= 0) {
+        alert("Por favor, preencha a descrição e o valor da conta.");
         return;
     }
 
-    const novoLancamento = {
-        id: generateUUID(),
-        descricao: desc,
-        valor_total: valor,
-        valor_realizado: 0,
-        data_lancamento: '', // Deixa livre
-        tipo_gasto: 'Conta a Pagar',
-        status: 'Pendente',
-        conta_id: '1',
-        parcelado: 'Não',
-        total_parcelas: 1,
-        parcela_atual: 1,
-        id_grupo: '',
-        deleted: 0,
-        sync_status: 'pending_insert',
-        updated_at: Date.now()
-    };
+    const timestamp = Date.now();
 
-    await dbLocal.movimentacoes.put(novoLancamento);
-    
-    document.getElementById('novaContaDesc').value = '';
-    document.getElementById('novaContaValor').value = '';
-    
+    if (idEdicao) {
+        // Atualizar conta existente
+        let item = await dbLocal.movimentacoes.get(idEdicao);
+        if (!item && !isNaN(idEdicao)) item = await dbLocal.movimentacoes.get(Number(idEdicao));
+        const targetId = item ? item.id : idEdicao;
+
+        await dbLocal.movimentacoes.update(targetId, {
+            descricao: desc,
+            valor_total: valor,
+            sync_status: 'pending_update',
+            updated_at: timestamp
+        });
+
+        showToast('Conta a Pagar atualizada com sucesso!');
+    } else {
+        // Nova Conta a Pagar na Gaveta
+        const novoLancamento = {
+            id: generateUUID(),
+            descricao: desc,
+            valor_total: valor,
+            valor_realizado: 0,
+            data_lancamento: '', // Fica livre na gaveta até ser programada
+            tipo_gasto: 'Conta a Pagar',
+            status: 'Pendente',
+            conta_id: '1',
+            parcelado: 'Não',
+            total_parcelas: 1,
+            parcela_atual: 1,
+            id_grupo: '',
+            deleted: 0,
+            sync_status: 'pending_insert',
+            updated_at: timestamp
+        };
+
+        await dbLocal.movimentacoes.put(novoLancamento);
+        showToast('Conta a Pagar salva com sucesso!');
+    }
+
+    cancelarEdicaoConta();
     carregarContasAPagar();
-    if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
-    
-    showToast('Conta a Pagar adicionada com sucesso!');
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
 }
+window.salvarContaFormulario = salvarContaFormulario;
+window.adicionarContaRapida = salvarContaFormulario; // Compatibilidade
+
+// Carregar Conta no Formulário para Edição
+async function editarContaNoFormulario(id) {
+    if (!id) return;
+    let item = await dbLocal.movimentacoes.get(id);
+    if (!item && !isNaN(id)) item = await dbLocal.movimentacoes.get(Number(id));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+    }
+    if (!item) {
+        showToast('Conta não encontrada.');
+        return;
+    }
+
+    const idInput = document.getElementById('idContaEmEdicao');
+    if (idInput) idInput.value = item.id;
+
+    const descInput = document.getElementById('novaContaDesc');
+    if (descInput) descInput.value = item.descricao || '';
+
+    const valorInput = document.getElementById('novaContaValor');
+    if (valorInput) setarValorMoedaInput(valorInput, item.valor_total || 0);
+
+    const btnExcluirForm = document.getElementById('btnExcluirContaForm');
+    if (btnExcluirForm) btnExcluirForm.style.display = 'flex';
+
+    const btnCancelarForm = document.getElementById('btnCancelarContaForm');
+    if (btnCancelarForm) btnCancelarForm.style.display = 'flex';
+
+    if (descInput) {
+        descInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => descInput.focus(), 300);
+    }
+
+    showToast('Conta carregada para edição no topo! Altere e clique em Salvar.');
+}
+window.editarContaNoFormulario = editarContaNoFormulario;
+
+// Cancelar Edição da Conta
+function cancelarEdicaoConta() {
+    const idInput = document.getElementById('idContaEmEdicao');
+    if (idInput) idInput.value = '';
+
+    const descInput = document.getElementById('novaContaDesc');
+    if (descInput) descInput.value = '';
+
+    const valorInput = document.getElementById('novaContaValor');
+    if (valorInput) valorInput.value = '';
+
+    const btnExcluirForm = document.getElementById('btnExcluirContaForm');
+    if (btnExcluirForm) btnExcluirForm.style.display = 'none';
+
+    const btnCancelarForm = document.getElementById('btnCancelarContaForm');
+    if (btnCancelarForm) btnCancelarForm.style.display = 'none';
+}
+window.cancelarEdicaoConta = cancelarEdicaoConta;
+
+// Excluir Conta em Edição no Formulário
+async function excluirContaEmEdicao() {
+    const idInput = document.getElementById('idContaEmEdicao');
+    const id = idInput ? idInput.value : '';
+    if (!id) return;
+    await excluirConta(id);
+}
+window.excluirContaEmEdicao = excluirContaEmEdicao;
+
+// Excluir Conta da Gaveta
+async function excluirConta(id) {
+    if (!id) return;
+    if (!confirm("Tem certeza que deseja excluir esta conta da gaveta?")) return;
+
+    let item = await dbLocal.movimentacoes.get(id);
+    let targetId = id;
+    if (!item && !isNaN(id)) {
+        item = await dbLocal.movimentacoes.get(Number(id));
+        if (item) targetId = Number(id);
+    }
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+        if (item) targetId = item.id;
+    }
+
+    const timestamp = Date.now();
+    if (item) {
+        await dbLocal.movimentacoes.update(targetId, { deleted: 1, sync_status: 'pending_update', updated_at: timestamp });
+    } else {
+        await dbLocal.movimentacoes.delete(targetId);
+    }
+
+    const idInput = document.getElementById('idContaEmEdicao');
+    if (idInput && String(idInput.value) === String(id)) {
+        cancelarEdicaoConta();
+    }
+
+    showToast('Conta excluída com sucesso!');
+    carregarContasAPagar();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+}
+window.excluirConta = excluirConta;
+
+// Programar Conta (Abre a tela padrão de lançamento de despesa, investimento, receita, etc.)
+async function programarConta(id) {
+    if (!id) return;
+    let item = await dbLocal.movimentacoes.get(id);
+    if (!item && !isNaN(id)) item = await dbLocal.movimentacoes.get(Number(id));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+    }
+    if (!item) {
+        showToast('Conta não encontrada.');
+        return;
+    }
+
+    // Abre a mesma tela de lançamento padrão de receitas/despesas
+    abrirModalLancamento();
+
+    const modal = document.getElementById('modalLancamento');
+    if (modal) {
+        modal.dataset.origemContaId = item.id;
+    }
+
+    // Preenche a tela de lançamento com os dados da conta
+    document.getElementById('inputDescricao').value = item.descricao || '';
+    setarValorMoedaInput(document.getElementById('inputValor'), item.valor_total || 0);
+    setarValorMoedaInput(document.getElementById('inputValorRealizado'), 0);
+
+    // Tipo padrão Despesa Fixa (ou o usuário pode escolher Despesa Variável, Investimento, etc.)
+    const inputTipo = document.getElementById('inputTipoGasto');
+    if (inputTipo) inputTipo.value = 'Despesa Fixa';
+
+    // Data de hoje
+    const inputData = document.getElementById('inputData');
+    if (inputData) {
+        const hoje = new Date();
+        const yyyy = hoje.getFullYear();
+        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoje.getDate()).padStart(2, '0');
+        inputData.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    const btnSalvarModal = document.getElementById('btnSalvar');
+    if (btnSalvarModal) {
+        btnSalvarModal.innerText = '📅 Confirmar Programação no Orçamento';
+    }
+
+    showToast('Conta pronta para programação! Escolha o tipo, vencimento, parcelas e confirme.');
+}
+window.programarConta = programarConta;
 
 // Lógica do Modal da Fatura
 function abrirModalFatura() {

@@ -1133,6 +1133,30 @@ body {
     transform: translateY(-1px);
 }
 
+.btn-acao-programar {
+    background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(217, 119, 6, 0.25));
+    border: 1px solid #F59E0B;
+    color: #FCD34D;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.btn-acao-programar:hover {
+    background: linear-gradient(135deg, #F59E0B, #D97706);
+    color: #0F172A;
+    border-color: #FCD34D;
+    box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+    transform: translateY(-1px);
+}
+
 .btn-acao-conquistar {
     background: rgba(16, 185, 129, 0.15);
     border: 1px solid #10B981;
