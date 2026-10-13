@@ -115,14 +115,28 @@ app.post('/api/auth/login', (req, res) => {
     );
 });
 
-// Autenticação: Esqueci a Senha (Enviar Código para E-mail)
+// Autenticação: Esqueci a Senha (Enviar Código Exclusivamente para o E-mail)
 const nodemailer = require('nodemailer');
 function getMailTransporter() {
+    // 1. Suporte a Gmail direto
+    const gmailUser = process.env.GMAIL_USER || process.env.EMAIL_USER;
+    const gmailPass = process.env.GMAIL_PASS || process.env.EMAIL_PASS;
+    if (gmailUser && gmailPass) {
+        return nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: gmailUser,
+                pass: gmailPass
+            }
+        });
+    }
+
+    // 2. Suporte a SMTP Genérico (Host / Port / User / Pass)
     if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
         return nodemailer.createTransport({
             host: process.env.SMTP_HOST,
-            port: process.env.SMTP_PORT || 587,
-            secure: process.env.SMTP_SECURE === 'true',
+            port: parseInt(process.env.SMTP_PORT, 10) || 587,
+            secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
             auth: {
                 user: process.env.SMTP_USER,
                 pass: process.env.SMTP_PASS
@@ -146,7 +160,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
             return res.status(404).json({ error: 'E-mail não encontrado no sistema.' });
         }
 
-        // Gera código de 6 dígitos aleatório
+        // Gera código de 6 dígitos aleatório e seguro
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const resetId = 'rst_' + Date.now();
         const createdAt = Date.now();
@@ -158,43 +172,57 @@ app.post('/api/auth/forgot-password', async (req, res) => {
             async function(insertErr) {
                 if (insertErr) return res.status(500).json({ error: insertErr.message });
 
-                let emailEnviado = false;
                 const transporter = getMailTransporter();
 
+                // Se o servidor tiver serviço de e-mail configurado:
                 if (transporter) {
                     try {
+                        const fromSender = process.env.SMTP_FROM || process.env.GMAIL_USER || '"Finanças Pessoais" <naoresponda@financas.com>';
                         await transporter.sendMail({
-                            from: process.env.SMTP_FROM || '"Finanças Pessoais" <naoresponda@financas.com>',
+                            from: fromSender,
                             to: cleanEmail,
-                            subject: '🔑 Código para Recuperação de Senha - Finanças Pessoais',
+                            subject: '🔑 Código de Verificação para Recuperação de Senha - Finanças Pessoais',
                             html: `
-                                <div style="font-family: sans-serif; max-width: 500px; margin: 0 auto; padding: 20px; background: #0F172A; color: #FFFFFF; border-radius: 12px;">
-                                    <h2 style="color: #60A5FA; margin-bottom: 8px;">Recuperação de Senha</h2>
-                                    <p style="color: #94A3B8; font-size: 0.95rem;">Olá, <strong>${user.name}</strong>!</p>
-                                    <p style="color: #E2E8F0; font-size: 0.95rem;">Recebemos uma solicitação para redefinir a sua senha no aplicativo Finanças Pessoais.</p>
-                                    <div style="background: #1E293B; border: 1px dashed #3B82F6; border-radius: 8px; padding: 14px; text-align: center; margin: 20px 0;">
-                                        <div style="font-size: 0.8rem; color: #94A3B8; text-transform: uppercase; font-weight: bold;">Seu Código de Acesso</div>
-                                        <div style="font-size: 2rem; font-weight: 800; letter-spacing: 6px; color: #34D399; margin-top: 4px;">${code}</div>
+                                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; background: #0F172A; color: #FFFFFF; border-radius: 16px; border: 1px solid #1E293B;">
+                                    <div style="text-align: center; margin-bottom: 20px;">
+                                        <h2 style="color: #60A5FA; margin: 0 0 6px 0; font-size: 1.4rem;">Finanças Pessoais</h2>
+                                        <span style="font-size: 0.85rem; color: #94A3B8;">Recuperação Segura de Senha</span>
                                     </div>
-                                    <p style="color: #94A3B8; font-size: 0.8rem;">Este código é válido por 15 minutos. Se você não solicitou, basta ignorar este e-mail.</p>
+                                    <p style="color: #E2E8F0; font-size: 0.95rem; line-height: 1.5;">Olá, <strong>${user.name || 'Usuário'}</strong>!</p>
+                                    <p style="color: #CBD5E1; font-size: 0.95rem; line-height: 1.5;">Recebemos uma solicitação para redefinir a sua senha no aplicativo Finanças Pessoais.</p>
+                                    <p style="color: #94A3B8; font-size: 0.88rem;">Para continuar, copie o código de 6 dígitos abaixo e digite na tela do aplicativo:</p>
+                                    
+                                    <div style="background: #1E293B; border: 2px dashed #3B82F6; border-radius: 12px; padding: 18px; text-align: center; margin: 22px 0;">
+                                        <div style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Código de Verificação</div>
+                                        <div style="font-size: 2.2rem; font-weight: 900; letter-spacing: 8px; color: #34D399; margin-top: 6px; font-family: monospace;">${code}</div>
+                                    </div>
+
+                                    <p style="color: #94A3B8; font-size: 0.8rem; line-height: 1.4;">
+                                        ⏱️ <strong>Atenção:</strong> Este código expira em 15 minutos.<br>
+                                        🛡️ <strong>Segurança:</strong> Se você não solicitou a alteração de senha, ignore este e-mail. Seus dados permanecem seguros.
+                                    </p>
                                 </div>
                             `
                         });
-                        emailEnviado = true;
+
+                        console.log(`[Segurança] Código de recuperação enviado com sucesso para ${cleanEmail}`);
+                        return res.json({
+                            success: true,
+                            message: `Código de verificação enviado com sucesso para ${cleanEmail}! Verifique sua caixa de entrada e pasta de spam.`
+                        });
                     } catch (mailErr) {
-                        console.warn('[E-mail] Envio externo SMTP indisponível:', mailErr.message);
+                        console.error('[E-mail] Falha no envio do código:', mailErr.message);
+                        return res.status(500).json({
+                            error: 'Falha ao enviar e-mail de recuperação (' + mailErr.message + '). Verifique suas configurações de SMTP ou tente novamente.'
+                        });
                     }
+                } else {
+                    // Sem SMTP configurado no servidor: por segurança, NUNCA expor na tela
+                    console.warn(`[SEGURANÇA] SMTP não configurado. Código gerado para ${cleanEmail} (não enviado ao front-end por segurança).`);
+                    return res.status(503).json({
+                        error: 'O serviço de e-mail do servidor ainda não foi configurado (variáveis SMTP_HOST/SMTP_USER ou GMAIL_USER ausentes). Por segurança, o código não é exibido na tela.'
+                    });
                 }
-
-                console.log(`[Recuperação de Senha] Código gerado para ${cleanEmail}: ${code}`);
-
-                res.json({
-                    success: true,
-                    message: emailEnviado ? 
-                        `Código de recuperação enviado para ${cleanEmail}! Verifique sua caixa de entrada.` : 
-                        `Código de recuperação: ${code}. Use-o para cadastrar sua nova senha agora.`,
-                    codePreview: code
-                });
             }
         );
     });
@@ -248,19 +276,29 @@ app.get('/api/auth/me', (req, res) => {
     res.json({ loggedIn: true });
 });
 
-// Sync PULL: busca registros atualizados apos lastSync
+// Sync PULL: busca registros atualizados apos lastSync (filtrado por usuario com suporte a legado)
 app.get('/api/sync/pull', (req, res) => {
-    const lastSync = parseInt(req.query.lastSync) || 0;
+    const lastSync = parseInt(req.query.lastSync, 10) || 0;
+    const userId = req.query.userId || req.headers['x-user-id'] || null;
 
-    const queryOrigens = 'SELECT * FROM origens_renda WHERE updated_at > ?';
-    const queryContas = 'SELECT * FROM contas_bancarias WHERE updated_at > ?';
-    const queryMovs = 'SELECT * FROM movimentacoes WHERE updated_at > ?';
+    let queryOrigens, queryContas, queryMovs, params;
+    if (userId) {
+        queryOrigens = 'SELECT * FROM origens_renda WHERE (user_id = ? OR user_id IS NULL) AND updated_at > ?';
+        queryContas = 'SELECT * FROM contas_bancarias WHERE (user_id = ? OR user_id IS NULL) AND updated_at > ?';
+        queryMovs = 'SELECT * FROM movimentacoes WHERE (user_id = ? OR user_id IS NULL) AND updated_at > ?';
+        params = [userId, lastSync];
+    } else {
+        queryOrigens = 'SELECT * FROM origens_renda WHERE updated_at > ?';
+        queryContas = 'SELECT * FROM contas_bancarias WHERE updated_at > ?';
+        queryMovs = 'SELECT * FROM movimentacoes WHERE updated_at > ?';
+        params = [lastSync];
+    }
 
-    db.all(queryOrigens, [lastSync], (err, origens) => {
+    db.all(queryOrigens, params, (err, origens) => {
         if (err) return res.status(500).json({ error: err.message });
-        db.all(queryContas, [lastSync], (err, contas) => {
+        db.all(queryContas, params, (err, contas) => {
             if (err) return res.status(500).json({ error: err.message });
-            db.all(queryMovs, [lastSync], (err, movs) => {
+            db.all(queryMovs, params, (err, movs) => {
                 if (err) return res.status(500).json({ error: err.message });
                 res.json({
                     origens_renda: origens || [],
@@ -272,25 +310,27 @@ app.get('/api/sync/pull', (req, res) => {
     });
 });
 
-// Sync PUSH: insere ou atualiza em lote no SQLite
+// Sync PUSH: insere ou atualiza em lote no SQLite com user_id preservado
 app.post('/api/sync/push', (req, res) => {
-    const { origens_renda = [], contas_bancarias = [], movimentacoes = [] } = req.body;
+    const { origens_renda = [], contas_bancarias = [], movimentacoes = [], userId = null } = req.body;
+    const headerUserId = req.headers['x-user-id'] || userId;
     const serverTimestamp = Date.now();
 
     db.serialize(() => {
         // Origens de Renda
         if (origens_renda.length > 0) {
             const stmtOrigem = db.prepare(`
-                INSERT INTO origens_renda (id, descricao, tipo_receita, updated_at, deleted)
-                VALUES (?, ?, ?, ?, ?)
+                INSERT INTO origens_renda (id, descricao, tipo_receita, user_id, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     descricao = excluded.descricao,
                     tipo_receita = excluded.tipo_receita,
+                    user_id = COALESCE(excluded.user_id, origens_renda.user_id),
                     updated_at = excluded.updated_at,
                     deleted = excluded.deleted
             `);
             origens_renda.forEach(r => {
-                stmtOrigem.run([r.id, r.descricao, r.tipo_receita, serverTimestamp, r.deleted || 0]);
+                stmtOrigem.run([r.id, r.descricao, r.tipo_receita, r.user_id || headerUserId || null, serverTimestamp, r.deleted || 0]);
             });
             stmtOrigem.finalize();
         }
@@ -298,19 +338,20 @@ app.post('/api/sync/push', (req, res) => {
         // Contas Bancarias
         if (contas_bancarias.length > 0) {
             const stmtConta = db.prepare(`
-                INSERT INTO contas_bancarias (id, nome_conta, tipo_conta, limite_cartao, dia_fechamento, dia_vencimento, updated_at, deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO contas_bancarias (id, nome_conta, tipo_conta, limite_cartao, dia_fechamento, dia_vencimento, user_id, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     nome_conta = excluded.nome_conta,
                     tipo_conta = excluded.tipo_conta,
                     limite_cartao = excluded.limite_cartao,
                     dia_fechamento = excluded.dia_fechamento,
                     dia_vencimento = excluded.dia_vencimento,
+                    user_id = COALESCE(excluded.user_id, contas_bancarias.user_id),
                     updated_at = excluded.updated_at,
                     deleted = excluded.deleted
             `);
             contas_bancarias.forEach(c => {
-                stmtConta.run([c.id, c.nome_conta, c.tipo_conta, c.limite_cartao, c.dia_fechamento, c.dia_vencimento, serverTimestamp, c.deleted || 0]);
+                stmtConta.run([c.id, c.nome_conta, c.tipo_conta, c.limite_cartao, c.dia_fechamento, c.dia_vencimento, c.user_id || headerUserId || null, serverTimestamp, c.deleted || 0]);
             });
             stmtConta.finalize();
         }
@@ -318,8 +359,8 @@ app.post('/api/sync/push', (req, res) => {
         // Movimentacoes
         if (movimentacoes.length > 0) {
             const stmtMov = db.prepare(`
-                INSERT INTO movimentacoes (id, descricao, valor_total, valor_realizado, data_lancamento, tipo_gasto, status, conta_id, parcelado, total_parcelas, parcela_atual, id_grupo, link_url, midia_url, midia_tipo, updated_at, deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO movimentacoes (id, descricao, valor_total, valor_realizado, data_lancamento, tipo_gasto, status, conta_id, parcelado, total_parcelas, parcela_atual, id_grupo, link_url, midia_url, midia_tipo, user_id, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     descricao = excluded.descricao,
                     valor_total = excluded.valor_total,
@@ -335,6 +376,7 @@ app.post('/api/sync/push', (req, res) => {
                     link_url = excluded.link_url,
                     midia_url = excluded.midia_url,
                     midia_tipo = excluded.midia_tipo,
+                    user_id = COALESCE(excluded.user_id, movimentacoes.user_id),
                     updated_at = excluded.updated_at,
                     deleted = excluded.deleted
             `);
@@ -355,6 +397,7 @@ app.post('/api/sync/push', (req, res) => {
                     m.link_url || null,
                     m.midia_url || null,
                     m.midia_tipo || null,
+                    m.user_id || headerUserId || null,
                     serverTimestamp,
                     m.deleted || 0
                 ]);

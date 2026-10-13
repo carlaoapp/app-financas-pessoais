@@ -28,21 +28,10 @@ if (typeof window.showToast !== 'function') {
   };
 }
 
-// Reset inicial único para iniciar do zero conforme solicitação
+// Proteção de dados do usuário: desativação definitiva de qualquer rotina de reset automático
 async function checarResetInicialDoZero() {
-    const CLEAN_KEY = 'financas_clean_slate_v1_0_6';
-    if (!localStorage.getItem(CLEAN_KEY)) {
-        try {
-            if (typeof dbLocal !== 'undefined' && dbLocal) {
-                await dbLocal.movimentacoes.clear();
-            }
-            localStorage.setItem('lastSyncTimestamp', '0');
-            localStorage.setItem(CLEAN_KEY, 'done');
-            console.log('Base de dados zerada com sucesso para início do zero.');
-        } catch (e) {
-            console.warn('Reset inicial:', e);
-        }
-    }
+    // Nunca apaga os dados do usuário. Os lançamentos pertencem ao perfil cadastrado.
+    return;
 }
 
 window.privacyMode = false;
@@ -1138,8 +1127,9 @@ async function salvarLancamento(event) {
             if (isParcelado) desc = `${descricao} (${i + 1}/${totalParcelas})`;
             
             const l_valor_realizado = i === 0 ? valorRealizadoPorParcela : 0;
-            const l_status = i === 0 ? status : 'Pendente';
-            
+            const authUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+            const currentUserId = authUser ? authUser.id : (localStorage.getItem('financas_current_user_id') || null);
+
             const novoLancamento = {
                 id: generateUUID(),
                 descricao: desc,
@@ -1156,6 +1146,7 @@ async function salvarLancamento(event) {
                 link_url: linkDesejo,
                 midia_url: midiaUrlDesejo,
                 midia_tipo: midiaTipoDesejo,
+                user_id: currentUserId,
                 deleted: 0,
                 sync_status: 'pending_insert',
                 updated_at: timestamp

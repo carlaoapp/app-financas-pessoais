@@ -256,21 +256,24 @@ async function solicitarCodigoRecuperacao() {
             return;
         }
 
-        // Sucesso: avançar para passo 2
+        // Sucesso: avançar para passo 2 (código de verificação)
         if (passo1) passo1.style.display = 'none';
         if (passo2) passo2.style.display = 'block';
-        if (desc) desc.innerText = `Digite o código enviado para ${email} e defina sua nova senha.`;
+        if (desc) desc.innerText = `Um código de 6 dígitos foi enviado para ${email}. Acesse seu e-mail para coletá-lo e defina sua nova senha.`;
+
+        // O campo de código de verificação SEMPRE inicia vazio para coleta pelo e-mail
+        if (codigoInput) {
+            codigoInput.value = '';
+            codigoInput.placeholder = 'Digite o código de 6 dígitos';
+            codigoInput.focus();
+        }
 
         if (alerta) {
             alerta.style.display = 'block';
             alerta.style.background = 'rgba(16, 185, 129, 0.15)';
             alerta.style.color = '#6EE7B7';
             alerta.style.border = '1px solid #10B981';
-            alerta.innerText = data.message || 'Código gerado com sucesso!';
-        }
-
-        if (data.codePreview && codigoInput) {
-            codigoInput.value = data.codePreview;
+            alerta.innerText = data.message || `Código enviado para ${email}! Verifique sua caixa de entrada e spam.`;
         }
     } catch (err) {
         btn.disabled = false;

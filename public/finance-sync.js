@@ -1,4 +1,4 @@
-﻿// Lógica de Sincronização (Local IndexedDB <-> Servidor SQLite)
+// Lógica de Sincronização (Local IndexedDB <-> Servidor SQLite)
 
 window.setOnlineStatus = function(isOnline) {
     const dot = document.getElementById('statusDot');
@@ -27,7 +27,12 @@ async function syncFinanceWithServer() {
 
     try {
         console.log('Iniciando sincronização com servidor...');
-        const headers = { 'Content-Type': 'application/json' };
+        const user = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+        const currentUserId = user ? user.id : (localStorage.getItem('financas_current_user_id') || '');
+        const headers = { 
+            'Content-Type': 'application/json',
+            'x-user-id': currentUserId
+        };
 
         // 1. PUSH (Enviar do Dexie para o SQLite)
         if (typeof dbLocal !== 'undefined' && dbLocal) {
@@ -35,11 +40,19 @@ async function syncFinanceWithServer() {
             const pendingContas = await dbLocal.contas_bancarias.where('sync_status').notEqual('synced').toArray();
             const pendingMovimentacoes = await dbLocal.movimentacoes.where('sync_status').notEqual('synced').toArray();
 
+            // Atribui o user_id aos itens pendentes se ainda não tiverem
+            if (currentUserId) {
+                pendingRenda.forEach(r => { if (!r.user_id) r.user_id = currentUserId; });
+                pendingContas.forEach(c => { if (!c.user_id) c.user_id = currentUserId; });
+                pendingMovimentacoes.forEach(m => { if (!m.user_id) m.user_id = currentUserId; });
+            }
+
             if (pendingRenda.length > 0 || pendingContas.length > 0 || pendingMovimentacoes.length > 0) {
                 const pushResponse = await fetch('/api/sync/push', {
                     method: 'POST',
                     headers: headers,
                     body: JSON.stringify({
+                        userId: currentUserId,
                         origens_renda: pendingRenda,
                         contas_bancarias: pendingContas,
                         movimentacoes: pendingMovimentacoes
@@ -48,17 +61,20 @@ async function syncFinanceWithServer() {
 
                 if (pushResponse.ok) {
                     await dbLocal.transaction('rw', dbLocal.origens_renda, dbLocal.contas_bancarias, dbLocal.movimentacoes, async () => {
-                        for (let item of pendingRenda) await dbLocal.origens_renda.update(item.id, { sync_status: 'synced' });
-                        for (let item of pendingContas) await dbLocal.contas_bancarias.update(item.id, { sync_status: 'synced' });
-                        for (let item of pendingMovimentacoes) await dbLocal.movimentacoes.update(item.id, { sync_status: 'synced' });
+                        for (let item of pendingRenda) await dbLocal.origens_renda.update(item.id, { sync_status: 'synced', user_id: currentUserId || item.user_id });
+                        for (let item of pendingContas) await dbLocal.contas_bancarias.update(item.id, { sync_status: 'synced', user_id: currentUserId || item.user_id });
+                        for (let item of pendingMovimentacoes) await dbLocal.movimentacoes.update(item.id, { sync_status: 'synced', user_id: currentUserId || item.user_id });
                     });
                 }
             }
         }
 
-        // 2. PULL (Receber do SQLite para o Dexie)
+        // 2. PULL (Receber do SQLite para o Dexie com isolamento por usuário)
         const lastSync = localStorage.getItem('lastSyncTimestamp') || 0;
-        const pullResponse = await fetch(`/api/sync/pull?lastSync=${lastSync}`, { headers });
+        const pullUrl = currentUserId ? 
+            `/api/sync/pull?lastSync=${lastSync}&userId=${encodeURIComponent(currentUserId)}` : 
+            `/api/sync/pull?lastSync=${lastSync}`;
+        const pullResponse = await fetch(pullUrl, { headers });
 
         if (pullResponse.ok) {
             const updates = await pullResponse.json();
