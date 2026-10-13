@@ -899,7 +899,10 @@ window.inicializarMascarasMoeda = inicializarMascarasMoeda;
 
 function fecharModalLancamento() {
     const m = document.getElementById('modalLancamento');
-    if (m) m.style.display = 'none';
+    if (m) {
+        m.style.display = 'none';
+        delete m.dataset.origemDesejoId;
+    }
     document.body.style.overflow = '';
 }
 
@@ -1160,6 +1163,26 @@ async function salvarLancamento(event) {
         }
         console.log(`Foram salvos ${qtdCriar} lançamentos localmente.`);
         showToast(qtdCriar > 1 ? `Foram adicionados ${qtdCriar} lançamentos com sucesso!` : 'Lançamento adicionado com sucesso!');
+    }
+
+    // Se este lançamento veio de dar andamento a um Sonho/Desejo, marcar o desejo original como Conquistado
+    const modalEl = document.getElementById('modalLancamento');
+    const origemDesejoId = modalEl ? modalEl.dataset.origemDesejoId : null;
+    if (origemDesejoId) {
+        try {
+            let desejoOriginal = await dbLocal.movimentacoes.get(origemDesejoId);
+            if (!desejoOriginal && !isNaN(origemDesejoId)) desejoOriginal = await dbLocal.movimentacoes.get(Number(origemDesejoId));
+            if (desejoOriginal) {
+                await dbLocal.movimentacoes.update(desejoOriginal.id, {
+                    status: 'Pago',
+                    sync_status: 'pending_update',
+                    updated_at: timestamp
+                });
+                console.log('Desejo de origem marcado como conquistado no orçamento:', desejoOriginal.id);
+            }
+        } catch(e) {
+            console.warn('Erro ao atualizar status do desejo de origem:', e);
+        }
     }
     
     fecharModalLancamento();
@@ -1605,9 +1628,10 @@ async function carregarListaDesejos() {
                             ${isPago ? '<span class="badge-conquistado">✨ Conquistado!</span>' : '<span class="badge-planejado">🎯 Planejado</span>'}
                         </div>
                         <div class="desejo-acoes">
+                            <button class="btn-acao-andamento" onclick="darAndamentoAoDesejo('${d.id}')" title="Dar andamento ao sonho e fazer lançamento no orçamento">🚀 Dar Andamento (Lançar)</button>
                             ${!isPago ? `<button class="btn-acao-conquistar" onclick="marcarDesejoConquistado('${d.id}')" title="Marcar como realizado/comprado">✓ Conquistado</button>` : ''}
-                            <button class="btn-acao-editar" onclick="editarLancamento('${d.id}')" title="Editar">✏️ Editar</button>
-                            <button class="btn-acao-excluir" onclick="excluirLancamento('${d.id}')" title="Excluir">🗑️</button>
+                            <button class="btn-acao-editar" onclick="editarDesejoNoFormulario('${d.id}')" title="Editar este desejo no formulário">✏️ Editar</button>
+                            <button class="btn-acao-excluir" onclick="excluirDesejo('${d.id}')" title="Excluir este desejo">🗑️</button>
                         </div>
                     </div>
                 </div>
@@ -1617,51 +1641,236 @@ async function carregarListaDesejos() {
     });
 }
 
-// Ação de Salvar Desejo Rápido (com Mídia e Link)
-async function adicionarDesejoRapido() {
+// Salvar Desejo no Formulário (Novo ou Edição)
+async function salvarDesejoFormulario() {
     const desc = document.getElementById('novoDesejoDesc').value.trim();
     const valor = desformatarMoedaInput(document.getElementById('novoDesejoValor').value);
     const linkInput = document.getElementById('novoDesejoLink');
     const linkUrl = linkInput ? linkInput.value.trim() : '';
+    const idInput = document.getElementById('idDesejoEmEdicao');
+    const idEdicao = idInput ? idInput.value : '';
 
     if (!desc || isNaN(valor) || valor <= 0) {
-        alert("Por favor, preencha o nome do desejo e o valor estimado.");
+        alert("Por favor, preencha o que você quer conquistar e o valor estimado.");
         return;
     }
 
-    const novoLancamento = {
-        id: generateUUID(),
-        descricao: desc,
-        valor_total: valor,
-        valor_realizado: 0,
-        data_lancamento: new Date().toISOString().split('T')[0],
-        tipo_gasto: 'Lista de Desejos',
-        status: 'Pendente',
-        conta_id: '1',
-        parcelado: 'Não',
-        total_parcelas: 1,
-        parcela_atual: 1,
-        id_grupo: '',
-        link_url: linkUrl,
-        midia_url: midiaDesejoTemp.url || '',
-        midia_tipo: midiaDesejoTemp.tipo || '',
-        deleted: 0,
-        sync_status: 'pending_insert',
-        updated_at: Date.now()
-    };
+    const timestamp = Date.now();
 
-    await dbLocal.movimentacoes.put(novoLancamento);
-    
-    // Limpa os campos e mídia
-    document.getElementById('novoDesejoDesc').value = '';
-    document.getElementById('novoDesejoValor').value = '';
-    if (linkInput) linkInput.value = '';
-    removerMidiaDesejo();
-    
-    showToast('Desejo adicionado com sucesso!');
+    if (idEdicao) {
+        // Atualizar desejo existente
+        let item = await dbLocal.movimentacoes.get(idEdicao);
+        if (!item && !isNaN(idEdicao)) item = await dbLocal.movimentacoes.get(Number(idEdicao));
+        const targetId = item ? item.id : idEdicao;
+
+        await dbLocal.movimentacoes.update(targetId, {
+            descricao: desc,
+            valor_total: valor,
+            link_url: linkUrl,
+            midia_url: midiaDesejoTemp.url || (item ? item.midia_url : ''),
+            midia_tipo: midiaDesejoTemp.tipo || (item ? item.midia_tipo : ''),
+            sync_status: 'pending_update',
+            updated_at: timestamp
+        });
+
+        showToast('Desejo atualizado com sucesso!');
+    } else {
+        // Criar novo desejo
+        const novoLancamento = {
+            id: generateUUID(),
+            descricao: desc,
+            valor_total: valor,
+            valor_realizado: 0,
+            data_lancamento: new Date().toISOString().split('T')[0],
+            tipo_gasto: 'Lista de Desejos',
+            status: 'Pendente',
+            conta_id: '1',
+            parcelado: 'Não',
+            total_parcelas: 1,
+            parcela_atual: 1,
+            id_grupo: '',
+            link_url: linkUrl,
+            midia_url: midiaDesejoTemp.url || '',
+            midia_tipo: midiaDesejoTemp.tipo || '',
+            deleted: 0,
+            sync_status: 'pending_insert',
+            updated_at: timestamp
+        };
+
+        await dbLocal.movimentacoes.put(novoLancamento);
+        showToast('Desejo adicionado com sucesso!');
+    }
+
+    cancelarEdicaoDesejo();
     carregarListaDesejos();
     if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
 }
+window.salvarDesejoFormulario = salvarDesejoFormulario;
+window.adicionarDesejoRapido = salvarDesejoFormulario; // Compatibilidade
+
+// Carregar Desejo no Formulário para Edição
+async function editarDesejoNoFormulario(id) {
+    if (!id) return;
+    let item = await dbLocal.movimentacoes.get(id);
+    if (!item && !isNaN(id)) item = await dbLocal.movimentacoes.get(Number(id));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+    }
+    if (!item) {
+        showToast('Desejo não encontrado.');
+        return;
+    }
+
+    const idInput = document.getElementById('idDesejoEmEdicao');
+    if (idInput) idInput.value = item.id;
+
+    const descInput = document.getElementById('novoDesejoDesc');
+    if (descInput) descInput.value = item.descricao || '';
+
+    const valorInput = document.getElementById('novoDesejoValor');
+    if (valorInput) setarValorMoedaInput(valorInput, item.valor_total || 0);
+
+    const linkInput = document.getElementById('novoDesejoLink');
+    if (linkInput) linkInput.value = item.link_url || '';
+
+    // Mídia
+    if (item.midia_url) {
+        midiaDesejoTemp = { url: item.midia_url, tipo: item.midia_tipo || 'foto' };
+        renderizarPreviewMidiaDesejo();
+    } else {
+        removerMidiaDesejo();
+    }
+
+    // Exibir botões de Excluir e Cancelar no formulário
+    const btnExcluirForm = document.getElementById('btnExcluirDesejoForm');
+    if (btnExcluirForm) btnExcluirForm.style.display = 'flex';
+
+    const btnCancelarForm = document.getElementById('btnCancelarDesejoForm');
+    if (btnCancelarForm) btnCancelarForm.style.display = 'flex';
+
+    // Rolar suavemente até o formulário de desejo
+    if (descInput) {
+        descInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => descInput.focus(), 300);
+    }
+
+    showToast('Desejo carregado para edição no topo. Altere e clique em Salvar.');
+}
+window.editarDesejoNoFormulario = editarDesejoNoFormulario;
+
+// Cancelar Edição do Desejo
+function cancelarEdicaoDesejo() {
+    const idInput = document.getElementById('idDesejoEmEdicao');
+    if (idInput) idInput.value = '';
+
+    const descInput = document.getElementById('novoDesejoDesc');
+    if (descInput) descInput.value = '';
+
+    const valorInput = document.getElementById('novoDesejoValor');
+    if (valorInput) valorInput.value = '';
+
+    const linkInput = document.getElementById('novoDesejoLink');
+    if (linkInput) linkInput.value = '';
+
+    removerMidiaDesejo();
+
+    const btnExcluirForm = document.getElementById('btnExcluirDesejoForm');
+    if (btnExcluirForm) btnExcluirForm.style.display = 'none';
+
+    const btnCancelarForm = document.getElementById('btnCancelarDesejoForm');
+    if (btnCancelarForm) btnCancelarForm.style.display = 'none';
+}
+window.cancelarEdicaoDesejo = cancelarEdicaoDesejo;
+
+// Excluir Desejo que está sendo editado no formulário
+async function excluirDesejoEmEdicao() {
+    const idInput = document.getElementById('idDesejoEmEdicao');
+    const id = idInput ? idInput.value : '';
+    if (!id) return;
+    await excluirDesejo(id);
+}
+window.excluirDesejoEmEdicao = excluirDesejoEmEdicao;
+
+// Excluir Desejo
+async function excluirDesejo(id) {
+    if (!id) return;
+    if (!confirm("Tem certeza que deseja excluir este desejo da sua lista?")) return;
+
+    let item = await dbLocal.movimentacoes.get(id);
+    let targetId = id;
+    if (!item && !isNaN(id)) {
+        item = await dbLocal.movimentacoes.get(Number(id));
+        if (item) targetId = Number(id);
+    }
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+        if (item) targetId = item.id;
+    }
+
+    const timestamp = Date.now();
+    if (item) {
+        await dbLocal.movimentacoes.update(targetId, { deleted: 1, sync_status: 'pending_update', updated_at: timestamp });
+    } else {
+        await dbLocal.movimentacoes.delete(targetId);
+    }
+
+    const idInput = document.getElementById('idDesejoEmEdicao');
+    if (idInput && String(idInput.value) === String(id)) {
+        cancelarEdicaoDesejo();
+    }
+
+    showToast('Desejo excluído com sucesso!');
+    carregarListaDesejos();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+}
+window.excluirDesejo = excluirDesejo;
+
+// Dar Andamento ao Desejo (Fazer Lançamento no Orçamento na mesma tela de receitas/despesas)
+async function darAndamentoAoDesejo(id) {
+    if (!id) return;
+    let item = await dbLocal.movimentacoes.get(id);
+    if (!item && !isNaN(id)) item = await dbLocal.movimentacoes.get(Number(id));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+    }
+    if (!item) {
+        showToast('Desejo não encontrado.');
+        return;
+    }
+
+    // Abre a tela padrão de lançamento
+    abrirModalLancamento();
+
+    const modal = document.getElementById('modalLancamento');
+    if (modal) {
+        modal.dataset.origemDesejoId = item.id;
+    }
+
+    // Preenche a tela de lançamento com os dados do desejo
+    document.getElementById('inputDescricao').value = item.descricao || '';
+    setarValorMoedaInput(document.getElementById('inputValor'), item.valor_total || 0);
+    setarValorMoedaInput(document.getElementById('inputValorRealizado'), 0);
+
+    const inputTipo = document.getElementById('inputTipoGasto');
+    if (inputTipo) inputTipo.value = 'Despesa Variável';
+
+    const modalInputLink = document.getElementById('modalInputLinkUrl');
+    if (modalInputLink) modalInputLink.value = item.link_url || '';
+    if (item.midia_url && typeof carregarMidiaNoModal === 'function') {
+        carregarMidiaNoModal(item.midia_url, item.midia_tipo || 'foto');
+    }
+
+    const btnSalvarModal = document.getElementById('btnSalvar');
+    if (btnSalvarModal) {
+        btnSalvarModal.innerText = '🚀 Confirmar Lançamento no Orçamento';
+    }
+
+    showToast('Sonho pronto para lançamento! Defina a data, parcelas e confirme.');
+}
+window.darAndamentoAoDesejo = darAndamentoAoDesejo;
 
 // Ação de Salvar Conta Rápida
 async function adicionarContaRapida() {

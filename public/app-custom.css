@@ -1106,6 +1106,31 @@ body {
     display: flex;
     gap: 6px;
     align-items: center;
+    flex-wrap: wrap;
+}
+
+.btn-acao-andamento {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.25), rgba(139, 92, 246, 0.25));
+    border: 1px solid #60A5FA;
+    color: #93C5FD;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+}
+
+.btn-acao-andamento:hover {
+    background: linear-gradient(135deg, #2563EB, #7C3AED);
+    color: #FFFFFF;
+    border-color: #93C5FD;
+    box-shadow: 0 2px 8px rgba(59, 130, 246, 0.4);
+    transform: translateY(-1px);
 }
 
 .btn-acao-conquistar {

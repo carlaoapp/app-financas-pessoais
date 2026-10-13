@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.3.1">
+    <meta name="app-build-version" content="1.3.2">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.3.1">
+    <link rel="stylesheet" href="app-custom.css?v=1.3.2">
 </head>
 <body class="mode-desktop">
 
@@ -679,10 +679,19 @@
                             </button>
                         </div>
 
-                        <!-- Botão Salvar Desejo -->
-                        <button onclick="adicionarDesejoRapido()" style="background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: white; border: none; padding: 13px 24px; border-radius: 10px; font-weight: 800; font-size: 0.98rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4); margin-top: 4px;">
-                            ✨ Salvar Desejo com Mídia e Link
-                        </button>
+                        <!-- Ações do Formulário de Desejo (Salvar com opção de Edição e Exclusão) -->
+                        <input type="hidden" id="idDesejoEmEdicao" value="">
+                        <div id="acoesDesejoFormContainer" style="display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap;">
+                            <button id="btnSalvarDesejo" type="button" onclick="salvarDesejoFormulario()" style="flex: 2; min-width: 140px; background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: white; border: none; padding: 13px 24px; border-radius: 10px; font-weight: 800; font-size: 0.98rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);">
+                                Salvar
+                            </button>
+                            <button id="btnExcluirDesejoForm" type="button" onclick="excluirDesejoEmEdicao()" style="display: none; flex: 1; min-width: 110px; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 13px 16px; border-radius: 10px; font-weight: 700; font-size: 0.92rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                                🗑️ Excluir
+                            </button>
+                            <button id="btnCancelarDesejoForm" type="button" onclick="cancelarEdicaoDesejo()" style="display: none; background: #1E293B; border: 1px solid #475569; color: #94A3B8; padding: 13px 16px; border-radius: 10px; font-weight: 700; font-size: 0.92rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                                ✕ Cancelar
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -1026,12 +1035,12 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.3.1"></script>
-    <script src="finance-sync.js?v=1.3.1"></script>
-    <script src="finance-powerbi.js?v=1.3.1"></script>
-    <script src="finance-dashboard.js?v=1.3.1"></script>
-    <script src="auth.js?v=1.3.1"></script>
-    <script src="auto-update.js?v=1.3.1"></script>
+    <script src="finance-db.js?v=1.3.2"></script>
+    <script src="finance-sync.js?v=1.3.2"></script>
+    <script src="finance-powerbi.js?v=1.3.2"></script>
+    <script src="finance-dashboard.js?v=1.3.2"></script>
+    <script src="auth.js?v=1.3.2"></script>
+    <script src="auto-update.js?v=1.3.2"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -1080,7 +1089,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.3.1')
+                navigator.serviceWorker.register('/sw.js?v=1.3.2')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor
