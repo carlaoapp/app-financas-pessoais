@@ -2379,33 +2379,150 @@ function renderizarExtratoCompleto() {
 }
 
 // ==========================================================================
-// AÇÕES DO EXTRATO: BAKAP (EXPORTAR / IMPORTAR) E ESTRATO (PDF)
+// AÇÕES DO EXTRATO: BACKUP (EXCEL / JSON) E ESTRATO (PDF)
 // ==========================================================================
 
-// 1. Exportar Backup Completo ("Bakap")
+// 1. Exportar Backup em Excel Completo e Organizado
 async function exportarBackupFinancas() {
     try {
         const movs = await dbLocal.movimentacoes.toArray();
         const contas = await dbLocal.contas_bancarias.toArray();
         const origens = await dbLocal.origens_renda.toArray();
 
+        // Ordena por data (mais recente primeiro)
+        const movsOrdenadas = movs.slice().sort((a, b) => {
+            const dA = a.data_lancamento || '';
+            const dB = b.data_lancamento || '';
+            return dB.localeCompare(dA);
+        });
+
+        const now = new Date();
+        const dataStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+        const horaStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+        // Se a biblioteca XLSX estiver disponível, gera arquivo Excel .xlsx nativo
+        if (typeof XLSX !== 'undefined') {
+            const wb = XLSX.utils.book_new();
+
+            // 1. Aba Lançamentos detalhados
+            const rowsLancamentos = movsOrdenadas.map(m => {
+                let dataFmt = m.data_lancamento || '';
+                if (dataFmt && dataFmt.includes('-')) {
+                    const p = dataFmt.split('-');
+                    if (p.length === 3) dataFmt = `${p[2]}/${p[1]}/${p[0]}`;
+                }
+
+                return {
+                    'ID': m.id || '',
+                    'Data': dataFmt,
+                    'Descrição': m.descricao || '',
+                    'Categoria / Tipo': m.tipo_gasto || '',
+                    'Valor Orçado (R$)': parseFloat(m.valor_total || 0),
+                    'Valor Realizado (R$)': parseFloat(m.valor_realizado || 0),
+                    'Status': m.status || 'Pendente',
+                    'Parcelado': m.parcelado || 'Não',
+                    'Parcela Atual': m.parcela_atual || 1,
+                    'Total Parcelas': m.total_parcelas || 1,
+                    'Grupo': m.id_grupo || '',
+                    'Link da Fonte': m.link_url || '',
+                    'Tipo de Mídia': m.midia_tipo || ''
+                };
+            });
+
+            const wsLancamentos = XLSX.utils.json_to_sheet(rowsLancamentos);
+
+            // Largura elegante das colunas para leitura clara no Excel
+            wsLancamentos['!cols'] = [
+                { wch: 15 }, // ID
+                { wch: 12 }, // Data
+                { wch: 32 }, // Descrição
+                { wch: 22 }, // Categoria / Tipo
+                { wch: 18 }, // Valor Orçado
+                { wch: 18 }, // Valor Realizado
+                { wch: 14 }, // Status
+                { wch: 12 }, // Parcelado
+                { wch: 14 }, // Parcela Atual
+                { wch: 14 }, // Total Parcelas
+                { wch: 14 }, // Grupo
+                { wch: 30 }, // Link
+                { wch: 14 }  // Mídia
+            ];
+
+            XLSX.utils.book_append_sheet(wb, wsLancamentos, 'Lançamentos');
+
+            // 2. Aba Resumo Financeiro
+            let totReceitas = 0, totDespesas = 0, totInvest = 0, totReserva = 0, totGaveta = 0, totDesejos = 0;
+            movs.forEach(m => {
+                if (m.deleted === 1) return;
+                const v = parseFloat(m.valor_total || 0);
+                if (m.tipo_gasto === 'Receita') totReceitas += v;
+                else if (m.tipo_gasto === 'Despesa Fixa' || m.tipo_gasto === 'Despesa Variável') totDespesas += v;
+                else if (m.tipo_gasto === 'Investimento') totInvest += v;
+                else if (m.tipo_gasto === 'Reserva de Emergência') totReserva += v;
+                else if (m.tipo_gasto === 'Conta a Pagar') totGaveta += v;
+                else if (m.tipo_gasto === 'Lista de Desejos') totDesejos += v;
+            });
+
+            const rowsResumo = [
+                { 'Indicador Financeiro': 'Data e Hora do Backup', 'Valor (R$) / Info': `${dataStr} às ${horaStr}` },
+                { 'Indicador Financeiro': 'Total de Lançamentos Registrados', 'Valor (R$) / Info': movs.length },
+                { 'Indicador Financeiro': 'Total de Receitas Lançadas', 'Valor (R$) / Info': totReceitas },
+                { 'Indicador Financeiro': 'Total de Despesas Orçadas', 'Valor (R$) / Info': totDespesas },
+                { 'Indicador Financeiro': 'Saldo Previsto (Receitas - Despesas)', 'Valor (R$) / Info': (totReceitas - totDespesas) },
+                { 'Indicador Financeiro': 'Total Alocado em Investimentos', 'Valor (R$) / Info': totInvest },
+                { 'Indicador Financeiro': 'Total em Reserva de Emergência', 'Valor (R$) / Info': totReserva },
+                { 'Indicador Financeiro': 'Contas a Pagar na Gaveta', 'Valor (R$) / Info': totGaveta },
+                { 'Indicador Financeiro': 'Metas e Lista de Desejos', 'Valor (R$) / Info': totDesejos }
+            ];
+
+            const wsResumo = XLSX.utils.json_to_sheet(rowsResumo);
+            wsResumo['!cols'] = [{ wch: 38 }, { wch: 25 }];
+            XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Geral');
+
+            // 3. Aba de Dados Técnicos para restauração com 100% de fidelidade
+            const backupPayload = {
+                app: "Finanças Pessoais",
+                versao: "1.3.4",
+                data_exportacao: new Date().toISOString(),
+                total_lancamentos: movs.length,
+                movimentacoes: movs,
+                contas_bancarias: contas,
+                origens_renda: origens
+            };
+            const wsRaw = XLSX.utils.json_to_sheet([
+                { 'METADADOS_SISTEMA': JSON.stringify(backupPayload) }
+            ]);
+            XLSX.utils.book_append_sheet(wb, wsRaw, 'Backup_Dados_Sistema');
+
+            // Gera binário XLSX e dispara download
+            const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+            const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_financas_excel_${dataStr}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+
+            showToast(`✅ Backup em Excel gerado com sucesso! (${movs.length} lançamentos)`);
+            return;
+        }
+
+        // Fallback: JSON caso XLSX não esteja carregado
         const backupData = {
             app: "Finanças Pessoais",
-            versao: "1.1.4",
+            versao: "1.3.4",
             data_exportacao: new Date().toISOString(),
             total_lancamentos: movs.length,
             movimentacoes: movs,
             contas_bancarias: contas,
             origens_renda: origens
         };
-
-        const jsonStr = JSON.stringify(backupData, null, 2);
-        const blob = new Blob([jsonStr], { type: 'application/json' });
+        const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
-
-        const now = new Date();
-        const dataStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
-
         const a = document.createElement('a');
         a.href = url;
         a.download = `backup_financas_${dataStr}.json`;
@@ -2414,36 +2531,101 @@ async function exportarBackupFinancas() {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        if (typeof showToast === 'function') {
-            showToast(`✅ Backup exportado com sucesso! (${movs.length} lançamentos)`);
-        } else {
-            alert(`Backup exportado com sucesso! (${movs.length} lançamentos)`);
-        }
+        showToast(`✅ Backup exportado com sucesso! (${movs.length} lançamentos)`);
     } catch (err) {
         console.error('Erro ao exportar backup:', err);
         alert('Erro ao exportar backup: ' + err.message);
     }
 }
+window.exportarBackupFinancas = exportarBackupFinancas;
 
-// 2. Importar Backup ("Bakap")
+// 2. Importar Backup em Excel (.xlsx) ou JSON
 async function importarBackupFinancas(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
 
     try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-
+        const fileName = (file.name || '').toLowerCase();
         let movsParaImportar = [];
         let contasParaImportar = [];
         let origensParaImportar = [];
 
-        if (Array.isArray(data)) {
-            movsParaImportar = data;
-        } else if (data && typeof data === 'object') {
-            if (Array.isArray(data.movimentacoes)) movsParaImportar = data.movimentacoes;
-            if (Array.isArray(data.contas_bancarias)) contasParaImportar = data.contas_bancarias;
-            if (Array.isArray(data.origens_renda)) origensParaImportar = data.origens_renda;
+        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+            if (typeof XLSX === 'undefined') {
+                alert('Módulo de leitura do Excel não carregado. Recarregue a página e tente novamente.');
+                event.target.value = '';
+                return;
+            }
+
+            const arrayBuffer = await file.arrayBuffer();
+            const wb = XLSX.read(arrayBuffer, { type: 'array' });
+
+            // 1. Tenta restaurar pela aba de metadados de sistema se existir
+            if (wb.Sheets['Backup_Dados_Sistema']) {
+                try {
+                    const rawRows = XLSX.utils.sheet_to_json(wb.Sheets['Backup_Dados_Sistema']);
+                    if (rawRows.length > 0 && rawRows[0]['METADADOS_SISTEMA']) {
+                        const payload = JSON.parse(rawRows[0]['METADADOS_SISTEMA']);
+                        if (Array.isArray(payload.movimentacoes)) movsParaImportar = payload.movimentacoes;
+                        if (Array.isArray(payload.contas_bancarias)) contasParaImportar = payload.contas_bancarias;
+                        if (Array.isArray(payload.origens_renda)) origensParaImportar = payload.origens_renda;
+                    }
+                } catch(e) {
+                    console.warn('Não foi possível ler metadados embutidos, fazendo fallback para colunas da planilha:', e);
+                }
+            }
+
+            // 2. Se não pegou por metadados, faz o parse direto da aba de Lançamentos
+            if (movsParaImportar.length === 0) {
+                const sheetName = wb.Sheets['Lançamentos'] ? 'Lançamentos' : wb.SheetNames[0];
+                const sheet = wb.Sheets[sheetName];
+                const rows = XLSX.utils.sheet_to_json(sheet);
+
+                rows.forEach(r => {
+                    const desc = r['Descrição'] || r['Descricao'] || r['descricao'] || '';
+                    if (!desc && !r['Valor Orçado (R$)'] && !r['Valor']) return;
+
+                    let dataStr = r['Data'] || r['data_lancamento'] || '';
+                    if (dataStr && typeof dataStr === 'string' && dataStr.includes('/')) {
+                        const parts = dataStr.split('/');
+                        if (parts.length === 3) {
+                            dataStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                        }
+                    }
+
+                    const valOrcado = parseFloat(r['Valor Orçado (R$)'] || r['Valor Orçado'] || r['Valor'] || r['valor_total'] || 0);
+                    const valRealizado = parseFloat(r['Valor Realizado (R$)'] || r['Valor Realizado'] || r['valor_realizado'] || 0);
+
+                    movsParaImportar.push({
+                        id: r['ID'] || r['id'] || generateUUID(),
+                        data_lancamento: dataStr,
+                        descricao: desc,
+                        tipo_gasto: r['Categoria / Tipo'] || r['Categoria'] || r['Tipo'] || r['tipo_gasto'] || 'Despesa Variável',
+                        valor_total: isNaN(valOrcado) ? 0 : valOrcado,
+                        valor_realizado: isNaN(valRealizado) ? 0 : valRealizado,
+                        status: r['Status'] || r['status'] || 'Pendente',
+                        parcelado: r['Parcelado'] || r['parcelado'] || 'Não',
+                        parcela_atual: parseInt(r['Parcela Atual'] || r['parcela_atual']) || 1,
+                        total_parcelas: parseInt(r['Total Parcelas'] || r['total_parcelas']) || 1,
+                        id_grupo: r['Grupo'] || r['id_grupo'] || '',
+                        link_url: r['Link da Fonte'] || r['Link Original'] || r['link_url'] || '',
+                        midia_tipo: r['Tipo de Mídia'] || r['Mídia (Tipo)'] || r['midia_tipo'] || '',
+                        deleted: 0
+                    });
+                });
+            }
+        } else {
+            // Arquivo JSON
+            const text = await file.text();
+            const data = JSON.parse(text);
+
+            if (Array.isArray(data)) {
+                movsParaImportar = data;
+            } else if (data && typeof data === 'object') {
+                if (Array.isArray(data.movimentacoes)) movsParaImportar = data.movimentacoes;
+                if (Array.isArray(data.contas_bancarias)) contasParaImportar = data.contas_bancarias;
+                if (Array.isArray(data.origens_renda)) origensParaImportar = data.origens_renda;
+            }
         }
 
         if (movsParaImportar.length === 0 && contasParaImportar.length === 0) {
@@ -2452,13 +2634,13 @@ async function importarBackupFinancas(event) {
             return;
         }
 
-        const confirmou = confirm(`Deseja importar este backup contendo ${movsParaImportar.length} lançamento(s)?\n\nOs registros serão salvos no aplicativo e sincronizados.`);
+        const confirmou = confirm(`Deseja importar este backup contendo ${movsParaImportar.length} lançamento(s)?\n\nTodos os registros serão restaurados no aplicativo e sincronizados.`);
         if (!confirmou) {
             event.target.value = '';
             return;
         }
 
-        // Salva movimentações
+        // Salva movimentações no banco local
         for (const m of movsParaImportar) {
             if (!m.id) m.id = generateUUID();
             m.sync_status = 'pending_insert';
@@ -2494,18 +2676,21 @@ async function importarBackupFinancas(event) {
         if (typeof renderizarExtratoCompleto === 'function') {
             renderizarExtratoCompleto();
         }
-
-        if (typeof showToast === 'function') {
-            showToast(`✅ Backup importado com sucesso! (${movsParaImportar.length} lançamentos carregados)`);
-        } else {
-            alert(`Backup importado com sucesso! (${movsParaImportar.length} lançamentos)`);
+        if (typeof carregarContasAPagar === 'function') {
+            carregarContasAPagar();
         }
+        if (typeof carregarListaDesejos === 'function') {
+            carregarListaDesejos();
+        }
+
+        showToast(`✅ Backup importado com sucesso! (${movsParaImportar.length} lançamentos restaurados)`);
     } catch (err) {
         console.error('Erro ao importar backup:', err);
         alert('Erro ao importar backup: ' + err.message);
         event.target.value = '';
     }
 }
+window.importarBackupFinancas = importarBackupFinancas;
 
 // 3. Gerar Extrato em PDF ("Estrato")
 async function gerarExtratoPDF() {

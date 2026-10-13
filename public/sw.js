@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.3.3
-const CACHE_NAME = 'financas-pessoais-v1.3.3';
+// Service Worker - APP Finanças Pessoais v1.3.4
+const CACHE_NAME = 'financas-pessoais-v1.3.4';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -7,6 +7,7 @@ const ASSETS_TO_CACHE = [
     '/app-custom.css',
     '/jspdf.umd.min.js',
     '/jspdf.plugin.autotable.min.js',
+    '/xlsx.mini.min.js',
     '/finance-dashboard.js',
     '/finance-powerbi.js',
     '/finance-db.js',

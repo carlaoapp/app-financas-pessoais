@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.3.3">
+    <meta name="app-build-version" content="1.3.4">
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -26,7 +26,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.3.3">
+    <link rel="stylesheet" href="app-custom.css?v=1.3.4">
 </head>
 <body class="mode-desktop">
 
@@ -728,18 +728,18 @@
                             <button class="tab-pill" style="padding: 5px 8px; font-size: 0.75rem; font-weight: 700; color: #EF4444; white-space: nowrap;" onclick="filtrarExtratoTab('despesas', this)">Despesas</button>
                         </div>
 
-                        <!-- Botões de Ação na Mesma Linha: Exportar Bakap, Importar Bakap e Estrato PDF -->
+                        <!-- Botões de Ação na Mesma Linha: Exportar Backup Excel, Importar Backup e Estrato PDF -->
                         <div style="display: flex; gap: 4px; align-items: center; flex-shrink: 0;">
-                            <!-- Botão Exportar Backup -->
-                            <button type="button" class="btn-extrato-top-action" onclick="exportarBackupFinancas()" title="Exportar Backup dos Dados (Bakap)" style="background: #1E293B; border: 1px solid #3B82F6; color: #60A5FA; padding: 5px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
-                                <span>📤</span> <span>Bakap</span>
+                            <!-- Botão Exportar Backup em Excel -->
+                            <button type="button" class="btn-extrato-top-action" onclick="exportarBackupFinancas()" title="Exportar Backup dos Dados em Excel (.xlsx)" style="background: #1E293B; border: 1px solid #3B82F6; color: #60A5FA; padding: 5px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
+                                <span>📤</span> <span>Backup</span>
                             </button>
 
                             <!-- Botão Importar Backup -->
-                            <button type="button" class="btn-extrato-top-action" onclick="document.getElementById('inputImportarBakap').click()" title="Importar Backup dos Dados (Bakap)" style="background: #1E293B; border: 1px solid #10B981; color: #34D399; padding: 5px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
-                                <span>📥</span> <span>Bakap</span>
+                            <button type="button" class="btn-extrato-top-action" onclick="document.getElementById('inputImportarBakap').click()" title="Importar Backup dos Dados em Excel ou JSON" style="background: #1E293B; border: 1px solid #10B981; color: #34D399; padding: 5px 8px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; white-space: nowrap;">
+                                <span>📥</span> <span>Importar</span>
                             </button>
-                            <input type="file" id="inputImportarBakap" accept=".json" style="display: none;" onchange="importarBackupFinancas(event)">
+                            <input type="file" id="inputImportarBakap" accept=".xlsx, .xls, .csv, .json" style="display: none;" onchange="importarBackupFinancas(event)">
 
                             <!-- Botão Gerar Extrato PDF ("Estrato") -->
                             <button type="button" class="btn-extrato-top-action" onclick="gerarExtratoPDF()" title="Gerar Extrato em PDF (Estrato)" style="background: linear-gradient(135deg, #EF4444, #DC2626); border: none; color: #FFFFFF; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 3px; box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4); white-space: nowrap;">
@@ -1046,12 +1046,13 @@
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
-    <script src="finance-db.js?v=1.3.3"></script>
-    <script src="finance-sync.js?v=1.3.3"></script>
-    <script src="finance-powerbi.js?v=1.3.3"></script>
-    <script src="finance-dashboard.js?v=1.3.3"></script>
-    <script src="auth.js?v=1.3.3"></script>
-    <script src="auto-update.js?v=1.3.3"></script>
+    <script src="xlsx.mini.min.js"></script>
+    <script src="finance-db.js?v=1.3.4"></script>
+    <script src="finance-sync.js?v=1.3.4"></script>
+    <script src="finance-powerbi.js?v=1.3.4"></script>
+    <script src="finance-dashboard.js?v=1.3.4"></script>
+    <script src="auth.js?v=1.3.4"></script>
+    <script src="auto-update.js?v=1.3.4"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -1100,7 +1101,7 @@
         // Registro do Service Worker (PWA)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js?v=1.3.3')
+                navigator.serviceWorker.register('/sw.js?v=1.3.4')
                     .then(reg => {
                         console.log('PWA Service Worker registrado com sucesso:', reg.scope);
                         reg.update(); // Força verificação imediata de versão no servidor
