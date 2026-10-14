@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.4.2
-const CACHE_NAME = 'financas-pessoais-v1.4.2';
+// Service Worker - APP Finanças Pessoais v1.4.3
+const CACHE_NAME = 'financas-pessoais-v1.4.3';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -130,6 +130,9 @@ self.addEventListener('fetch', event => {
                                 <h2>Conexão Temporariamente Instável</h2>
                                 <p>O servidor está reconectando ou o sinal de internet oscilou. Toque abaixo para recarregar o sistema.</p>
                                 <button onclick="window.location.reload()">🔄 Tentar Novamente</button>
+                                <div style="margin-top: 14px; display: flex; flex-direction: column; gap: 8px;">
+                                    <a href="http://localhost:3000" style="display: block; color: #38BDF8; font-size: 0.88rem; text-decoration: none; padding: 10px 14px; background: rgba(56, 189, 248, 0.1); border-radius: 10px; border: 1px solid rgba(56, 189, 248, 0.25); font-weight: 600;">💻 Abrir Servidor Local (PC)</a>
+                                </div>
                             </div>
                         </body>
                         </html>
