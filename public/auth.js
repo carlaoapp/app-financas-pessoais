@@ -100,10 +100,39 @@ function switchAuthTab(tab) {
 
 function toggleAuthPassword() {
     const input = document.getElementById('auth-password');
-    if (input) {
-        input.type = input.type === 'password' ? 'text' : 'password';
+    const iconShow = document.getElementById('iconEyeShow');
+    const iconHide = document.getElementById('iconEyeHide');
+    if (!input) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (iconShow) iconShow.style.display = 'none';
+        if (iconHide) iconHide.style.display = 'block';
+    } else {
+        input.type = 'password';
+        if (iconShow) iconShow.style.display = 'block';
+        if (iconHide) iconHide.style.display = 'none';
     }
 }
+window.toggleAuthPassword = toggleAuthPassword;
+
+function toggleEsqueciPassword() {
+    const input = document.getElementById('esqueci-nova-senha');
+    const iconShow = document.getElementById('iconEyeShowEsqueci');
+    const iconHide = document.getElementById('iconEyeHideEsqueci');
+    if (!input) return;
+
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (iconShow) iconShow.style.display = 'none';
+        if (iconHide) iconHide.style.display = 'block';
+    } else {
+        input.type = 'password';
+        if (iconShow) iconShow.style.display = 'block';
+        if (iconHide) iconHide.style.display = 'none';
+    }
+}
+window.toggleEsqueciPassword = toggleEsqueciPassword;
 
 async function handleAuthSubmit() {
     const email = document.getElementById('auth-email').value.trim();

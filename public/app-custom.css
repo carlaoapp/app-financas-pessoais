@@ -813,6 +813,39 @@ body {
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
+/* Tratamento de autofill do navegador para preservar o tema escuro profissional */
+.auth-input-field:-webkit-autofill,
+.auth-input-field:-webkit-autofill:hover, 
+.auth-input-field:-webkit-autofill:focus {
+    -webkit-text-fill-color: #FFFFFF !important;
+    -webkit-box-shadow: 0 0 0px 1000px #0F172A inset !important;
+    box-shadow: 0 0 0px 1000px #0F172A inset !important;
+    transition: background-color 5000s ease-in-out 0s;
+}
+
+/* Botão de alternar visibilidade de senha (Olho Vetorial SVG) */
+.btn-toggle-auth-eye {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    color: #94A3B8;
+    padding: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    transition: color 0.15s ease, background 0.15s ease;
+}
+
+.btn-toggle-auth-eye:hover {
+    color: #60A5FA;
+    background: rgba(96, 165, 250, 0.12);
+}
+
 .auth-btn-primary {
     width: 100%;
     padding: 14px;
