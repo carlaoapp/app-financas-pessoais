@@ -5,7 +5,7 @@ function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
-    return '1.4.2';
+    return '1.4.4';
 }
 
 function isNewerVersion(serverVer, currentVer) {
@@ -52,6 +52,7 @@ function atualizarBadgeVersao(versao, temNovaVersao = false, novaVersao = '') {
 
 function dismissUpdateBanner(version) {
     isUpdateBannerVisible = false;
+    if (version) sessionStorage.setItem('banner_dismissed_' + version, 'true');
     const banner = document.getElementById('update-notification-banner');
     if (banner) banner.remove();
 }
@@ -81,6 +82,11 @@ async function checkAppVersion(isManual = false) {
         console.log(`[Auto-Update] Versão Renderizada: v${currentVersion} | Versão Servidor: v${serverVersion}`);
 
         if (isNewerVersion(serverVersion, currentVersion)) {
+            // Previne loop na mesma sessão se o usuário já solicitou atualização ou fechou o aviso
+            if (sessionStorage.getItem('updating_to_' + serverVersion) || sessionStorage.getItem('banner_dismissed_' + serverVersion)) {
+                console.log('[Auto-Update] Atualização para v' + serverVersion + ' já tratada nesta sessão.');
+                return;
+            }
             // Sinaliza na badge do cabeçalho
             atualizarBadgeVersao(currentVersion, true, serverVersion);
             // Exibe o banner chamativo para baixar a atualização
@@ -166,6 +172,7 @@ function showUpdateBanner(newVersion, currentVersion) {
 
 // Aplicação atômica e limpa da atualização, sem necessidade de desinstalação
 async function applyAppUpdate(newVersion) {
+    if (newVersion) sessionStorage.setItem('updating_to_' + newVersion, 'true');
     sessionStorage.setItem('updating_app', 'true');
 
     const banner = document.getElementById('update-notification-banner');

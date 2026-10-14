@@ -22,7 +22,7 @@ if ($Version -notmatch '^\d+\.\d+\.\d+$') { throw "Versão inválida '$Version'.
 $current = (Get-Content "public\version.json" -Raw | ConvertFrom-Json).version
 Write-Host "Versão atual: $current  ->  Nova versão: $Version"
 
-$files = @("public\version.json", "public\sw.js", "public\index.html")
+$files = @("public\version.json", "public\sw.js", "public\index.html", "public\auto-update.js")
 foreach ($f in $files) {
   $text = [IO.File]::ReadAllText((Resolve-Path $f))
   if ($text.Contains($current)) {
