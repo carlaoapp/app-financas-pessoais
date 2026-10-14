@@ -1,4 +1,4 @@
-﻿services:
+services:
   - type: web
     name: app-financas-pessoais
     runtime: node
@@ -11,5 +11,5 @@
         value: 20.x
       - key: GMAIL_USER
         value: marianosanto33@gmail.com
-      - key: GMAIL_PASS
-        sync: false
+      - key: NODE_ENV
+        value: production
