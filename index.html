@@ -1,0 +1,1351 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>APP Finanças Pessoais - Computador & Mobbi</title>
+    <meta name="app-build-version" content="1.3.9">
+    <script>window.APP_BUILD_VERSION = '1.3.9';</script>
+    
+    <!-- PWA e Metas Mobile -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png?v=1.0.4">
+    <link rel="apple-touch-icon" href="icon-192.png?v=1.0.4">
+    <meta name="theme-color" content="#2563EB">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Finanças">
+    
+    <!-- Dexie IndexedDB -->
+    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+    
+    <!-- Apache ECharts para Dashboards Power BI -->
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    
+    <!-- Lucide Icons -->
+    <script src="lucide.min.js"></script>
+    
+    <!-- Estilos -->
+    <link rel="stylesheet" href="finance-style.css?v=1.0.8">
+    <link rel="stylesheet" href="app-custom.css?v=1.4.2">
+</head>
+<body class="mode-desktop">
+
+    <!-- ==========================================================================
+         TELA DE ENTRADA E CADASTRO (100% ISOLADA E DEDICADA)
+         ========================================================================== -->
+    <div id="view-auth">
+        <div class="auth-card-container">
+            <!-- Logotipo e Identidade Visual -->
+            <div style="text-align: center; margin-bottom: 24px;">
+                <img src="icon-192.png?v=1.0.4" alt="Finanças Pessoais" class="auth-logo-badge">
+                <h1 style="font-size: 1.45rem; font-weight: 800; color: #FFFFFF; margin: 0; letter-spacing: -0.5px;">Finanças Pessoais</h1>
+                <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 6px;">Gestão patrimonial completa para Computador & Mobbi</p>
+            </div>
+
+            <!-- Alternador: Entrar vs Criar Conta -->
+            <div style="display: flex; gap: 6px; margin-bottom: 20px; background: #0B1120; padding: 4px; border-radius: 12px; border: 1px solid #1E293B;">
+                <button type="button" id="tab-auth-login" class="auth-tab-btn" onclick="switchAuthTab('login')" style="background: #2563EB; color: #FFFFFF;">
+                    Entrar
+                </button>
+                <button type="button" id="tab-auth-register" class="auth-tab-btn" onclick="switchAuthTab('register')" style="background: transparent; color: #94A3B8;">
+                    Criar Conta
+                </button>
+            </div>
+
+            <!-- Mensagem de Erro / Alerta -->
+            <div id="auth-error-msg" style="display: none; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 10px 14px; border-radius: 10px; font-size: 0.85rem; margin-bottom: 16px; text-align: center;">
+            </div>
+
+            <!-- Formulário -->
+            <form id="auth-form" onsubmit="event.preventDefault(); handleAuthSubmit();" style="display: flex; flex-direction: column; gap: 14px;">
+                <!-- Nome (em Criar Conta) -->
+                <div id="auth-name-container" style="display: none;">
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">Nome Completo</label>
+                    <input type="text" id="auth-name" placeholder="Seu Nome ou Família" class="auth-input-field">
+                </div>
+
+                <!-- E-mail -->
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">E-mail de Acesso</label>
+                    <input type="email" id="auth-email" placeholder="seuemail@exemplo.com" required class="auth-input-field">
+                </div>
+
+                <!-- Senha -->
+                <div>
+                    <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">Senha</label>
+                    <div style="position: relative; width: 100%;">
+                        <input type="password" id="auth-password" placeholder="Sua senha secreta" required class="auth-input-field" style="padding-right: 44px;">
+                        <button type="button" id="btnToggleAuthPass" onclick="toggleAuthPassword()" title="Mostrar ou ocultar senha" class="btn-toggle-auth-eye">
+                            <!-- Ícone Olho com Traço Limpo (Padrão: Senha Mascarada) -->
+                            <svg id="iconEyeShow" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                            <!-- Ícone Olho Riscado (Senha Revelada) -->
+                            <svg id="iconEyeHide" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                                <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                                <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                                <line x1="2" y1="2" x2="22" y2="22"></line>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Lembrar-me e Esqueci a Senha -->
+                <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.85rem; color: #94A3B8; margin-top: 2px;">
+                    <label style="display: flex; align-items: center; gap: 8px; cursor: pointer;">
+                        <input type="checkbox" id="auth-remember" checked style="width: 16px; height: 16px; cursor: pointer;">
+                        <span>Lembrar-me</span>
+                    </label>
+                    <button type="button" onclick="abrirModalEsqueciSenha()" style="background: transparent; border: none; color: #60A5FA; cursor: pointer; font-size: 0.82rem; font-weight: 500; padding: 0; text-decoration: underline;">
+                        Esqueci a senha
+                    </button>
+                </div>
+
+                <!-- Botão Primário -->
+                <button type="submit" id="auth-submit-btn" class="auth-btn-primary" style="margin-top: 10px;">
+                    Entrar no Finanças
+                </button>
+            </form>
+
+            <div style="margin-top: 24px; text-align: center; border-top: 1px solid #1E293B; padding-top: 14px;">
+                <div style="font-size: 0.75rem; color: #64748B; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    <span>Conexão Segura & Banco de Dados Privado</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Recuperação de Senha (Esqueci a Senha) -->
+        <div id="modalEsqueciSenha" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 999999; align-items: center; justify-content: center; padding: 16px; backdrop-filter: blur(5px);">
+            <div style="background: #0F172A; border: 1px solid #334155; border-radius: 16px; width: 100%; max-width: 400px; box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7); padding: 24px; position: relative; box-sizing: border-box;">
+                <button type="button" onclick="fecharModalEsqueciSenha()" style="position: absolute; right: 16px; top: 16px; background: transparent; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer;">✕</button>
+
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <div style="width: 48px; height: 48px; background: rgba(59, 130, 246, 0.15); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; color: #60A5FA;">
+                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"></path><path d="m21 2-9.6 9.6"></path><circle cx="7.5" cy="15.5" r="5.5"></circle></svg>
+                    </div>
+                    <h3 style="margin: 0; color: #F8FAFC; font-size: 1.25rem; font-weight: 700;">Recuperar Senha</h3>
+                    <p style="margin: 6px 0 0; color: #94A3B8; font-size: 0.85rem;" id="esqueciPassoDesc">Informe seu e-mail cadastrado para enviarmos um código de verificação.</p>
+                </div>
+
+                <div id="esqueci-alerta-msg" style="display: none; padding: 10px 14px; border-radius: 8px; font-size: 0.85rem; margin-bottom: 16px; text-align: center; line-height: 1.4;"></div>
+
+                <!-- ETAPA 1: Digitar E-mail -->
+                <div id="esqueci-passo-1">
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">E-mail Cadastrado</label>
+                        <input type="email" id="esqueci-email" placeholder="seuemail@exemplo.com" class="auth-input-field" style="width: 100%; box-sizing: border-box;">
+                    </div>
+                    <button type="button" id="btn-enviar-codigo" onclick="solicitarCodigoRecuperacao()" class="auth-btn-primary" style="width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 0.95rem;">
+                        Enviar Código de Recuperação
+                    </button>
+                </div>
+
+                <!-- ETAPA 2: Digitar Código e Nova Senha -->
+                <div id="esqueci-passo-2" style="display: none;">
+                    <div style="margin-bottom: 14px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">Código de Verificação (6 dígitos)</label>
+                        <input type="text" id="esqueci-codigo" placeholder="Ex: 123456" maxlength="6" class="auth-input-field" style="width: 100%; box-sizing: border-box; text-align: center; letter-spacing: 4px; font-size: 1.3rem; font-weight: 800; color: #34D399;">
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 600; color: #94A3B8; margin-bottom: 6px;">Nova Senha</label>
+                        <div style="position: relative; width: 100%;">
+                            <input type="password" id="esqueci-nova-senha" placeholder="Digite sua nova senha" class="auth-input-field" style="width: 100%; box-sizing: border-box; padding-right: 44px;">
+                            <button type="button" onclick="toggleEsqueciPassword()" title="Mostrar ou ocultar senha" class="btn-toggle-auth-eye">
+                                <svg id="iconEyeShowEsqueci" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                                <svg id="iconEyeHideEsqueci" width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: none;">
+                                    <path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path>
+                                    <path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path>
+                                    <path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path>
+                                    <line x1="2" y1="2" x2="22" y2="22"></line>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    <button type="button" id="btn-salvar-senha" onclick="confirmarNovaSenha()" class="auth-btn-primary" style="width: 100%; padding: 12px; border-radius: 10px; font-weight: 700; font-size: 0.95rem; background: linear-gradient(135deg, #059669, #10B981);">
+                        Salvar Nova Senha
+                    </button>
+                    <div style="text-align: center; margin-top: 14px;">
+                        <button type="button" onclick="voltarPasso1Esqueci()" style="background: transparent; border: none; color: #94A3B8; font-size: 0.8rem; cursor: pointer; text-decoration: underline;">Voltar / Digitar outro e-mail</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==========================================================================
+         APLICATIVO PRINCIPAL (#view-app)
+         ========================================================================== -->
+    <div id="view-app" style="display: none;">
+
+        <!-- 1. BARRA SUPERIOR (HEADER EM 2 LINHAS HARMONIOSAS) -->
+        <header class="top-navbar">
+            <!-- LINHA 1 (ACIMA): LOGO, NOME DO APP E VERSÃO DO SISTEMA DISCRETA -->
+            <div class="brand-header-row">
+                <div class="brand-section">
+                    <img src="icon-192.png?v=1.0.5" alt="Finanças" class="brand-logo-img">
+                    <div>
+                        <h1 class="brand-title">Finanças Pessoais</h1>
+                        <div class="brand-sub">Computador & Mobbi</div>
+                    </div>
+                </div>
+
+                <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Clique para verificar se há novas atualizações do sistema" class="app-version-badge">
+                    <span class="version-dot" id="dotStatusVersao"></span>
+                    <span id="lblVersaoApp" class="version-text">v1.3.9</span>
+                </div>
+            </div>
+
+            <!-- LINHA 2 (DEBAIXO): FILTROS ANO, MÊS, BOTÃO OCULTAR E FERRAMENTAS ALINHADOS -->
+            <div class="filters-header-row">
+                <!-- Grupo dos Filtros de Ano, Mês e Ocultar (Ano antes do Mês) -->
+                <div class="filters-selectors-group">
+                    <!-- Seletor de Ano Base (Ano vem antes do Mês) -->
+                    <div class="filter-field-pill" title="Ano Base">
+                        <span class="filter-field-label">Ano:</span>
+                        <select id="anoBaseSelector" class="ano-select-box" onchange="selecionarAno(this.value)">
+                            <option value="2024">2024</option>
+                            <option value="2025">2025</option>
+                            <option value="2026">2026</option>
+                            <option value="2027">2027</option>
+                            <option value="2028">2028</option>
+                            <option value="2029">2029</option>
+                            <option value="2030">2030</option>
+                        </select>
+                    </div>
+
+                    <!-- Filtro dos Meses (Identificação de Mês) -->
+                    <div class="filter-field-pill" title="Mês de Lançamento">
+                        <span class="filter-field-label">Mês:</span>
+                        <select id="mesBaseSelector" class="mes-select-box" onchange="selecionarMes(parseInt(this.value))">
+                            <option value="0">Janeiro</option>
+                            <option value="1">Fevereiro</option>
+                            <option value="2">Março</option>
+                            <option value="3">Abril</option>
+                            <option value="4">Maio</option>
+                            <option value="5">Junho</option>
+                            <option value="6">Julho</option>
+                            <option value="7">Agosto</option>
+                            <option value="8">Setembro</option>
+                            <option value="9">Outubro</option>
+                            <option value="10">Novembro</option>
+                            <option value="11">Dezembro</option>
+                        </select>
+                    </div>
+
+                    <!-- Botão Ocultar / Visualizar Informação -->
+                    <button class="btn-icon-action" onclick="togglePrivacyMode()" title="Visualizar / Ocultar Informações" id="btnPrivacyToggle">
+                        <!-- Quando visível (padrão): Olho Aberto -->
+                        <span id="iconPrivacyOpen" style="display: block; line-height: 1;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                        </span>
+                        <!-- Quando oculto: Olho Riscado / Fechado -->
+                        <span id="iconPrivacyClosed" style="display: none; line-height: 1;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"></path><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"></path><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"></path><line x1="2" y1="2" x2="22" y2="22"></line></svg>
+                        </span>
+                    </button>
+                </div>
+
+                <!-- Grupo das Ferramentas (Lupa, Baixar App e Sair) -->
+                <div class="header-tools-desktop-row">
+                    <!-- Controle de Lupa / Zoom da Informação -->
+                    <div class="zoom-controls-group">
+                        <span class="zoom-label">Visualização:</span>
+                        <button class="btn-sub-tool" onclick="zoomFinance(-0.1)" title="Diminuir Visualização (Lupa -)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                        </button>
+                        <span id="lblZoomPercent" onclick="resetFinanceZoom()" title="Clique para resetar para 100%" style="font-size: 0.78rem; font-weight: 700; color: #94A3B8; min-width: 40px; text-align: center; cursor: pointer;">100%</span>
+                        <button class="btn-sub-tool" onclick="zoomFinance(0.1)" title="Aumentar Visualização (Lupa +)">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line><line x1="11" y1="8" x2="11" y2="14"></line><line x1="8" y1="11" x2="14" y2="11"></line></svg>
+                        </button>
+                    </div>
+
+                    <!-- Botões Baixar App e Sair -->
+                    <div class="sub-actions-group">
+                        <button class="btn-sub-action btn-install-app" id="btnInstallPwa" onclick="triggerPwaInstall()" title="Baixar / Instalar App">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                            <span>Baixar App</span>
+                        </button>
+
+                        <button class="btn-sub-action btn-logout-app" onclick="confirmarSairApp()" title="Sair do Aplicativo">
+                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                            <span>Sair</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+    <div class="content-wrapper">
+
+        <!-- 4. NAVEGAÇÃO DE ABAS NO COMPUTADOR (DESKTOP) -->
+        <nav class="desktop-tabs-bar">
+            <button class="tab-pill active" id="navLancamentos" onclick="switchFinanceTab('Lancamentos')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+                <span>Lançamentos</span>
+            </button>
+            <button class="tab-pill" id="navAPagar" onclick="switchFinanceTab('APagar')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+                <span>Cartão & Contas</span>
+            </button>
+            <button class="tab-pill" id="navPowerBI" onclick="switchFinanceTab('PowerBI')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                <span>Demonstrativo</span>
+            </button>
+            <button class="tab-pill" id="navDesejos" onclick="switchFinanceTab('Desejos')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+                <span>Metas & Desejos</span>
+            </button>
+        </nav>
+
+        <!-- 5. CONTEÚDO DAS ABAS -->
+        <main id="finance-view">
+
+            <!-- ABA 2: DEMONSTRATIVO FINANCEIRO SIMPLES (POWER BI) -->
+            <div id="tabPowerBI" class="tab-content powerbi-container" style="display: none;">
+                
+                <!-- Cabeçalho do Demonstrativo Centralizado sem Botão Atualizar -->
+                <div class="demo-header-card">
+                    <div class="demo-title-row" style="justify-content: center; text-align: center;">
+                        <div class="demo-title-text" style="font-size: 1.2rem; justify-content: center;">
+                            <span>📊</span> Demonstrativo Financeiro Simples
+                        </div>
+                    </div>
+
+                    <!-- Botão de Filtro de Despesa/Demonstrativo Totalmente Centralizado -->
+                    <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 4px;">
+                        <button type="button" id="btnDemoDropdownToggle" onclick="abrirModalFiltroDemo(event)" style="background: linear-gradient(135deg, #1E293B, #0F172A); border: 1.5px solid #3B82F6; color: #FFFFFF; padding: 11px 26px; border-radius: 14px; font-size: 0.96rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25); transition: all 0.2s; min-width: 250px; max-width: 100%;">
+                            <span style="font-size: 1.2rem;">⚙️</span>
+                            <span id="lblDemoFiltroSelecionado">Ver Tudo (Completo)</span>
+                            <span style="font-size: 0.82rem; color: #60A5FA;">▼</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- MODAL EXPANDIDO DE SELEÇÃO: TELA MAIOR, MELHOR VISÃO E BOTÃO DE SAÍDA -->
+                <div id="modalFiltroDemo" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 99999; align-items: center; justify-content: center; padding: 16px;">
+                    <div style="background: #0B1120; border: 1.5px solid #334155; border-radius: 22px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.9); padding: 24px 22px; box-sizing: border-box; animation: modalFadeIn 0.2s ease;">
+                        
+                        <!-- Cabeçalho do Modal com Título e Botão de Saída Superior -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #1E293B; padding-bottom: 14px;">
+                            <div style="font-size: 1.25rem; font-weight: 800; color: #60A5FA; display: flex; align-items: center; gap: 10px;">
+                                <span style="font-size: 1.4rem;">⚙️</span> O que deseja visualizar?
+                            </div>
+                            <button type="button" onclick="fecharModalFiltroDemo()" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 10px; color: #E2E8F0; padding: 6px 14px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.2s;">
+                                <span>✕</span> Sair
+                            </button>
+                        </div>
+
+                        <p style="font-size: 0.88rem; color: #94A3B8; margin-bottom: 18px; line-height: 1.4;">
+                            Marque ou desmarque abaixo o que deseja que apareça na sua tela:
+                        </p>
+
+                        <!-- LISTA DE ESCOLHAS AMPLA, MAIOR E CONFORTÁVEL -->
+                        <div style="display: flex; flex-direction: column; gap: 12px;">
+                            
+                            <!-- Opção: Ver Tudo -->
+                            <div onclick="selecionarFiltroDemoTudo(event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: rgba(37, 99, 235, 0.18); border: 1.5px solid #2563EB; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoTudo" checked style="cursor: pointer; width: 24px; height: 24px; accent-color: #2563EB;" onchange="selecionarFiltroDemoTudo(event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 1.05rem; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 6px;">🌐 Ver Tudo (Completo)</div>
+                                    <div style="font-size: 0.8rem; color: #93C5FD; margin-top: 2px;">Exibir todas as receitas, despesas, investimentos e reserva</div>
+                                </div>
+                            </div>
+
+                            <div style="height: 1px; background: #1E293B; margin: 4px 0;"></div>
+
+                            <!-- Opção 1: Receitas -->
+                            <div onclick="toggleOpcaoFiltroDemo('receitas', event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoRec" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #10B981;" onchange="toggleOpcaoFiltroDemo('receitas', event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 1rem; font-weight: 800; color: #34D399; display: flex; align-items: center; gap: 6px;">🟢 Receitas (Entradas)</div>
+                                    <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">Dinheiro que entrou no mês</div>
+                                </div>
+                            </div>
+
+                            <!-- Opção 2: Despesas -->
+                            <div onclick="toggleOpcaoFiltroDemo('despesas', event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoDes" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #EF4444;" onchange="toggleOpcaoFiltroDemo('despesas', event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 1rem; font-weight: 800; color: #F87171; display: flex; align-items: center; gap: 6px;">🔴 Despesas (Saídas)</div>
+                                    <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">Contas e compras do mês</div>
+                                </div>
+                            </div>
+
+                            <!-- Opção 3: Investimentos -->
+                            <div onclick="toggleOpcaoFiltroDemo('investimentos', event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoInv" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #8B5CF6;" onchange="toggleOpcaoFiltroDemo('investimentos', event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 1rem; font-weight: 800; color: #A78BFA; display: flex; align-items: center; gap: 6px;">🟣 Investimentos</div>
+                                    <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">Aplicações e patrimônio futuro</div>
+                                </div>
+                            </div>
+
+                            <!-- Opção 4: Reserva de Emergência -->
+                            <div onclick="toggleOpcaoFiltroDemo('reserva', event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoRes" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #F59E0B;" onchange="toggleOpcaoFiltroDemo('reserva', event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 1rem; font-weight: 800; color: #FBBF24; display: flex; align-items: center; gap: 6px;">🟡 Reserva de Emergência</div>
+                                    <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">Fundo seguro para imprevistos</div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- Botões de Saída e Conclusão -->
+                        <div style="margin-top: 22px; display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Botão Principal: Sair e Concluir -->
+                            <button type="button" onclick="confirmarFiltrosDemo()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; border-radius: 14px; color: #FFFFFF; font-weight: 800; font-size: 1.05rem; cursor: pointer; box-shadow: 0 4px 18px rgba(37, 99, 235, 0.45); display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.15s;">
+                                <span>🚪</span> Sair e Concluir Escolha
+                            </button>
+
+                            <!-- Botão Secundário: Fechar sem alterar -->
+                            <button type="button" onclick="fecharModalFiltroDemo()" style="width: 100%; padding: 10px; background: transparent; border: 1px solid #334155; border-radius: 12px; color: #94A3B8; font-weight: 700; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                                <span>✕</span> Fechar
+                            </button>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 4 CARDS DE DEMONSTRATIVO: RECEITAS, DESPESAS, INVESTIMENTOS E RESERVA -->
+                <div class="demo-kpi-grid" id="demoKpiGrid">
+                    <!-- 1. Receitas -->
+                    <div class="demo-kpi-card demo-kpi-rec" id="cardKpiRec" onclick="filtrarDemonstrativo('receitas')">
+                        <div class="demo-kpi-header">
+                            <span class="demo-kpi-label" style="color: #10B981;">Receitas (Entradas)</span>
+                            <span class="demo-kpi-badge">💰</span>
+                        </div>
+                        <div class="demo-kpi-value" id="pbiValReceitas" style="color: #34D399;">R$ 0,00</div>
+                        <div class="demo-kpi-subtext">Total de dinheiro que entrou neste mês</div>
+                    </div>
+
+                    <!-- 2. Despesas -->
+                    <div class="demo-kpi-card demo-kpi-des" id="cardKpiDes" onclick="filtrarDemonstrativo('despesas')">
+                        <div class="demo-kpi-header">
+                            <span class="demo-kpi-label" style="color: #EF4444;">Despesas (Saídas)</span>
+                            <span class="demo-kpi-badge">💳</span>
+                        </div>
+                        <div class="demo-kpi-value" id="pbiValDespesas" style="color: #F87171;">R$ 0,00</div>
+                        <div class="demo-kpi-subtext">Total de contas e compras pagas no mês</div>
+                    </div>
+
+                    <!-- 3. Investimentos -->
+                    <div class="demo-kpi-card demo-kpi-inv" id="cardKpiInv" onclick="filtrarDemonstrativo('investimentos')">
+                        <div class="demo-kpi-header">
+                            <span class="demo-kpi-label" style="color: #8B5CF6;">Investimentos</span>
+                            <span class="demo-kpi-badge">📈</span>
+                        </div>
+                        <div class="demo-kpi-value" id="pbiValInvestimentos" style="color: #A78BFA;">R$ 0,00</div>
+                        <div class="demo-kpi-subtext">Aplicações guardadas para o seu futuro</div>
+                    </div>
+
+                    <!-- 4. Reserva de Emergência -->
+                    <div class="demo-kpi-card demo-kpi-res" id="cardKpiRes" onclick="filtrarDemonstrativo('reserva')">
+                        <div class="demo-kpi-header">
+                            <span class="demo-kpi-label" style="color: #F59E0B;">Reserva de Emergência</span>
+                            <span class="demo-kpi-badge">🛡️</span>
+                        </div>
+                        <div class="demo-kpi-value" id="pbiValReserva" style="color: #FBBF24;">R$ 0,00</div>
+                        <div class="demo-kpi-subtext">Fundo protegido acumulado até hoje</div>
+                    </div>
+                </div>
+
+                <!-- Resumo Rápido do Saldo Líquido do Mês -->
+                <div id="demoBannerSaldo" class="demo-info-banner" style="margin-bottom: 16px;">
+                    <div class="demo-info-icon" id="demoSaldoIcon">⚖️</div>
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: #FFFFFF; font-size: 0.9rem;" id="demoSaldoTitulo">Saldo do Mês (Sobra Livre)</div>
+                        <div class="demo-info-text" id="demoSaldoDesc">Diferença do que entrou menos o que saiu e foi investido: <strong id="pbiValSaldo" style="color: #60A5FA; font-size: 1rem;">R$ 0,00</strong></div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 1: COMPARATIVO GERAL (GRÁFICO DE BARRAS) -->
+                <div class="demo-chart-box" id="boxChartDiff" style="margin-bottom: 16px;">
+                    <div class="demo-chart-header">
+                        <div class="demo-chart-title">
+                            <span>⚖️</span> Comparativo: Entradas vs Saídas vs Investido
+                        </div>
+                        <div class="demo-chart-desc">Veja lado a lado quanto entrou e para onde o seu dinheiro foi no mês</div>
+                    </div>
+                    <div id="pbiChartDiff" class="demo-chart-canvas"></div>
+                </div>
+
+                <!-- SEÇÃO 2: DETALHAMENTO DE FONTES E CATEGORIAS -->
+                <div class="demo-grid-charts" id="boxGridFontes">
+                    <!-- Fontes de Receita -->
+                    <div class="demo-chart-box" id="boxChartFontesRec">
+                        <div class="demo-chart-header">
+                            <div class="demo-chart-title" style="color: #10B981;">
+                                <span>📥</span> De Onde Veio o Dinheiro (Receitas)
+                            </div>
+                            <div class="demo-chart-desc">Distribuição por cada fonte ou tipo de entrada</div>
+                        </div>
+                        <div id="pbiChartFontesRec" class="demo-chart-canvas" style="min-height: 250px;"></div>
+                    </div>
+
+                    <!-- Fontes de Despesa -->
+                    <div class="demo-chart-box" id="boxChartFontesDes">
+                        <div class="demo-chart-header">
+                            <div class="demo-chart-title" style="color: #EF4444;">
+                                <span>📤</span> Onde Foi Gasto o Dinheiro (Despesas)
+                            </div>
+                            <div class="demo-chart-desc">Principais categorias de saídas do mês</div>
+                        </div>
+                        <div id="pbiChartFontesDes" class="demo-chart-canvas" style="min-height: 250px;"></div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 3: RESERVA DE EMERGÊNCIA (TERMÔMETRO DE SEGURANÇA) -->
+                <div class="demo-chart-box" id="boxChartReserva" style="margin-bottom: 16px;">
+                    <div class="demo-chart-header">
+                        <div class="demo-chart-title" style="color: #F59E0B;">
+                            <span>🛡️</span> Medidor da Reserva de Emergência
+                        </div>
+                        <div class="demo-chart-desc">Termômetro da sua segurança financeira em relação à meta recomendada</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center;">
+                        <div id="pbiChartGauge" class="demo-chart-canvas" style="min-height: 240px; max-width: 480px;"></div>
+                        <div style="text-align: center; max-width: 500px; padding: 10px 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; font-size: 0.82rem; color: #FCD34D;">
+                            💡 <strong>Dica de Segurança:</strong> Uma reserva ideal cobre de 3 a 6 meses do seu custo fixo para imprevistos.
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- ABA 3: CONTAS A PAGAR (GAVETA) -->
+            <div id="tabAPagar" class="tab-content" style="display: none;">
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; margin-bottom: 16px;">
+                    <h2 style="font-size: 1.2rem; color: #F59E0B; margin-bottom: 4px;">Contas a Pagar (Gaveta)</h2>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary);">Contas que vencem este mês ou despesas fixas para monitoramento contínuo</p>
+
+                    <!-- Formulário com Salvar, Edição e Exclusão -->
+                    <input type="hidden" id="idContaEmEdicao" value="">
+                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <input type="text" id="novaContaDesc" placeholder="Descrição da Conta (Ex: IPTU, Seguro)" style="flex: 2; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white; font-size: 0.95rem;">
+                            <input type="text" inputmode="numeric" id="novaContaValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 120px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white; font-weight: 700; font-size: 0.95rem;">
+                        </div>
+                        <div id="acoesContaFormContainer" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <button id="btnSalvarConta" type="button" onclick="salvarContaFormulario()" style="flex: 2; min-width: 140px; background: #F59E0B; color: #0F172A; border: none; padding: 11px 20px; border-radius: 8px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
+                                Salvar
+                            </button>
+                            <button id="btnExcluirContaForm" type="button" onclick="excluirContaEmEdicao()" style="display: none; flex: 1; min-width: 110px; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 11px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                                🗑️ Excluir
+                            </button>
+                            <button id="btnCancelarContaForm" type="button" onclick="cancelarEdicaoConta()" style="display: none; background: #1E293B; border: 1px solid #475569; color: #94A3B8; padding: 11px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                                ✕ Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card de Fatura do Cartão de Crédito -->
+                <div id="cardFaturaCartao" class="card" style="margin-bottom: 16px; cursor: pointer; display: none; background: #1E293B; border-left: 5px solid #10B981; padding: 16px; border-radius: 10px;" onclick="abrirModalFatura()">
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                        <div>
+                            <h3 style="color: #34D399; font-weight: 600; margin: 0; font-size: 1.1rem;">💳 Fatura Atual do Cartão</h3>
+                            <div id="lblFaturaMes" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 4px;">Carregando...</div>
+                        </div>
+                        <div style="color: #34D399; font-weight: bold; display: flex; align-items: center; gap: 6px;">
+                            <span>Ver Detalhes</span>
+                            <i data-lucide="chevron-right"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-list" id="listaAPagarContainer">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+
+            <!-- ABA 4: LISTA DE DESEJOS -->
+            <div id="tabDesejos" class="tab-content" style="display: none;">
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px; margin-bottom: 12px;">
+                        <div>
+                            <h2 style="font-size: 1.25rem; color: #C084FC; font-weight: 800; display: flex; align-items: center; gap: 8px;">
+                                🎁 Lista de Desejos & Metas
+                            </h2>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px;">
+                                Salve seus sonhos com foto, filmagem e link da fonte pesquisada para acessar a qualquer momento
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- Formulário de Desejo Aprimorado -->
+                    <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
+                        <!-- Linha 1: Descrição e Valor -->
+                        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                            <input type="text" id="novoDesejoDesc" placeholder="O que você quer conquistar? (Ex: iPhone 16, Viagem a Gramado, Sofá Novo)" style="flex: 2; min-width: 200px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.95rem;">
+                            <input type="text" inputmode="numeric" id="novoDesejoValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 140px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.95rem; font-weight: 700;">
+                        </div>
+
+                        <!-- Linha 2: Link da Fonte Pesquisada -->
+                        <div style="display: flex; gap: 10px; align-items: center;">
+                            <div style="flex: 1; position: relative;">
+                                <input type="url" id="novoDesejoLink" placeholder="🔗 Link da fonte (Ex: https://mercadolivre.com.br/... ou site pesquisado)" style="width: 100%; padding: 12px 14px 12px 38px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.9rem; box-sizing: border-box;">
+                                <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 1.1rem; pointer-events: none;">🌐</span>
+                            </div>
+                            <button type="button" onclick="colarLinkClipboard()" title="Colar link da área de transferência" style="background: #1E293B; border: 1px solid #334155; color: #94A3B8; padding: 11px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
+                                📋 Colar
+                            </button>
+                        </div>
+
+                        <!-- Linha 3: Botões de Captura de Mídia (Linha Única Uniforme) -->
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; box-sizing: border-box; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-color); border-radius: 12px;">
+                            <!-- Botão Tirar Foto -->
+                            <button type="button" onclick="document.getElementById('inputCapturaFoto').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #8B5CF6; color: #DDD6FE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                <span>📷</span> <span>Tirar Foto</span>
+                            </button>
+                            <input type="file" id="inputCapturaFoto" accept="image/*" capture="environment" style="display: none;" onchange="capturarMidiaDesejo(this, 'foto')">
+
+                            <!-- Botão Filmar -->
+                            <button type="button" onclick="document.getElementById('inputCapturaVideo').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #EC4899; color: #FBCFE8; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                <span>🎥</span> <span>Filmar</span>
+                            </button>
+                            <input type="file" id="inputCapturaVideo" accept="video/*" capture="camcorder" style="display: none;" onchange="capturarMidiaDesejo(this, 'video')">
+
+                            <!-- Botão Galeria -->
+                            <button type="button" onclick="document.getElementById('inputCapturaGaleria').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #3B82F6; color: #BFDBFE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                <span>📁</span> <span>Galeria</span>
+                            </button>
+                            <input type="file" id="inputCapturaGaleria" accept="image/*,video/*" style="display: none;" onchange="capturarMidiaDesejo(this, 'auto')">
+                        </div>
+
+                        <!-- Pré-visualização da Mídia Anexada -->
+                        <div id="previewMidiaContainer" style="display: none; background: #0F172A; border: 1px solid #8B5CF6; border-radius: 12px; padding: 12px; align-items: center; justify-content: space-between; gap: 12px;">
+                            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
+                                <div id="previewMidiaThumb" style="width: 64px; height: 64px; border-radius: 8px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid #334155;"></div>
+                                <div>
+                                    <div id="previewMidiaTitulo" style="color: #F8FAFC; font-weight: 700; font-size: 0.9rem;">Mídia Carregada</div>
+                                    <div id="previewMidiaInfo" style="color: #94A3B8; font-size: 0.75rem;">Pronto para salvar com o desejo</div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="removerMidiaDesejo()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5; padding: 6px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer;">
+                                ✕ Remover
+                            </button>
+                        </div>
+
+                        <!-- Ações do Formulário de Desejo (Salvar com opção de Edição e Exclusão) -->
+                        <input type="hidden" id="idDesejoEmEdicao" value="">
+                        <div id="acoesDesejoFormContainer" style="display: flex; gap: 10px; margin-top: 4px; flex-wrap: wrap;">
+                            <button id="btnSalvarDesejo" type="button" onclick="salvarDesejoFormulario()" style="flex: 2; min-width: 140px; background: linear-gradient(135deg, #8B5CF6, #6D28D9); color: white; border: none; padding: 13px 24px; border-radius: 10px; font-weight: 800; font-size: 0.98rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; box-shadow: 0 4px 15px rgba(139, 92, 246, 0.4);">
+                                Salvar
+                            </button>
+                            <button id="btnExcluirDesejoForm" type="button" onclick="excluirDesejoEmEdicao()" style="display: none; flex: 1; min-width: 110px; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 13px 16px; border-radius: 10px; font-weight: 700; font-size: 0.92rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                                🗑️ Excluir
+                            </button>
+                            <button id="btnCancelarDesejoForm" type="button" onclick="cancelarEdicaoDesejo()" style="display: none; background: #1E293B; border: 1px solid #475569; color: #94A3B8; padding: 13px 16px; border-radius: 10px; font-weight: 700; font-size: 0.92rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                                ✕ Cancelar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-list" id="listaDesejosContainer">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+
+            <!-- ABA: LANÇAMENTOS COM RESUMO DE CATEGORIAS (ORÇADO VS REALIZADO) -->
+            <div id="tabLancamentos" class="tab-content" style="display: block;">
+                
+                <!-- Resumo Geral do Mês (Tabela Orçado vs Realizado) inserido no topo da tela de Lançamentos -->
+                <div class="summary-table-card">
+                    <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; font-weight: 700; color: var(--text-secondary); border-bottom: 1px solid var(--border-color); padding-bottom: 10px; margin-bottom: 14px; font-size: 0.85rem; text-transform: uppercase;">
+                        <div>Categoria</div>
+                        <div style="text-align: right;">Orçado</div>
+                        <div style="text-align: right;">Realizado</div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="filtrarExtratoTab('receitas', document.getElementById('btnFiltroReceitas'))" title="Clique para filtrar Receitas no Extrato">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #10B981; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10B981;"></span> Receitas
+                            </div>
+                            <div id="valReceitaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valReceitaRealizado" style="text-align: right; font-weight: bold; color: #10B981;">R$ 0,00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="filtrarExtratoTab('despesas', document.getElementById('btnFiltroDespesas'))" title="Clique para filtrar Despesas no Extrato">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #EF4444; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#EF4444;"></span> Despesas
+                            </div>
+                            <div id="valDespesaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valDespesaRealizado" style="text-align: right; font-weight: bold; color: #EF4444;">R$ 0,00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Investimento')" title="Clique para lançar Investimento">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #8B5CF6; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#8B5CF6;"></span> Investimentos
+                            </div>
+                            <div id="valInvestimentoOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valInvestimentoRealizado" style="text-align: right; font-weight: bold; color: #8B5CF6;">R$ 0,00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Reserva de Emergência')" title="Clique para lançar Reserva">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
+                            <div style="color: #F59E0B; font-weight: 600; display: flex; align-items: center; gap: 6px;">
+                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#F59E0B;"></span> Reserva de Emergência
+                            </div>
+                            <div id="valReservaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
+                            <div id="valReservaRealizado" style="text-align: right; font-weight: bold; color: #F59E0B;">R$ 0,00</div>
+                        </div>
+                    </div>
+                    
+                    <div class="summary-row-interactive" onclick="filtrarExtratoTab('todos', document.getElementById('btnFiltroTodos'))" title="Clique para ver todos os lançamentos" style="margin-bottom: 0;">
+                        <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; padding-top: 14px; border-top: 1px solid var(--border-color); font-size: 1.05rem;">
+                            <div style="color: #3B82F6; font-weight: 700;">Saldo Livre</div>
+                            <div id="valSaldoOrcado" style="text-align: right; font-weight: bold; color: #60A5FA;">R$ 0,00</div>
+                            <div id="valSaldoRealizado" style="text-align: right; font-weight: 800; color: #3B82F6;">R$ 0,00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Card de Extrato com Título e Barra de Ferramentas Organizada -->
+                <div class="card-extrato-header" style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 14px; padding: 14px 16px; margin-bottom: 16px; display: flex; flex-direction: column; gap: 12px;">
+                    <div>
+                        <h2 style="font-size: 1.15rem; color: #60A5FA; margin: 0 0 2px 0;">Extrato de Lançamentos</h2>
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 0;">Histórico completo de receitas e despesas do mês selecionado</p>
+                    </div>
+
+                    <!-- LINHA ÚNICA / RESPONSIVA: Filtros + Botões de Ação (Backup, Importar, Estrato) -->
+                    <div class="extrato-toolbar-row">
+                        <!-- Filtros de Tipo -->
+                        <div class="filtros-extrato-container" id="filtrosExtratoContainer">
+                            <button class="tab-pill active" id="btnFiltroTodos" onclick="filtrarExtratoTab('todos', this)">Todos</button>
+                            <button class="tab-pill btn-filtro-rec" id="btnFiltroReceitas" onclick="filtrarExtratoTab('receitas', this)">Receitas</button>
+                            <button class="tab-pill btn-filtro-des" id="btnFiltroDespesas" onclick="filtrarExtratoTab('despesas', this)">Despesas</button>
+                        </div>
+
+                        <!-- Botões de Ação Alinhados: Backup Excel, Importar Backup e Estrato PDF -->
+                        <div class="extrato-actions-container">
+                            <!-- Botão Exportar Backup em Excel -->
+                            <button type="button" class="btn-extrato-top-action btn-action-backup" onclick="abrirModalExportarBackup()" title="Exportar Backup dos Dados em Excel (.xlsx)">
+                                <span>📤</span> <span>Backup</span>
+                            </button>
+
+                            <!-- Botão Importar Backup -->
+                            <button type="button" class="btn-extrato-top-action btn-action-importar" onclick="document.getElementById('inputImportarBakap').click()" title="Importar Backup dos Dados em Excel ou JSON">
+                                <span>📥</span> <span>Importar</span>
+                            </button>
+                            <input type="file" id="inputImportarBakap" accept=".xlsx, .xls, .csv, .json" style="display: none;" onchange="importarBackupFinancas(event)">
+
+                            <!-- Botão Gerar Extrato PDF ("Estrato") -->
+                            <button type="button" class="btn-extrato-top-action btn-action-pdf" onclick="gerarExtratoPDF()" title="Gerar Extrato em PDF (Estrato)">
+                                <span>📄</span> <span>Estrato</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-list" id="listaExtratoContainer">
+                    <!-- Preenchido via JS -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- BARRA DE NAVEGAÇÃO INFERIOR PARA DISPOSITIVOS MÓVEIS (FIXA) -->
+    <nav class="mobile-bottom-nav">
+        <button class="mobile-nav-item active" id="mNavLancamentos" onclick="switchFinanceTab('Lancamentos')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
+            <span>Lançamentos</span>
+        </button>
+        <button class="mobile-nav-item" id="mNavAPagar" onclick="switchFinanceTab('APagar')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            <span>Contas</span>
+        </button>
+        <button class="mobile-nav-item" id="mNavPowerBI" onclick="switchFinanceTab('PowerBI')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>Demonstrativo</span>
+        </button>
+        <button class="mobile-nav-item" id="mNavDesejos" onclick="switchFinanceTab('Desejos')">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
+            <span>Desejos</span>
+        </button>
+    </nav>
+
+    <!-- BOTÃO FLUTUANTE DE NOVO LANÇAMENTO (FAB) -->
+    <button class="fab-add-button" onclick="abrirModalLancamento()" title="Novo Lançamento">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+    </button>
+
+    <!-- MODAL DE NOVO LANÇAMENTO / EDIÇÃO (SOBREPOSIÇÃO TOTAL) -->
+    <div id="modalLancamento" class="modal-overlay" onclick="if(event.target === this) fecharModalLancamento()" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Lançamento Financeiro</h3>
+                <button class="close-btn" onclick="fecharModalLancamento()" title="Fechar">✕</button>
+            </div>
+            <form id="formLancamento" onsubmit="salvarLancamento(event)" style="padding-top: 16px;">
+                <input type="hidden" id="inputIdMovimentacao" value="">
+                
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label>Tipo de Movimentação</label>
+                    <select id="inputTipoGasto" required onchange="if(typeof atualizarTextoStatus === 'function') atualizarTextoStatus()">
+                        <option value="Despesa Variável">Despesa Variável</option>
+                        <option value="Despesa Fixa">Despesa Fixa</option>
+                        <option value="Conta a Pagar">Conta a Pagar (Gaveta)</option>
+                        <option value="Receita">Receita</option>
+                        <option value="Investimento">Investimento</option>
+                        <option value="Reserva de Emergência">Reserva de Emergência (Guardar)</option>
+                        <option value="Resgate de Reserva">Resgate de Reserva (Usar)</option>
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Empréstimo">Empréstimo</option>
+                        <option value="Lista de Desejos">Lista de Desejos</option>
+                    </select>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="margin-bottom: 0;">Descrição / Tipo de Movimentação</label>
+                        <button type="button" onclick="abrirModalGerenciarCategorias()" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #60A5FA; padding: 3px 9px; border-radius: 7px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;" title="Cadastrar, editar ou excluir tipos de receita e despesa">
+                            <span>⚙️</span> Cadastrar / Gerenciar
+                        </button>
+                    </div>
+
+                    <!-- Seletor Oficial de Tipos Cadastrados (Salário, Luz, Água, Celular...) -->
+                    <select id="selectCategoriaPredefinida" onchange="aoSelecionarCategoriaPredefinida(this.value)" required style="width: 100%; background: #1E293B; border: 1.5px solid #3B82F6; color: #FFFFFF; font-weight: 600; padding: 11px 14px; border-radius: 10px; font-size: 0.95rem;">
+                        <option value="">📋 Escolha da lista (Salário, Luz, Água, Celular...)</option>
+                    </select>
+
+                    <!-- Campo Oculto para Retrocompatibilidade -->
+                    <input type="hidden" id="inputDescricao">
+                    <datalist id="listaCategoriasDescricao"></datalist>
+                </div>
+
+                <div class="form-group-row" style="display: flex; gap: 12px; margin-bottom: 14px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Valor Orçado</label>
+                        <input type="text" inputmode="numeric" id="inputValor" class="input-money-mask" placeholder="R$ 0,00" required style="font-weight: 700; color: #10B981;">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Valor Realizado</label>
+                        <input type="text" inputmode="numeric" id="inputValorRealizado" class="input-money-mask" placeholder="R$ 0,00" value="R$ 0,00" style="font-weight: 700; color: #60A5FA;">
+                    </div>
+                </div>
+
+                <div class="form-group-row" style="display: flex; gap: 12px; margin-bottom: 14px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Data</label>
+                        <input type="date" id="inputData">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>Status</label>
+                        <select id="inputStatus" required>
+                            <option value="Pendente">Pendente</option>
+                            <option value="Pago">Pago</option>
+                            <option value="Cancelado">Cancelado</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group-row" style="display: flex; gap: 12px; align-items: center; margin-bottom: 14px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label class="checkbox-label" style="cursor: pointer; display: flex; align-items: center; gap: 8px;">
+                            <input type="checkbox" id="inputParcelado" onchange="toggleParcelas()"> 🔄 Parcelado?
+                        </label>
+                    </div>
+                    <div class="form-group" style="flex: 1; display: none;" id="divParcelas">
+                        <label>Total de Parcelas</label>
+                        <input type="number" id="inputTotalParcelas" placeholder="Ex: 10" min="2" value="2">
+                    </div>
+                </div>
+
+                <div class="form-group-row" style="display: flex; gap: 12px; margin-bottom: 16px;">
+                    <div class="form-group" style="flex: 1;">
+                        <label>Recorrência (Mensal)</label>
+                        <select id="inputRecorrencia" onchange="if(typeof toggleRecorrencia === 'function') toggleRecorrencia()">
+                            <option value="Unica">Única (Não se repete)</option>
+                            <option value="Continua">Contínua (Repete todo mês)</option>
+                            <option value="DataFinal">Repetir até uma data</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1; display: none;" id="divDataFim">
+                        <label>Até qual mês/ano?</label>
+                        <input type="month" id="inputDataFim">
+                    </div>
+                </div>
+
+                <!-- Campos Específicos para Lista de Desejos -->
+                <div id="modalDesejoExtras" style="display: none; background: rgba(139, 92, 246, 0.1); border: 1px dashed #8B5CF6; border-radius: 12px; padding: 14px; margin-bottom: 16px;">
+                    <div style="font-weight: 700; color: #C084FC; font-size: 0.85rem; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                        🎁 Informações Adicionais do Desejo:
+                    </div>
+                    <div class="form-group" style="margin-bottom: 10px;">
+                        <label>Link da Fonte / Pesquisa</label>
+                        <input type="url" id="modalInputLinkUrl" placeholder="Ex: https://produto.mercadolivre.com.br/...">
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                        <span style="font-size: 0.8rem; color: #94A3B8; font-weight: 600;">Mídia:</span>
+                        <button type="button" onclick="document.getElementById('modalInputCapturaFoto').click()" style="background: #1E293B; border: 1px solid #8B5CF6; color: #DDD6FE; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                            📷 Foto
+                        </button>
+                        <input type="file" id="modalInputCapturaFoto" accept="image/*" capture="environment" style="display: none;" onchange="capturarMidiaModalDesejo(this, 'foto')">
+                        
+                        <button type="button" onclick="document.getElementById('modalInputCapturaVideo').click()" style="background: #1E293B; border: 1px solid #EC4899; color: #FBCFE8; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                            🎥 Filmar
+                        </button>
+                        <input type="file" id="modalInputCapturaVideo" accept="video/*" capture="camcorder" style="display: none;" onchange="capturarMidiaModalDesejo(this, 'video')">
+
+                        <button type="button" onclick="document.getElementById('modalInputCapturaGaleria').click()" style="background: #1E293B; border: 1px solid #3B82F6; color: #BFDBFE; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
+                            📁 Galeria
+                        </button>
+                        <input type="file" id="modalInputCapturaGaleria" accept="image/*,video/*" style="display: none;" onchange="capturarMidiaModalDesejo(this, 'auto')">
+                    </div>
+                    <div id="modalPreviewMidiaContainer" style="display: none; margin-top: 10px; background: #0F172A; border-radius: 8px; padding: 8px 12px; align-items: center; justify-content: space-between;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <div id="modalPreviewMidiaThumb" style="width: 44px; height: 44px; border-radius: 6px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center;"></div>
+                            <span id="modalPreviewMidiaLabel" style="font-size: 0.8rem; color: #F8FAFC; font-weight: 600;">Mídia anexada</span>
+                        </div>
+                        <button type="button" onclick="removerMidiaModalDesejo()" style="background: transparent; border: none; color: #F87171; font-weight: 700; font-size: 0.8rem; cursor: pointer;">✕ Remover</button>
+                    </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; margin-top: 18px;">
+                    <button type="button" class="close-btn" style="flex: 1; padding: 10px; border-radius: 8px; background: #334155; color: white; border: none; cursor: pointer;" onclick="fecharModalLancamento()">Cancelar</button>
+                    <button type="button" id="btnExcluir" style="display: none; flex: 1; padding: 10px; border-radius: 8px; background: #7F1D1D; color: #FCA5A5; border: none; cursor: pointer; font-weight: bold;" onclick="excluirLancamentoAtual()">Excluir</button>
+                    <button type="submit" class="primary-button" style="flex: 2; padding: 10px; border-radius: 8px; background: #2563EB; color: white; border: none; font-weight: bold; cursor: pointer;" id="btnSalvar">Salvar Lançamento</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL DE FATURA DO CARTÃO (SOBREPOSIÇÃO TOTAL) -->
+    <div id="modalFatura" class="modal-overlay" onclick="if(event.target === this) fecharModalFatura()" style="display: none;">
+        <div class="modal-content" style="max-height: 90vh; display: flex; flex-direction: column;">
+            <div class="modal-header">
+                <h3>Fatura do Cartão</h3>
+                <button class="close-btn" onclick="fecharModalFatura()" title="Fechar">✕</button>
+            </div>
+            
+            <h2 id="lblFaturaTituloMes" style="font-size: 1.6rem; margin: 0 0 4px 0;">Mês</h2>
+            <p style="color: var(--text-secondary); font-size: 0.85rem; margin: 0 0 15px 0;">Fatura consolidada para este mês</p>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; background: #0F172A; padding: 14px; border-radius: 10px;">
+                <div id="valTotalFatura" style="color: #34D399; font-size: 1.8rem; font-weight: 700;">R$ 0,00</div>
+                <button class="primary-button" style="padding: 8px 16px; border-radius: 8px; width: auto; font-size: 0.9rem; background: #10B981; border: none; color: white; font-weight: bold; cursor: pointer;" onclick="pagarFaturaCompleta()">Pagar Fatura</button>
+            </div>
+
+            <div id="listaFaturaItens" style="flex: 1; overflow-y: auto; padding-right: 5px; display: flex; flex-direction: column; gap: 8px;">
+                <!-- Itens injetados via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE PERFIL / CONTA (SOBREPOSIÇÃO TOTAL) -->
+    <div id="modalPerfil" class="modal-overlay" onclick="if(event.target === this) fecharModalPerfil()" style="display: none;">
+        <div class="modal-content" style="max-width: 360px; text-align: center;">
+            <div style="width: 58px; height: 58px; border-radius: 50%; background: rgba(37, 99, 235, 0.2); border: 2px solid #3B82F6; display: inline-flex; align-items: center; justify-content: center; margin-bottom: 12px;">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#60A5FA" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            </div>
+            <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
+            <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 20px;">Modo Conectado</p>
+            <div style="display: flex; flex-direction: column; gap: 10px;">
+                <button onclick="forceSync(); fecharModalPerfil();" style="padding: 12px; background: #2563EB; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>
+                    <span>Sincronizar Dados Agora</span>
+                </button>
+                <button onclick="forcarAtualizacaoApp()" style="padding: 12px; background: rgba(59, 130, 246, 0.2); color: #60A5FA; border: 1px solid #3B82F6; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+                    <span>⚡ Atualizar & Limpar Cache</span>
+                </button>
+                <button onclick="zerarTodosLancamentos()" style="padding: 12px; background: rgba(239, 68, 68, 0.12); color: #FCA5A5; border: 1px dashed rgba(239, 68, 68, 0.5); border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    <span>Zerar Lançamentos (Iniciar do Zero)</span>
+                </button>
+                <button onclick="logout(); fecharModalPerfil();" style="padding: 12px; background: rgba(239, 68, 68, 0.15); color: #FCA5A5; border: 1px solid #EF4444; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span>Trocar de Conta / Sair</span>
+                </button>
+                <button onclick="fecharModalPerfil()" style="padding: 10px; background: transparent; color: #64748B; border: none; font-size: 0.85rem; cursor: pointer;">
+                    Fechar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE GERENCIAMENTO DE TIPOS DE RECEITA E DESPESA (CADASTRAR, EDITAR, EXCLUIR) -->
+    <div id="modalGerenciarCategorias" class="modal-overlay" onclick="if(event.target === this) fecharModalGerenciarCategorias()" style="display: none; z-index: 999999;">
+        <div class="modal-content" style="max-width: 440px; display: flex; flex-direction: column; max-height: 88vh; box-shadow: 0 25px 60px rgba(0,0,0,0.9);">
+            <div class="modal-header" style="border-bottom: 1px solid #1E293B; padding-bottom: 12px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.3rem;">📋</span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.05rem; color: #FFFFFF;">Gerenciar Tipos de Movimentação</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.74rem; color: #94A3B8;">Cadastre, edite ou exclua (Salário, Luz, Água, Celular...)</p>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="fecharModalGerenciarCategorias()" title="Fechar">✕</button>
+            </div>
+
+            <!-- Formulário de Cadastro / Edição -->
+            <div style="background: #0F172A; border: 1.5px solid #1E293B; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+                <label id="lblFormGerenciarCategoria" style="font-size: 0.78rem; font-weight: 700; color: #60A5FA; display: block; margin-bottom: 6px;">
+                    ➕ Cadastrar Novo Tipo:
+                </label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="inputNovaCategoria" placeholder="Ex: Internet, Mercado, Academia..." style="flex: 1; padding: 9px 12px; background: #1E293B; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 0.88rem;" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); salvarNovaOuEditadaCategoria(); }">
+                    <button type="button" id="btnSalvarCategoria" onclick="salvarNovaOuEditadaCategoria()" style="background: #2563EB; border: none; color: white; font-weight: 700; font-size: 0.82rem; padding: 9px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap;">
+                        + Inserir
+                    </button>
+                    <button type="button" id="btnCancelarEdicaoCategoria" onclick="cancelarEdicaoCategoria()" style="display: none; background: #334155; border: none; color: #CBD5E1; font-weight: 700; font-size: 0.82rem; padding: 9px 10px; border-radius: 8px; cursor: pointer;">
+                        Cancelar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista Rolável de Categorias Cadastradas -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Tipos Cadastrados (<span id="countCategorias">0</span>)</span>
+                <button type="button" onclick="restaurarCategoriasPadrao()" style="background: transparent; border: none; color: #38BDF8; font-size: 0.72rem; cursor: pointer; text-decoration: underline;">
+                    Restaurar Padrões
+                </button>
+            </div>
+
+            <div id="listaCategoriasGerenciar" style="flex: 1; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 6px; max-height: 280px;">
+                <!-- Itens carregados dinamicamente via JS -->
+            </div>
+
+            <!-- Botão de Concluir / Fechar -->
+            <div style="margin-top: 14px; border-top: 1px solid #1E293B; padding-top: 12px;">
+                <button type="button" onclick="fecharModalGerenciarCategorias()" style="width: 100%; padding: 11px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; border-radius: 10px; color: white; font-weight: 800; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37,99,235,0.35);">
+                    ✓ Concluir e Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE VISUALIZAÇÃO AMPLIADA DE MÍDIA (LIGHTBOX) -->
+    <div id="modalMidiaLightbox" class="modal-overlay" onclick="if(event.target === this) fecharModalLightbox()" style="display: none; z-index: 999999; background: rgba(0,0,0,0.92); align-items: center; justify-content: center;">
+        <div style="position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <button onclick="fecharModalLightbox()" style="position: absolute; top: -45px; right: 0; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.4rem; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">✕</button>
+            <div id="modalMidiaLightboxContent" style="display: flex; align-items: center; justify-content: center; max-width: 100%; max-height: 80vh; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);"></div>
+            <div id="modalMidiaLightboxCaption" style="color: #E2E8F0; margin-top: 10px; font-weight: 700; font-size: 0.95rem; text-align: center;"></div>
+        </div>
+    <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO INTELIGENTE (ÚNICA / TODAS / QUANTIDADE) -->
+    <div id="modalConfirmarExclusao" class="modal-overlay" onclick="if(event.target === this) fecharModalConfirmarExclusao()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: #0B1120; border: 1.5px solid #334155; border-radius: 20px; width: 100%; max-width: 480px; box-shadow: 0 25px 60px rgba(0,0,0,0.9); padding: 22px; box-sizing: border-box; animation: modalFadeIn 0.2s ease;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #1E293B; padding-bottom: 12px;">
+                <div style="font-size: 1.2rem; font-weight: 800; color: #EF4444; display: flex; align-items: center; gap: 8px;">
+                    <span>🗑️</span> Excluir Lançamento
+                </div>
+                <button type="button" onclick="fecharModalConfirmarExclusao()" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 8px; color: #E2E8F0; padding: 4px 10px; font-weight: 700; cursor: pointer;">✕</button>
+            </div>
+
+            <!-- Dados do Lançamento -->
+            <div id="modalExclusaoInfoLancamento" style="background: #141F36; border: 1px solid #1E293B; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 0.88rem; color: #E2E8F0; line-height: 1.5;">
+                <!-- Preenchido dinamicamente com título, data e valor do lançamento -->
+            </div>
+
+            <!-- Opções de Exclusão -->
+            <div id="modalExclusaoOpcoesContainer" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
+                <!-- Opção 1: Apenas o atual -->
+                <label id="lblOptExcluirAtual" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid #2563EB; background: rgba(37, 99, 235, 0.12); cursor: pointer; transition: all 0.2s;">
+                    <input type="radio" name="opcaoExclusao" value="atual" checked style="margin-top: 3px; accent-color: #2563EB; cursor: pointer; width: 18px; height: 18px;" onchange="aoMudarOpcaoExclusao('atual')">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: #FFFFFF; font-size: 0.95rem;">Excluir apenas este lançamento</div>
+                        <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;">Apaga somente este mês. Os outros meses/lançamentos continuam intactos.</div>
+                    </div>
+                </label>
+
+                <!-- Opção 2: Todos os que se repetem -->
+                <label id="lblOptExcluirTodos" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #334155; background: #0F172A; cursor: pointer; transition: all 0.2s;">
+                    <input type="radio" name="opcaoExclusao" value="todos" style="margin-top: 3px; accent-color: #EF4444; cursor: pointer; width: 18px; height: 18px;" onchange="aoMudarOpcaoExclusao('todos')">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: #F87171; font-size: 0.95rem;">Excluir todos os que se repetem</div>
+                        <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;" id="descOptExcluirTodos">Apaga este lançamento e todas as repetições futuras vinculadas.</div>
+                    </div>
+                </label>
+
+                <!-- Opção 3: Escolher quantidade -->
+                <label id="lblOptExcluirQtd" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #334155; background: #0F172A; cursor: pointer; transition: all 0.2s;">
+                    <input type="radio" name="opcaoExclusao" value="quantidade" style="margin-top: 3px; accent-color: #F59E0B; cursor: pointer; width: 18px; height: 18px;" onchange="aoMudarOpcaoExclusao('quantidade')">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: #FBBF24; font-size: 0.95rem;">Escolher quantos deseja excluir</div>
+                        <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;">Defina a quantidade exata de lançamentos que serão apagados desta série.</div>
+                        
+                        <!-- Controle de quantidade -->
+                        <div id="containerControleQtdExclusao" style="display: none; margin-top: 10px; padding-top: 8px; border-top: 1px dashed #334155; align-items: center; gap: 10px; flex-wrap: wrap;">
+                            <span style="font-size: 0.82rem; color: #CBD5E1; font-weight: 600;">Quantidade:</span>
+                            <div style="display: flex; align-items: center; gap: 6px;">
+                                <button type="button" onclick="alterarQtdExclusao(-1)" style="width: 32px; height: 32px; border-radius: 8px; background: #1E293B; border: 1px solid #475569; color: #FFFFFF; font-weight: 800; cursor: pointer;">-</button>
+                                <input type="number" id="inputQtdExclusao" value="2" min="1" max="60" style="width: 60px; text-align: center; padding: 6px; border-radius: 8px; background: #020617; border: 1px solid #F59E0B; color: #FFFFFF; font-weight: 800; font-size: 0.95rem;" oninput="validarQtdExclusao(this)">
+                                <button type="button" onclick="alterarQtdExclusao(1)" style="width: 32px; height: 32px; border-radius: 8px; background: #1E293B; border: 1px solid #475569; color: #FFFFFF; font-weight: 800; cursor: pointer;">+</button>
+                            </div>
+                            <span id="lblQtdDisponivelTotal" style="font-size: 0.76rem; color: #94A3B8;">(de um total de X)</span>
+                        </div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Botões de Ação do Modal -->
+            <div style="display: flex; gap: 10px; margin-top: 16px;">
+                <button type="button" onclick="fecharModalConfirmarExclusao()" style="flex: 1; padding: 12px; background: #1E293B; border: 1px solid #334155; border-radius: 10px; color: #CBD5E1; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="button" id="btnConfirmarExclusaoFinal" onclick="executarConfirmacaoExclusao()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #EF4444, #DC2626); border: none; border-radius: 10px; color: #FFFFFF; font-weight: 800; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">
+                    🗑️ Confirmar Exclusão
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Elegante de Exportação de Backup em Excel -->
+    <div id="modalExportarBackupExcel" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 100000; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); padding: 16px;">
+        <div style="background: #0B132B; border: 1px solid #1E293B; border-radius: 20px; width: 100%; max-width: 480px; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8); padding: 24px; box-sizing: border-box; color: #FFFFFF; font-family: inherit;">
+            
+            <!-- Cabeçalho do Modal -->
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid #1E293B; padding-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                        📤
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">Backup em Excel</h3>
+                        <p style="margin: 2px 0 0; font-size: 0.78rem; color: #94A3B8;">Exportar dados organizados para planilha (.xlsx)</p>
+                    </div>
+                </div>
+                <button type="button" onclick="fecharModalExportarBackup()" style="background: transparent; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer; padding: 4px; line-height: 1;">✕</button>
+            </div>
+
+            <!-- Seletor de Período -->
+            <div style="margin-bottom: 18px;">
+                <label style="display: block; font-size: 0.82rem; font-weight: 700; color: #CBD5E1; margin-bottom: 10px; text-transform: uppercase; letter-spacing: 0.5px;">
+                    Selecione o período para exportar:
+                </label>
+
+                <div style="display: flex; flex-direction: column; gap: 10px;">
+                    <!-- Opção 1: Mês Atual Selecionado -->
+                    <label id="lblOptBackupMesAtual" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 2px solid #3B82F6; background: rgba(59, 130, 246, 0.12); cursor: pointer; transition: all 0.2s;">
+                        <input type="radio" name="opcaoPeriodoBackup" value="mes_atual" checked style="margin-top: 3px; accent-color: #3B82F6; width: 18px; height: 18px; cursor: pointer;" onchange="aoMudarOpcaoPeriodoBackup('mes_atual')">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; color: #60A5FA; font-size: 0.95rem;" id="txtBackupMesAtualTitulo">Apenas o mês atual</div>
+                            <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;" id="txtBackupMesAtualContagem">Exporta os lançamentos do mês selecionado</div>
+                        </div>
+                    </label>
+
+                    <!-- Opção 2: Quantidade de Meses -->
+                    <label id="lblOptBackupQtdMeses" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #334155; background: #0F172A; cursor: pointer; transition: all 0.2s;">
+                        <input type="radio" name="opcaoPeriodoBackup" value="qtd_meses" style="margin-top: 3px; accent-color: #10B981; width: 18px; height: 18px; cursor: pointer;" onchange="aoMudarOpcaoPeriodoBackup('qtd_meses')">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; color: #34D399; font-size: 0.95rem;">Definir quantidade de meses</div>
+                            <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;">Exporte quantos meses desejar a partir do mês selecionado</div>
+                            
+                            <!-- Controles de Stepper -->
+                            <div id="containerControleQtdMesesBackup" style="display: none; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #334155; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                <span style="font-size: 0.82rem; color: #CBD5E1; font-weight: 600;">Exportar:</span>
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <button type="button" onclick="alterarQtdMesesBackup(-1)" style="width: 32px; height: 32px; border-radius: 8px; background: #1E293B; border: 1px solid #475569; color: #FFFFFF; font-weight: 800; cursor: pointer;">-</button>
+                                    <input type="number" id="inputQtdMesesBackup" value="3" min="1" max="120" style="width: 60px; text-align: center; padding: 6px; border-radius: 8px; background: #020617; border: 1px solid #10B981; color: #FFFFFF; font-weight: 800; font-size: 0.95rem;" oninput="validarQtdMesesBackup(this)">
+                                    <button type="button" onclick="alterarQtdMesesBackup(1)" style="width: 32px; height: 32px; border-radius: 8px; background: #1E293B; border: 1px solid #475569; color: #FFFFFF; font-weight: 800; cursor: pointer;">+</button>
+                                </div>
+                                <span style="font-size: 0.82rem; color: #CBD5E1; font-weight: 600;">meses</span>
+                                <div id="txtPreviaPeriodoQtd" style="width: 100%; font-size: 0.78rem; color: #38BDF8; font-weight: 600; margin-top: 4px;">
+                                    Período: calculando...
+                                </div>
+                            </div>
+                        </div>
+                    </label>
+
+                    <!-- Opção 3: Todos os Meses (Backup Completo) -->
+                    <label id="lblOptBackupTodos" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #334155; background: #0F172A; cursor: pointer; transition: all 0.2s;">
+                        <input type="radio" name="opcaoPeriodoBackup" value="todos" style="margin-top: 3px; accent-color: #8B5CF6; width: 18px; height: 18px; cursor: pointer;" onchange="aoMudarOpcaoPeriodoBackup('todos')">
+                        <div style="flex: 1;">
+                            <div style="font-weight: 700; color: #C084FC; font-size: 0.95rem;">Todos os meses (Backup Completo)</div>
+                            <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;" id="txtBackupTodosContagem">Exporta todo o histórico financeiro acumulado</div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Botões de Ação -->
+            <div style="display: flex; gap: 10px; margin-top: 18px;">
+                <button type="button" onclick="fecharModalExportarBackup()" style="flex: 1; padding: 12px; background: #1E293B; border: 1px solid #334155; border-radius: 10px; color: #CBD5E1; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="button" onclick="confirmarExportacaoBackupExcel()" style="flex: 1.3; padding: 12px; background: linear-gradient(135deg, #10B981, #059669); border: none; border-radius: 10px; color: #FFFFFF; font-weight: 800; font-size: 0.92rem; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>📊</span> <span>Baixar Excel</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Elegante de Confirmação de Importação de Backup -->
+    <div id="modalConfirmarImportacao" class="modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 100000; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(6px); padding: 16px;">
+        <div style="background: #0B132B; border: 1px solid #1E293B; border-radius: 20px; width: 100%; max-width: 480px; box-shadow: 0 25px 60px -15px rgba(0,0,0,0.8); padding: 24px; box-sizing: border-box; color: #FFFFFF; font-family: inherit;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; border-bottom: 1px solid #1E293B; padding-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <div style="width: 42px; height: 42px; border-radius: 12px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); display: flex; align-items: center; justify-content: center; font-size: 1.4rem;">
+                        📥
+                    </div>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: #F8FAFC;">Importar Backup</h3>
+                        <p style="margin: 2px 0 0; font-size: 0.78rem; color: #94A3B8;">Restaurar informações para o sistema</p>
+                    </div>
+                </div>
+                <button type="button" onclick="fecharModalConfirmarImportacao()" style="background: transparent; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer; padding: 4px; line-height: 1;">✕</button>
+            </div>
+
+            <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 14px; padding: 16px; margin-bottom: 18px;">
+                <div style="font-size: 0.85rem; color: #CBD5E1; margin-bottom: 12px; line-height: 1.4;" id="txtImportResumoArquivo">
+                    Arquivo analisado com sucesso.
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div style="background: #1E293B; padding: 10px 12px; border-radius: 10px; border: 1px solid #334155;">
+                        <div style="font-size: 0.72rem; color: #94A3B8; text-transform: uppercase; font-weight: 700;">Lançamentos</div>
+                        <div style="font-size: 1.25rem; font-weight: 900; color: #34D399; margin-top: 2px;" id="lblImportQtdLancamentos">0</div>
+                    </div>
+                    <div style="background: #1E293B; padding: 10px 12px; border-radius: 10px; border: 1px solid #334155;">
+                        <div style="font-size: 0.72rem; color: #94A3B8; text-transform: uppercase; font-weight: 700;">Período Detectado</div>
+                        <div style="font-size: 0.88rem; font-weight: 800; color: #60A5FA; margin-top: 4px;" id="lblImportPeriodo">Todos</div>
+                    </div>
+                </div>
+            </div>
+
+            <p style="font-size: 0.8rem; color: #94A3B8; line-height: 1.4; margin: 0 0 18px 0;">
+                ℹ️ Todos os dados contidos na tabela serão importados, salvos no banco de dados com segurança e sincronizados automaticamente.
+            </p>
+
+            <div style="display: flex; gap: 10px;">
+                <button type="button" onclick="fecharModalConfirmarImportacao()" style="flex: 1; padding: 12px; background: #1E293B; border: 1px solid #334155; border-radius: 10px; color: #CBD5E1; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="button" id="btnConfirmarImportacaoFinal" onclick="executarImportacaoConfirmada()" style="flex: 1.3; padding: 12px; background: linear-gradient(135deg, #3B82F6, #2563EB); border: none; border-radius: 10px; color: #FFFFFF; font-weight: 800; font-size: 0.92rem; cursor: pointer; box-shadow: 0 4px 14px rgba(59, 130, 246, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                    <span>📥</span> <span>Confirmar Importação</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    </div> <!-- FIM DO #view-app -->
+
+    <!-- SCRIPTS DA APLICAÇÃO -->
+    <script src="jspdf.umd.min.js"></script>
+    <script src="jspdf.plugin.autotable.min.js"></script>
+    <script src="xlsx.mini.min.js"></script>
+    <script src="finance-db.js?v=1.4.2"></script>
+    <script src="finance-sync.js?v=1.4.2"></script>
+    <script src="finance-powerbi.js?v=1.4.2"></script>
+    <script src="finance-dashboard.js?v=1.4.2"></script>
+    <script src="auth.js?v=1.4.2"></script>
+    <script src="auto-update.js?v=1.4.2"></script>
+
+    <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
+    <script>
+        function setAppMode(mode) {
+            const body = document.body;
+            const btnDesk = document.getElementById('btnModeDesktop');
+            const btnMobbi = document.getElementById('btnModeMobbi');
+
+            if (mode === 'mobbi') {
+                body.classList.remove('mode-desktop');
+                body.classList.add('mode-mobbi');
+                btnMobbi.classList.add('active');
+                btnDesk.classList.remove('active');
+                localStorage.setItem('app_view_mode', 'mobbi');
+            } else {
+                body.classList.remove('mode-mobbi');
+                body.classList.add('mode-desktop');
+                btnDesk.classList.add('active');
+                btnMobbi.classList.remove('active');
+                localStorage.setItem('app_view_mode', 'desktop');
+            }
+            if (typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI').style.display !== 'none') {
+                setTimeout(renderPowerBIDashboard, 150);
+            }
+        }
+
+        function exibirAbaPowerBI() {
+            switchFinanceTab('PowerBI');
+        }
+
+        function abrirModalPerfil() {
+            const user = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+            const lblNome = document.getElementById('lblPerfilNome');
+            const lblStatus = document.getElementById('lblPerfilStatus');
+            if (lblNome) lblNome.innerText = user ? (user.name || user.email) : 'Modo Local / Convidado';
+            if (lblStatus) lblStatus.innerText = user ? user.email : 'Dados salvos localmente no aparelho';
+            const m = document.getElementById('modalPerfil');
+            if (m) m.style.display = 'flex';
+        }
+
+        function fecharModalPerfil() {
+            const m = document.getElementById('modalPerfil');
+            if (m) m.style.display = 'none';
+        }
+
+        // Registro Canônico do Service Worker (PWA) - SEMPRE fixo sem query string
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => {
+                        console.log('PWA Service Worker canônico ativo:', reg.scope);
+                        reg.update(); // Dispara checagem imediata de nova versão no servidor
+                        
+                        reg.onupdatefound = () => {
+                            const newWorker = reg.installing;
+                            if (newWorker) {
+                                newWorker.onstatechange = () => {
+                                    if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                        console.log('Novo Service Worker v1.3.6 pronto no aparelho!');
+                                        if (typeof checkAppVersion === 'function') checkAppVersion(false);
+                                    }
+                                };
+                            }
+                        };
+                    })
+                    .catch(err => console.log('Erro ao registrar Service Worker:', err));
+            });
+        }
+
+        let deferredInstallPrompt = null;
+        window.addEventListener('beforeinstallprompt', e => {
+            e.preventDefault();
+            deferredInstallPrompt = e;
+            const btn = document.getElementById('btnInstallPwa');
+            if (btn) btn.style.background = 'rgba(59, 130, 246, 0.2)';
+        });
+
+        function triggerPwaInstall() {
+            if (deferredInstallPrompt) {
+                deferredInstallPrompt.prompt();
+                deferredInstallPrompt.userChoice.then(choiceResult => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('Usuário aceitou instalar o APP Finanças Pessoais');
+                    }
+                    deferredInstallPrompt = null;
+                });
+            } else {
+                alert('Para baixar/instalar o aplicativo:\n\n📱 No Android (Chrome): Toque nos 3 pontinhos e selecione "Instalar aplicativo" ou "Adicionar à tela inicial".\n🍎 No iPhone (Safari): Toque no ícone Compartilhar e selecione "Adicionar à Tela de Início".\n💻 No Computador (Chrome/Edge): Clique no ícone de instalar (computador/seta) ao lado da barra de endereços.');
+            }
+        }
+
+        // Recupera preferência salva
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedMode = localStorage.getItem('app_view_mode') || 'desktop';
+            setAppMode(savedMode);
+            if (typeof lucide !== 'undefined') {
+                lucide.createIcons();
+            }
+        });
+    </script>
+</body>
+</html>
