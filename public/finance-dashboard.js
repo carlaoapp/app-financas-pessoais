@@ -647,12 +647,8 @@ function renderizarSelectCategorias() {
 }
 
 function aoSelecionarCategoriaPredefinida(val) {
-    if (!val) return;
     const inp = document.getElementById('inputDescricao');
-    if (inp) {
-        inp.value = val;
-        inp.focus();
-    }
+    if (inp) inp.value = val || '';
 }
 
 function abrirModalGerenciarCategorias() {
@@ -927,6 +923,8 @@ function abrirModalLancamento() {
     renderizarSelectCategorias();
     const selCat = document.getElementById('selectCategoriaPredefinida');
     if (selCat) selCat.value = '';
+    const inpDesc = document.getElementById('inputDescricao');
+    if (inpDesc) inpDesc.value = '';
 
     const m = document.getElementById('modalLancamento');
     if (m) {
@@ -965,9 +963,21 @@ async function editarLancamento(id) {
 
     document.getElementById('inputIdMovimentacao').value = item.id;
     document.getElementById('inputTipoGasto').value = item.tipo_gasto;
-    document.getElementById('inputDescricao').value = item.descricao;
+    
+    const descItem = (item.descricao || '').trim();
     const selCatEdit = document.getElementById('selectCategoriaPredefinida');
-    if (selCatEdit) selCatEdit.value = item.descricao || '';
+    if (selCatEdit) {
+        let optExiste = Array.from(selCatEdit.options).some(o => o.value === descItem);
+        if (!optExiste && descItem) {
+            const newOpt = document.createElement('option');
+            newOpt.value = descItem;
+            newOpt.innerText = descItem;
+            selCatEdit.appendChild(newOpt);
+        }
+        selCatEdit.value = descItem;
+    }
+    const inpDescEdit = document.getElementById('inputDescricao');
+    if (inpDescEdit) inpDescEdit.value = descItem;
     setarValorMoedaInput(document.getElementById('inputValor'), item.valor_total);
     setarValorMoedaInput(document.getElementById('inputValorRealizado'), item.valor_realizado || 0);
     document.getElementById('inputData').value = item.data_lancamento;
@@ -998,9 +1008,13 @@ async function editarLancamento(id) {
 }
 window.editarLancamento = editarLancamento;
 
-async function excluirLancamento(id) {
+// --- SISTEMA INTELIGENTE DE EXCLUSÃO (ÚNICA / REPETIÇÕES / QUANTIDADE) ---
+let itemParaExcluir = null;
+let irmaosParaExcluir = [];
+let modoExclusaoSelecionado = 'atual';
+
+async function iniciarExclusaoLancamento(id) {
     if (!id) return;
-    if(!confirm("Tem certeza que deseja excluir permanentemente este lançamento?")) return;
     
     let item = await dbLocal.movimentacoes.get(id);
     let targetId = id;
@@ -1013,27 +1027,212 @@ async function excluirLancamento(id) {
         item = all.find(m => String(m.id) === String(id));
         if (item) targetId = item.id;
     }
-    
-    const timestamp = Date.now();
-    if (item) {
-        await dbLocal.movimentacoes.update(targetId, { deleted: 1, sync_status: 'pending_update', updated_at: timestamp });
-    } else {
-        await dbLocal.movimentacoes.delete(targetId);
+    if (!item) {
+        showToast('Lançamento não encontrado.');
+        return;
     }
+
+    itemParaExcluir = item;
+    modoExclusaoSelecionado = 'atual';
+
+    // Busca repetições / lançamentos vinculados a partir da data atual
+    const allMovs = await dbLocal.movimentacoes.toArray();
+    const activeMovs = allMovs.filter(m => m.deleted !== 1);
     
-    showToast('Lançamento excluído com sucesso!');
+    let irmaos = [];
+    if (item.id_grupo && item.id_grupo.trim() !== '') {
+        irmaos = activeMovs.filter(m => m.id_grupo === item.id_grupo && (m.data_lancamento >= item.data_lancamento || (m.parcela_atual && item.parcela_atual && m.parcela_atual >= item.parcela_atual)));
+    } else {
+        // Procura lançamentos com mesma descrição base e tipo a partir da data deste lançamento
+        const descBase = (item.descricao || '').replace(/\s*\(\d+\/\d+\)$/, '').trim().toLowerCase();
+        irmaos = activeMovs.filter(m => {
+            const mDescBase = (m.descricao || '').replace(/\s*\(\d+\/\d+\)$/, '').trim().toLowerCase();
+            return mDescBase === descBase && m.tipo_gasto === item.tipo_gasto && m.data_lancamento >= item.data_lancamento;
+        });
+    }
+
+    irmaos.sort((a, b) => new Date(a.data_lancamento || 0) - new Date(b.data_lancamento || 0));
+    if (!irmaos.some(i => String(i.id) === String(item.id))) {
+        irmaos.unshift(item);
+    }
+    irmaosParaExcluir = irmaos;
+
+    // Formata valor e data para exibição
+    const [y, m, d] = (item.data_lancamento || '2026-01-01').split('-');
+    const dataBr = `${d}/${m}/${y}`;
+    const valFormat = parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
+
+    const infoEl = document.getElementById('modalExclusaoInfoLancamento');
+    if (infoEl) {
+        infoEl.innerHTML = `
+            <div style="font-weight: 800; font-size: 1.05rem; color: #FFFFFF; margin-bottom: 4px;">${item.descricao}</div>
+            <div style="display: flex; gap: 14px; font-size: 0.85rem; color: #94A3B8; flex-wrap: wrap;">
+                <span>📅 Vencimento: <strong style="color: #60A5FA;">${dataBr}</strong></span>
+                <span>💰 Valor: <strong style="color: #34D399;">R$ ${valFormat}</strong></span>
+                <span>🏷️ Tipo: <strong style="color: #FBBF24;">${item.tipo_gasto}</strong></span>
+            </div>
+        `;
+    }
+
+    const optTodos = document.getElementById('lblOptExcluirTodos');
+    const optQtd = document.getElementById('lblOptExcluirQtd');
+    const descTodos = document.getElementById('descOptExcluirTodos');
+    const inputQtd = document.getElementById('inputQtdExclusao');
+    const lblTotal = document.getElementById('lblQtdDisponivelTotal');
+
+    if (irmaos.length > 1) {
+        if (optTodos) optTodos.style.display = 'flex';
+        if (optQtd) optQtd.style.display = 'flex';
+        if (descTodos) descTodos.innerText = `Apaga este lançamento e todas as ${irmaos.length - 1} repetições futuras vinculadas (${irmaos.length} no total).`;
+        if (inputQtd) {
+            inputQtd.max = irmaos.length;
+            inputQtd.value = Math.min(2, irmaos.length);
+        }
+        if (lblTotal) lblTotal.innerText = `(de um total de ${irmaos.length})`;
+    } else {
+        if (optTodos) optTodos.style.display = 'none';
+        if (optQtd) optQtd.style.display = 'none';
+    }
+
+    aoMudarOpcaoExclusao('atual');
+
+    const modalExcl = document.getElementById('modalConfirmarExclusao');
+    if (modalExcl) modalExcl.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function aoMudarOpcaoExclusao(opcao) {
+    modoExclusaoSelecionado = opcao;
+    const optAtual = document.getElementById('lblOptExcluirAtual');
+    const optTodos = document.getElementById('lblOptExcluirTodos');
+    const optQtd = document.getElementById('lblOptExcluirQtd');
+    const containerControle = document.getElementById('containerControleQtdExclusao');
+
+    const radioAtual = document.querySelector('input[name="opcaoExclusao"][value="atual"]');
+    const radioTodos = document.querySelector('input[name="opcaoExclusao"][value="todos"]');
+    const radioQtd = document.querySelector('input[name="opcaoExclusao"][value="quantidade"]');
+
+    if (radioAtual) radioAtual.checked = (opcao === 'atual');
+    if (radioTodos) radioTodos.checked = (opcao === 'todos');
+    if (radioQtd) radioQtd.checked = (opcao === 'quantidade');
+
+    if (optAtual) {
+        optAtual.style.borderColor = (opcao === 'atual') ? '#2563EB' : '#334155';
+        optAtual.style.background = (opcao === 'atual') ? 'rgba(37, 99, 235, 0.15)' : '#0F172A';
+    }
+    if (optTodos) {
+        optTodos.style.borderColor = (opcao === 'todos') ? '#EF4444' : '#334155';
+        optTodos.style.background = (opcao === 'todos') ? 'rgba(239, 68, 68, 0.15)' : '#0F172A';
+    }
+    if (optQtd) {
+        optQtd.style.borderColor = (opcao === 'quantidade') ? '#F59E0B' : '#334155';
+        optQtd.style.background = (opcao === 'quantidade') ? 'rgba(245, 158, 11, 0.15)' : '#0F172A';
+    }
+
+    if (containerControle) {
+        containerControle.style.display = (opcao === 'quantidade') ? 'flex' : 'none';
+    }
+}
+
+function alterarQtdExclusao(delta) {
+    const inp = document.getElementById('inputQtdExclusao');
+    if (!inp) return;
+    let val = parseInt(inp.value, 10) || 1;
+    val += delta;
+    const max = parseInt(inp.max, 10) || irmaosParaExcluir.length || 1;
+    if (val < 1) val = 1;
+    if (val > max) val = max;
+    inp.value = val;
+}
+
+function validarQtdExclusao(inp) {
+    if (!inp) return;
+    let val = parseInt(inp.value, 10) || 1;
+    const max = parseInt(inp.max, 10) || irmaosParaExcluir.length || 1;
+    if (val < 1) val = 1;
+    if (val > max) val = max;
+    inp.value = val;
+}
+
+function fecharModalConfirmarExclusao() {
+    const m = document.getElementById('modalConfirmarExclusao');
+    if (m) m.style.display = 'none';
+    const mPrincipal = document.getElementById('modalLancamento');
+    if (!mPrincipal || mPrincipal.style.display === 'none') {
+        document.body.style.overflow = '';
+    }
+    itemParaExcluir = null;
+    irmaosParaExcluir = [];
+}
+
+async function executarConfirmacaoExclusao() {
+    if (!itemParaExcluir) return;
+
+    let alvos = [];
+    if (modoExclusaoSelecionado === 'atual') {
+        alvos = [itemParaExcluir];
+    } else if (modoExclusaoSelecionado === 'todos') {
+        alvos = irmaosParaExcluir.length > 0 ? irmaosParaExcluir : [itemParaExcluir];
+    } else if (modoExclusaoSelecionado === 'quantidade') {
+        const inp = document.getElementById('inputQtdExclusao');
+        const qtd = parseInt(inp ? inp.value : '1', 10) || 1;
+        alvos = irmaosParaExcluir.slice(0, qtd);
+        if (alvos.length === 0) alvos = [itemParaExcluir];
+    }
+
+    const timestamp = Date.now();
+    for (const alvo of alvos) {
+        await dbLocal.movimentacoes.update(alvo.id, {
+            deleted: 1,
+            sync_status: 'pending_update',
+            updated_at: timestamp
+        });
+    }
+
+    const msg = alvos.length > 1 ? 
+        `${alvos.length} lançamentos excluídos com sucesso!` : 
+        'Lançamento excluído com sucesso!';
+    showToast(msg);
+
+    fecharModalConfirmarExclusao();
+    if (typeof fecharModalLancamento === 'function') fecharModalLancamento();
+    if (document.getElementById('modalFatura') && document.getElementById('modalFatura').style.display === 'flex') {
+        fecharModalFatura();
+    }
+
     carregarPlanejamento();
     if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
-    if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+    if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
+    if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+}
+
+async function excluirLancamento(id) {
+    await iniciarExclusaoLancamento(id);
 }
 window.excluirLancamento = excluirLancamento;
+window.iniciarExclusaoLancamento = iniciarExclusaoLancamento;
+window.aoMudarOpcaoExclusao = aoMudarOpcaoExclusao;
+window.alterarQtdExclusao = alterarQtdExclusao;
+window.validarQtdExclusao = validarQtdExclusao;
+window.fecharModalConfirmarExclusao = fecharModalConfirmarExclusao;
+window.executarConfirmacaoExclusao = executarConfirmacaoExclusao;
 
 async function salvarLancamento(event) {
     event.preventDefault();
     
     const idAtual = document.getElementById('inputIdMovimentacao').value;
     const tipoGasto = document.getElementById('inputTipoGasto').value;
-    const descricao = document.getElementById('inputDescricao').value;
+    const selCat = document.getElementById('selectCategoriaPredefinida');
+    const inpDesc = document.getElementById('inputDescricao');
+    const descricao = (selCat && selCat.value ? selCat.value : (inpDesc ? inpDesc.value : '')).trim();
+
+    if (!descricao) {
+        alert("Por favor, selecione ou informe a Descrição / Tipo de Movimentação!");
+        if (selCat) selCat.focus();
+        return;
+    }
+
     const valorOrcado = desformatarMoedaInput(document.getElementById('inputValor').value);
     const valorRealizado = desformatarMoedaInput(document.getElementById('inputValorRealizado').value);
 
@@ -1214,25 +1413,10 @@ async function salvarLancamento(event) {
 
 async function excluirLancamentoAtual() {
     const idAtual = document.getElementById('inputIdMovimentacao').value;
-    if(!idAtual) return;
-    
-    if(confirm("Tem certeza que deseja excluir este lançamento?")) {
-        await dbLocal.movimentacoes.update(idAtual, {
-            deleted: 1,
-            sync_status: 'pending_update',
-            updated_at: Date.now()
-        });
-        showToast('Lançamento excluído!');
-        fecharModalLancamento();
-        carregarPlanejamento();
-        if(typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
-        if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
-        
-        if (document.getElementById('modalFatura').style.display === 'flex') {
-            fecharModalFatura();
-        }
-    }
+    if (!idAtual) return;
+    await iniciarExclusaoLancamento(idAtual);
 }
+window.excluirLancamentoAtual = excluirLancamentoAtual;
 
 // --- SISTEMA DE ABAS ORGANIZADO (DESKTOP & MOBILE) ---
 function switchFinanceTab(tabName) {
