@@ -2571,30 +2571,199 @@ function renderizarExtratoCompleto() {
 // AÇÕES DO EXTRATO: BACKUP (EXCEL / JSON) E ESTRATO (PDF)
 // ==========================================================================
 
-// 1. Exportar Backup em Excel Completo e Organizado
-async function exportarBackupFinancas() {
-    try {
-        const movs = await dbLocal.movimentacoes.toArray();
-        const contas = await dbLocal.contas_bancarias.toArray();
-        const origens = await dbLocal.origens_renda.toArray();
+// Variável temporária para dados carregados para importação
+let _dadosImportacaoTemp = null;
 
-        // Ordena por data (mais recente primeiro)
-        const movsOrdenadas = movs.slice().sort((a, b) => {
-            const dA = a.data_lancamento || '';
-            const dB = b.data_lancamento || '';
-            return dB.localeCompare(dA);
-        });
+// Função auxiliar para verificar se a data do lançamento pertence ao período selecionado
+function isLancamentoNoPeriodo(dataStr, anoInicio, mesInicio, qtdMeses) {
+    if (!dataStr) return false;
+    const parts = dataStr.split('-');
+    if (parts.length < 2) return false;
+    const ano = parseInt(parts[0], 10);
+    const mes = parseInt(parts[1], 10) - 1; // 0-indexed (0 a 11)
+    if (isNaN(ano) || isNaN(mes)) return false;
+
+    const diff = (ano - anoInicio) * 12 + (mes - mesInicio);
+    return diff >= 0 && diff < qtdMeses;
+}
+
+// 1. Abrir Modal de Exportação com Informações Dinâmicas do Mês Atual
+async function abrirModalExportarBackup() {
+    try {
+        const modal = document.getElementById('modalExportarBackupExcel');
+        if (!modal) {
+            exportarBackupFinancasDireto('mes_atual');
+            return;
+        }
+
+        const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const anoAtual = currentViewDate.getFullYear();
+        const mesAtual = currentViewDate.getMonth();
+        const mesNome = mesesNomes[mesAtual];
+
+        const movs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
+        const movsMes = movs.filter(m => isLancamentoNoPeriodo(m.data_lancamento, anoAtual, mesAtual, 1));
+
+        // Atualiza textos do modal
+        const txtTituloMes = document.getElementById('txtBackupMesAtualTitulo');
+        if (txtTituloMes) txtTituloMes.innerText = `Apenas o mês atual (${mesNome}/${anoAtual})`;
+
+        const txtContagemMes = document.getElementById('txtBackupMesAtualContagem');
+        if (txtContagemMes) txtContagemMes.innerText = `${movsMes.length} lançamento(s) encontrado(s) para este mês`;
+
+        const txtContagemTodos = document.getElementById('txtBackupTodosContagem');
+        if (txtContagemTodos) txtContagemTodos.innerText = `${movs.length} lançamento(s) registrados no histórico total`;
+
+        // Reseta opção padrão para "mes_atual"
+        const radMes = document.querySelector('input[name="opcaoPeriodoBackup"][value="mes_atual"]');
+        if (radMes) radMes.checked = true;
+        aoMudarOpcaoPeriodoBackup('mes_atual');
+
+        modal.style.display = 'flex';
+    } catch (err) {
+        console.error('Erro ao abrir modal de backup:', err);
+        exportarBackupFinancasDireto('mes_atual');
+    }
+}
+window.abrirModalExportarBackup = abrirModalExportarBackup;
+window.exportarBackupFinancas = abrirModalExportarBackup;
+
+function fecharModalExportarBackup() {
+    const modal = document.getElementById('modalExportarBackupExcel');
+    if (modal) modal.style.display = 'none';
+}
+window.fecharModalExportarBackup = fecharModalExportarBackup;
+
+function aoMudarOpcaoPeriodoBackup(opcao) {
+    const lblMes = document.getElementById('lblOptBackupMesAtual');
+    const lblQtd = document.getElementById('lblOptBackupQtdMeses');
+    const lblTodos = document.getElementById('lblOptBackupTodos');
+    const containerQtd = document.getElementById('containerControleQtdMesesBackup');
+
+    if (lblMes) {
+        lblMes.style.borderColor = (opcao === 'mes_atual') ? '#3B82F6' : '#334155';
+        lblMes.style.background = (opcao === 'mes_atual') ? 'rgba(59, 130, 246, 0.12)' : '#0F172A';
+    }
+    if (lblQtd) {
+        lblQtd.style.borderColor = (opcao === 'qtd_meses') ? '#10B981' : '#334155';
+        lblQtd.style.background = (opcao === 'qtd_meses') ? 'rgba(16, 185, 129, 0.12)' : '#0F172A';
+    }
+    if (lblTodos) {
+        lblTodos.style.borderColor = (opcao === 'todos') ? '#8B5CF6' : '#334155';
+        lblTodos.style.background = (opcao === 'todos') ? 'rgba(139, 92, 246, 0.12)' : '#0F172A';
+    }
+
+    if (containerQtd) {
+        containerQtd.style.display = (opcao === 'qtd_meses') ? 'flex' : 'none';
+    }
+
+    if (opcao === 'qtd_meses') {
+        atualizarPreviaQtdMesesBackup();
+    }
+}
+window.aoMudarOpcaoPeriodoBackup = aoMudarOpcaoPeriodoBackup;
+
+function alterarQtdMesesBackup(delta) {
+    const inp = document.getElementById('inputQtdMesesBackup');
+    if (!inp) return;
+    let v = (parseInt(inp.value, 10) || 1) + delta;
+    if (v < 1) v = 1;
+    if (v > 120) v = 120;
+    inp.value = v;
+    atualizarPreviaQtdMesesBackup();
+}
+window.alterarQtdMesesBackup = alterarQtdMesesBackup;
+
+function validarQtdMesesBackup(inp) {
+    let v = parseInt(inp.value, 10);
+    if (isNaN(v) || v < 1) v = 1;
+    if (v > 120) v = 120;
+    inp.value = v;
+    atualizarPreviaQtdMesesBackup();
+}
+window.validarQtdMesesBackup = validarQtdMesesBackup;
+
+async function atualizarPreviaQtdMesesBackup() {
+    const inp = document.getElementById('inputQtdMesesBackup');
+    const txtPrevia = document.getElementById('txtPreviaPeriodoQtd');
+    if (!inp || !txtPrevia) return;
+
+    const qtd = parseInt(inp.value, 10) || 1;
+    const mesesNomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const anoAtual = currentViewDate.getFullYear();
+    const mesAtual = currentViewDate.getMonth();
+
+    const fimDate = new Date(anoAtual, mesAtual + qtd - 1, 1);
+    const anoFim = fimDate.getFullYear();
+    const mesFim = fimDate.getMonth();
+
+    try {
+        const movs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
+        const count = movs.filter(m => isLancamentoNoPeriodo(m.data_lancamento, anoAtual, mesAtual, qtd)).length;
+        txtPrevia.innerText = `Período: ${mesesNomes[mesAtual]}/${anoAtual} até ${mesesNomes[mesFim]}/${anoFim} (${qtd} meses) • ${count} lançamentos`;
+    } catch(e) {
+        txtPrevia.innerText = `Período: ${mesesNomes[mesAtual]}/${anoAtual} até ${mesesNomes[mesFim]}/${anoFim} (${qtd} meses)`;
+    }
+}
+window.atualizarPreviaQtdMesesBackup = atualizarPreviaQtdMesesBackup;
+
+async function confirmarExportacaoBackupExcel() {
+    const rad = document.querySelector('input[name="opcaoPeriodoBackup"]:checked');
+    const opcao = rad ? rad.value : 'mes_atual';
+    fecharModalExportarBackup();
+    await exportarBackupFinancasDireto(opcao);
+}
+window.confirmarExportacaoBackupExcel = confirmarExportacaoBackupExcel;
+
+// Exportação Direta de Backup com geração do arquivo Excel (.xlsx)
+async function exportarBackupFinancasDireto(opcao) {
+    try {
+        const movs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
+        const contas = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1).toArray();
+        const origens = await dbLocal.origens_renda.filter(o => o.deleted !== 1).toArray();
+
+        const mesesCompletos = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+        const anoAtual = currentViewDate.getFullYear();
+        const mesAtual = currentViewDate.getMonth();
 
         const now = new Date();
         const dataStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const horaStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-        // Se a biblioteca XLSX estiver disponível, gera arquivo Excel .xlsx nativo
+        let movsFiltradas = [];
+        let periodoDesc = '';
+        let fileName = '';
+
+        if (opcao === 'mes_atual') {
+            movsFiltradas = movs.filter(m => isLancamentoNoPeriodo(m.data_lancamento, anoAtual, mesAtual, 1));
+            periodoDesc = `${mesesCompletos[mesAtual]} de ${anoAtual}`;
+            fileName = `backup_financas_${mesesCompletos[mesAtual]}_${anoAtual}.xlsx`;
+        } else if (opcao === 'qtd_meses') {
+            const inpQtd = document.getElementById('inputQtdMesesBackup');
+            const qtd = inpQtd ? (parseInt(inpQtd.value, 10) || 1) : 1;
+            movsFiltradas = movs.filter(m => isLancamentoNoPeriodo(m.data_lancamento, anoAtual, mesAtual, qtd));
+            const fimDate = new Date(anoAtual, mesAtual + qtd - 1, 1);
+            periodoDesc = `${mesesCompletos[mesAtual]}/${anoAtual} a ${mesesCompletos[fimDate.getMonth()]}/${fimDate.getFullYear()} (${qtd} meses)`;
+            fileName = `backup_financas_${qtd}meses_${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}_a_${fimDate.getFullYear()}-${String(fimDate.getMonth() + 1).padStart(2, '0')}.xlsx`;
+        } else {
+            // Todos os meses
+            movsFiltradas = movs.slice();
+            periodoDesc = 'Todos os Meses (Histórico Completo)';
+            fileName = `backup_financas_completo_${dataStr}.xlsx`;
+        }
+
+        // Ordena por data (mais recente primeiro)
+        movsFiltradas.sort((a, b) => {
+            const dA = a.data_lancamento || '';
+            const dB = b.data_lancamento || '';
+            return dB.localeCompare(dA);
+        });
+
         if (typeof XLSX !== 'undefined') {
             const wb = XLSX.utils.book_new();
 
-            // 1. Aba Lançamentos detalhados
-            const rowsLancamentos = movsOrdenadas.map(m => {
+            // 1. Aba Lançamentos
+            const rowsLancamentos = movsFiltradas.map(m => {
                 let dataFmt = m.data_lancamento || '';
                 if (dataFmt && dataFmt.includes('-')) {
                     const p = dataFmt.split('-');
@@ -2620,7 +2789,6 @@ async function exportarBackupFinancas() {
 
             const wsLancamentos = XLSX.utils.json_to_sheet(rowsLancamentos);
 
-            // Largura elegante das colunas para leitura clara no Excel
             wsLancamentos['!cols'] = [
                 { wch: 15 }, // ID
                 { wch: 12 }, // Data
@@ -2639,10 +2807,9 @@ async function exportarBackupFinancas() {
 
             XLSX.utils.book_append_sheet(wb, wsLancamentos, 'Lançamentos');
 
-            // 2. Aba Resumo Financeiro
+            // 2. Aba Resumo Geral
             let totReceitas = 0, totDespesas = 0, totInvest = 0, totReserva = 0, totGaveta = 0, totDesejos = 0;
-            movs.forEach(m => {
-                if (m.deleted === 1) return;
+            movsFiltradas.forEach(m => {
                 const v = parseFloat(m.valor_total || 0);
                 if (m.tipo_gasto === 'Receita') totReceitas += v;
                 else if (m.tipo_gasto === 'Despesa Fixa' || m.tipo_gasto === 'Despesa Variável') totDespesas += v;
@@ -2653,8 +2820,9 @@ async function exportarBackupFinancas() {
             });
 
             const rowsResumo = [
-                { 'Indicador Financeiro': 'Data e Hora do Backup', 'Valor (R$) / Info': `${dataStr} às ${horaStr}` },
-                { 'Indicador Financeiro': 'Total de Lançamentos Registrados', 'Valor (R$) / Info': movs.length },
+                { 'Indicador Financeiro': 'Período do Backup', 'Valor (R$) / Info': periodoDesc },
+                { 'Indicador Financeiro': 'Data e Hora da Exportação', 'Valor (R$) / Info': `${dataStr} às ${horaStr}` },
+                { 'Indicador Financeiro': 'Total de Lançamentos Exportados', 'Valor (R$) / Info': movsFiltradas.length },
                 { 'Indicador Financeiro': 'Total de Receitas Lançadas', 'Valor (R$) / Info': totReceitas },
                 { 'Indicador Financeiro': 'Total de Despesas Orçadas', 'Valor (R$) / Info': totDespesas },
                 { 'Indicador Financeiro': 'Saldo Previsto (Receitas - Despesas)', 'Valor (R$) / Info': (totReceitas - totDespesas) },
@@ -2665,18 +2833,19 @@ async function exportarBackupFinancas() {
             ];
 
             const wsResumo = XLSX.utils.json_to_sheet(rowsResumo);
-            wsResumo['!cols'] = [{ wch: 38 }, { wch: 25 }];
+            wsResumo['!cols'] = [{ wch: 38 }, { wch: 30 }];
             XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Geral');
 
-            // 3. Aba de Dados Técnicos para restauração com 100% de fidelidade
+            // 3. Aba de Dados Técnicos para restauração 100% perfeita
             const backupPayload = {
                 app: "Finanças Pessoais",
-                versao: "1.3.4",
+                versao: "1.4.0",
+                periodo: periodoDesc,
                 data_exportacao: new Date().toISOString(),
-                total_lancamentos: movs.length,
-                movimentacoes: movs,
-                contas_bancarias: contas,
-                origens_renda: origens
+                total_lancamentos: movsFiltradas.length,
+                movimentacoes: movsFiltradas,
+                contas_bancarias: (opcao === 'todos') ? contas : [],
+                origens_renda: (opcao === 'todos') ? origens : []
             };
             const wsRaw = XLSX.utils.json_to_sheet([
                 { 'METADADOS_SISTEMA': JSON.stringify(backupPayload) }
@@ -2690,45 +2859,55 @@ async function exportarBackupFinancas() {
 
             const a = document.createElement('a');
             a.href = url;
-            a.download = `backup_financas_excel_${dataStr}.xlsx`;
+            a.download = fileName;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            showToast(`✅ Backup em Excel gerado com sucesso! (${movs.length} lançamentos)`);
+            showToast(`✅ Backup em Excel gerado com sucesso! (${movsFiltradas.length} lançamentos de ${periodoDesc})`);
             return;
         }
 
-        // Fallback: JSON caso XLSX não esteja carregado
+        // Fallback JSON
         const backupData = {
             app: "Finanças Pessoais",
-            versao: "1.3.4",
+            versao: "1.4.0",
+            periodo: periodoDesc,
             data_exportacao: new Date().toISOString(),
-            total_lancamentos: movs.length,
-            movimentacoes: movs,
-            contas_bancarias: contas,
-            origens_renda: origens
+            total_lancamentos: movsFiltradas.length,
+            movimentacoes: movsFiltradas,
+            contas_bancarias: (opcao === 'todos') ? contas : [],
+            origens_renda: (opcao === 'todos') ? origens : []
         };
         const blob = new Blob([JSON.stringify(backupData, null, 2)], { type: 'application/json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `backup_financas_${dataStr}.json`;
+        a.download = fileName.replace('.xlsx', '.json');
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showToast(`✅ Backup exportado com sucesso! (${movs.length} lançamentos)`);
+        showToast(`✅ Backup exportado com sucesso! (${movsFiltradas.length} lançamentos)`);
     } catch (err) {
         console.error('Erro ao exportar backup:', err);
         alert('Erro ao exportar backup: ' + err.message);
     }
 }
-window.exportarBackupFinancas = exportarBackupFinancas;
+window.exportarBackupFinancasDireto = exportarBackupFinancasDireto;
 
 // 2. Importar Backup em Excel (.xlsx) ou JSON
+function fecharModalConfirmarImportacao() {
+    const modal = document.getElementById('modalConfirmarImportacao');
+    if (modal) modal.style.display = 'none';
+    _dadosImportacaoTemp = null;
+    const inp = document.getElementById('inputImportarBakap');
+    if (inp) inp.value = '';
+}
+window.fecharModalConfirmarImportacao = fecharModalConfirmarImportacao;
+
 async function importarBackupFinancas(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
@@ -2739,7 +2918,7 @@ async function importarBackupFinancas(event) {
         let contasParaImportar = [];
         let origensParaImportar = [];
 
-        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls') || fileName.endsWith('.csv')) {
             if (typeof XLSX === 'undefined') {
                 alert('Módulo de leitura do Excel não carregado. Recarregue a página e tente novamente.');
                 event.target.value = '';
@@ -2747,7 +2926,7 @@ async function importarBackupFinancas(event) {
             }
 
             const arrayBuffer = await file.arrayBuffer();
-            const wb = XLSX.read(arrayBuffer, { type: 'array' });
+            const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
 
             // 1. Tenta restaurar pela aba de metadados de sistema se existir
             if (wb.Sheets['Backup_Dados_Sistema']) {
@@ -2772,13 +2951,39 @@ async function importarBackupFinancas(event) {
 
                 rows.forEach(r => {
                     const desc = r['Descrição'] || r['Descricao'] || r['descricao'] || '';
-                    if (!desc && !r['Valor Orçado (R$)'] && !r['Valor']) return;
+                    if (!desc && !r['Valor Orçado (R$)'] && !r['Valor'] && !r['valor_total']) return;
 
-                    let dataStr = r['Data'] || r['data_lancamento'] || '';
-                    if (dataStr && typeof dataStr === 'string' && dataStr.includes('/')) {
-                        const parts = dataStr.split('/');
-                        if (parts.length === 3) {
-                            dataStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                    let dataStr = '';
+                    const rawData = r['Data'] || r['data_lancamento'] || r['data'] || '';
+                    if (rawData instanceof Date && !isNaN(rawData.getTime())) {
+                        const y = rawData.getFullYear();
+                        const m = String(rawData.getMonth() + 1).padStart(2, '0');
+                        const d = String(rawData.getDate()).padStart(2, '0');
+                        dataStr = `${y}-${m}-${d}`;
+                    } else if (typeof rawData === 'number') {
+                        const jsDate = new Date(Math.round((rawData - 25569) * 86400 * 1000));
+                        if (!isNaN(jsDate.getTime())) {
+                            const y = jsDate.getUTCFullYear();
+                            const m = String(jsDate.getUTCMonth() + 1).padStart(2, '0');
+                            const d = String(jsDate.getUTCDate()).padStart(2, '0');
+                            dataStr = `${y}-${m}-${d}`;
+                        }
+                    } else if (typeof rawData === 'string' && rawData.trim()) {
+                        const s = rawData.trim();
+                        if (s.includes('/')) {
+                            const parts = s.split('/');
+                            if (parts.length === 3) {
+                                dataStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                            }
+                        } else if (s.includes('-')) {
+                            const parts = s.split('-');
+                            if (parts.length === 3) {
+                                if (parts[0].length === 4) {
+                                    dataStr = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                                } else {
+                                    dataStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+                                }
+                            }
                         }
                     }
 
@@ -2794,8 +2999,8 @@ async function importarBackupFinancas(event) {
                         valor_realizado: isNaN(valRealizado) ? 0 : valRealizado,
                         status: r['Status'] || r['status'] || 'Pendente',
                         parcelado: r['Parcelado'] || r['parcelado'] || 'Não',
-                        parcela_atual: parseInt(r['Parcela Atual'] || r['parcela_atual']) || 1,
-                        total_parcelas: parseInt(r['Total Parcelas'] || r['total_parcelas']) || 1,
+                        parcela_atual: parseInt(r['Parcela Atual'] || r['parcela_atual'], 10) || 1,
+                        total_parcelas: parseInt(r['Total Parcelas'] || r['total_parcelas'], 10) || 1,
                         id_grupo: r['Grupo'] || r['id_grupo'] || '',
                         link_url: r['Link da Fonte'] || r['Link Original'] || r['link_url'] || '',
                         midia_tipo: r['Tipo de Mídia'] || r['Mídia (Tipo)'] || r['midia_tipo'] || '',
@@ -2823,42 +3028,108 @@ async function importarBackupFinancas(event) {
             return;
         }
 
-        const confirmou = confirm(`Deseja importar este backup contendo ${movsParaImportar.length} lançamento(s)?\n\nTodos os registros serão restaurados no aplicativo e sincronizados.`);
-        if (!confirmou) {
-            event.target.value = '';
-            return;
+        // Identifica período dos lançamentos importados
+        const datas = movsParaImportar.map(m => m.data_lancamento).filter(Boolean).sort();
+        let periodoIdentificado = 'Diversos';
+        if (datas.length > 0) {
+            const dMin = datas[0];
+            const dMax = datas[datas.length - 1];
+            if (dMin === dMax) {
+                const [y, m, d] = dMin.split('-');
+                periodoIdentificado = `${d}/${m}/${y}`;
+            } else if (dMin.slice(0, 7) === dMax.slice(0, 7)) {
+                const [y, m] = dMin.split('-');
+                const mesesNomes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+                periodoIdentificado = `${mesesNomes[parseInt(m, 10) - 1]}/${y}`;
+            } else {
+                const [y1, m1, d1] = dMin.split('-');
+                const [y2, m2, d2] = dMax.split('-');
+                periodoIdentificado = `${d1}/${m1}/${y1} a ${d2}/${m2}/${y2}`;
+            }
         }
 
-        // Salva movimentações no banco local
-        for (const m of movsParaImportar) {
+        // Guarda os dados para confirmação
+        _dadosImportacaoTemp = {
+            movs: movsParaImportar,
+            contas: contasParaImportar,
+            origens: origensParaImportar,
+            fileName: file.name
+        };
+
+        // Abre o modal estilizado de confirmação de importação
+        const modal = document.getElementById('modalConfirmarImportacao');
+        if (modal) {
+            const txtResumo = document.getElementById('txtImportResumoArquivo');
+            if (txtResumo) txtResumo.innerText = `Arquivo: ${file.name}`;
+
+            const lblQtd = document.getElementById('lblImportQtdLancamentos');
+            if (lblQtd) lblQtd.innerText = movsParaImportar.length;
+
+            const lblPeriodo = document.getElementById('lblImportPeriodo');
+            if (lblPeriodo) lblPeriodo.innerText = periodoIdentificado;
+
+            modal.style.display = 'flex';
+        } else {
+            // Fallback para confirm se o modal não estiver no DOM
+            const confirmou = confirm(`Deseja importar este backup contendo ${movsParaImportar.length} lançamento(s) (${periodoIdentificado})?\n\nTodos os registros serão restaurados no aplicativo e sincronizados.`);
+            if (confirmou) {
+                await executarImportacaoConfirmada();
+            } else {
+                event.target.value = '';
+                _dadosImportacaoTemp = null;
+            }
+        }
+    } catch (err) {
+        console.error('Erro ao processar arquivo de backup:', err);
+        alert('Erro ao processar arquivo de backup: ' + err.message);
+        event.target.value = '';
+        _dadosImportacaoTemp = null;
+    }
+}
+window.importarBackupFinancas = importarBackupFinancas;
+
+// Execução da Importação Confirmada
+async function executarImportacaoConfirmada() {
+    if (!_dadosImportacaoTemp) return;
+
+    try {
+        const { movs, contas, origens } = _dadosImportacaoTemp;
+        const currentUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+        const currentUserId = currentUser ? currentUser.id : (localStorage.getItem('financas_current_user_id') || null);
+
+        // Salva movimentações no IndexedDB local
+        for (const m of movs) {
             if (!m.id) m.id = generateUUID();
+            m.deleted = 0;
             m.sync_status = 'pending_insert';
             m.updated_at = Date.now();
+            if (currentUserId && !m.user_id) m.user_id = currentUserId;
             await dbLocal.movimentacoes.put(m);
         }
 
-        // Salva contas
-        for (const c of contasParaImportar) {
+        // Salva contas bancárias
+        for (const c of contas) {
             if (!c.id) c.id = generateUUID();
+            c.deleted = 0;
             c.sync_status = 'pending_insert';
             c.updated_at = Date.now();
+            if (currentUserId && !c.user_id) c.user_id = currentUserId;
             await dbLocal.contas_bancarias.put(c);
         }
 
-        // Salva origens
-        for (const o of origensParaImportar) {
+        // Salva origens de renda
+        for (const o of origens) {
             if (!o.id) o.id = generateUUID();
+            o.deleted = 0;
             o.sync_status = 'pending_insert';
             o.updated_at = Date.now();
+            if (currentUserId && !o.user_id) o.user_id = currentUserId;
             await dbLocal.origens_renda.put(o);
         }
 
-        event.target.value = '';
+        fecharModalConfirmarImportacao();
 
-        if (typeof syncFinanceWithServer === 'function') {
-            syncFinanceWithServer();
-        }
-
+        // Atualiza a interface
         if (typeof carregarPlanejamento === 'function') {
             await carregarPlanejamento();
         }
@@ -2872,13 +3143,19 @@ async function importarBackupFinancas(event) {
             carregarListaDesejos();
         }
 
-        showToast(`✅ Backup importado com sucesso! (${movsParaImportar.length} lançamentos restaurados)`);
+        // Dispara sincronização com o servidor SQLite/Render
+        if (typeof syncFinanceWithServer === 'function') {
+            syncFinanceWithServer();
+        }
+
+        showToast(`✅ ${movs.length} lançamento(s) importado(s) com sucesso!`);
     } catch (err) {
-        console.error('Erro ao importar backup:', err);
-        alert('Erro ao importar backup: ' + err.message);
-        event.target.value = '';
+        console.error('Erro ao executar importação:', err);
+        alert('Erro ao salvar lançamentos importados: ' + err.message);
+        fecharModalConfirmarImportacao();
     }
 }
+window.executarImportacaoConfirmada = executarImportacaoConfirmada;
 window.importarBackupFinancas = importarBackupFinancas;
 
 // 3. Gerar Extrato em PDF ("Estrato")
