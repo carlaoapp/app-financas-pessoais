@@ -1,6 +1,42 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
+
+// Carregamento automatico de variaveis de ambiente de arquivo .env (caso exista)
+const envFilePath = path.join(__dirname, '.env');
+if (fs.existsSync(envFilePath)) {
+    if (typeof process.loadEnvFile === 'function') {
+        try {
+            process.loadEnvFile(envFilePath);
+        } catch (e) {
+            console.warn('[ENV] Aviso ao carregar .env:', e.message);
+        }
+    } else {
+        try {
+            const envContent = fs.readFileSync(envFilePath, 'utf8');
+            envContent.split(/\r?\n/).forEach(line => {
+                const trimmed = line.trim();
+                if (trimmed && !trimmed.startsWith('#')) {
+                    const eqIdx = trimmed.indexOf('=');
+                    if (eqIdx > 0) {
+                        const key = trimmed.slice(0, eqIdx).trim();
+                        let val = trimmed.slice(eqIdx + 1).trim();
+                        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+                            val = val.slice(1, -1);
+                        }
+                        if (process.env[key] === undefined) {
+                            process.env[key] = val;
+                        }
+                    }
+                }
+            });
+        } catch (e) {
+            console.warn('[ENV] Falha no fallback manual do .env:', e.message);
+        }
+    }
+}
+
 const db = require('./database');
 
 const app = express();
@@ -38,7 +74,6 @@ app.get('/api/status', (req, res) => {
 });
 
 // Versão do Aplicativo (Auto-Update)
-const fs = require('fs');
 app.get('/api/version', (req, res) => {
     try {
         const verPath = path.join(__dirname, 'public', 'version.json');
@@ -117,34 +152,76 @@ app.post('/api/auth/login', (req, res) => {
 
 // Autenticação: Esqueci a Senha (Enviar Código Exclusivamente para o E-mail)
 const nodemailer = require('nodemailer');
+
 function getMailTransporter() {
     // 1. Suporte a Gmail direto
-    const gmailUser = process.env.GMAIL_USER || process.env.EMAIL_USER;
-    const gmailPass = process.env.GMAIL_PASS || process.env.EMAIL_PASS;
+    const gmailUser = (process.env.GMAIL_USER || process.env.EMAIL_USER || '').trim();
+    const gmailPassRaw = (process.env.GMAIL_PASS || process.env.EMAIL_PASS || '').trim();
+    const gmailPass = gmailPassRaw.replace(/\s+/g, ''); // Remove espaços da senha de app do Google
+    
     if (gmailUser && gmailPass) {
-        return nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: gmailUser,
-                pass: gmailPass
-            }
-        });
+        return {
+            provider: 'gmail',
+            user: gmailUser,
+            from: process.env.SMTP_FROM || `"Finanças Pessoais" <${gmailUser}>`,
+            transporter: nodemailer.createTransport({
+                service: 'gmail',
+                auth: {
+                    user: gmailUser,
+                    pass: gmailPass
+                }
+            })
+        };
     }
 
     // 2. Suporte a SMTP Genérico (Host / Port / User / Pass)
-    if (process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS) {
-        return nodemailer.createTransport({
-            host: process.env.SMTP_HOST,
-            port: parseInt(process.env.SMTP_PORT, 10) || 587,
-            secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_PORT === '465',
-            auth: {
-                user: process.env.SMTP_USER,
-                pass: process.env.SMTP_PASS
-            }
-        });
+    const smtpHost = (process.env.SMTP_HOST || '').trim();
+    const smtpUser = (process.env.SMTP_USER || '').trim();
+    const smtpPass = (process.env.SMTP_PASS || '').trim();
+    const smtpPort = parseInt(process.env.SMTP_PORT, 10) || 587;
+    const isSecure = process.env.SMTP_SECURE === 'true' || smtpPort === 465;
+
+    if (smtpHost && smtpUser && smtpPass) {
+        return {
+            provider: 'smtp',
+            user: smtpUser,
+            from: process.env.SMTP_FROM || `"Finanças Pessoais" <${smtpUser}>`,
+            transporter: nodemailer.createTransport({
+                host: smtpHost,
+                port: smtpPort,
+                secure: isSecure,
+                auth: {
+                    user: smtpUser,
+                    pass: smtpPass
+                },
+                tls: {
+                    rejectUnauthorized: process.env.SMTP_TLS_REJECT_UNAUTHORIZED !== 'false'
+                }
+            })
+        };
     }
+
     return null;
 }
+
+// Endpoint de diagnóstico do serviço de e-mail (sem expor credenciais)
+app.get('/api/auth/mail-status', (req, res) => {
+    const mailConfig = getMailTransporter();
+    if (mailConfig) {
+        // Mascara o e-mail para exibição segura (ex: us***@gmail.com)
+        const masked = mailConfig.user.replace(/^(..)(.*)(@.*)$/, (_, a, b, c) => a + '*'.repeat(Math.min(b.length, 4)) + c);
+        res.json({
+            configured: true,
+            provider: mailConfig.provider,
+            sender: masked
+        });
+    } else {
+        res.json({
+            configured: false,
+            provider: 'none'
+        });
+    }
+});
 
 app.post('/api/auth/forgot-password', async (req, res) => {
     const { email } = req.body;
@@ -153,6 +230,15 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     }
 
     const cleanEmail = email.toLowerCase().trim();
+
+    // 1. Verificação de segurança prévia: se não há serviço de e-mail configurado, bloqueia com 503
+    const mailConfig = getMailTransporter();
+    if (!mailConfig) {
+        console.warn(`[SEGURANÇA] Bloqueado: solicitação de recuperação para ${cleanEmail}, mas o servidor não possui SMTP ou Gmail configurado.`);
+        return res.status(503).json({
+            error: 'O serviço de envio de e-mails não está configurado no servidor. Por normas de segurança, o código de verificação nunca é exibido na tela. Configure as variáveis GMAIL_USER/GMAIL_PASS ou SMTP no servidor ou painel do Render.'
+        });
+    }
 
     db.get('SELECT id, name, email FROM users WHERE email = ?', [cleanEmail], async (err, user) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -172,55 +258,43 @@ app.post('/api/auth/forgot-password', async (req, res) => {
             async function(insertErr) {
                 if (insertErr) return res.status(500).json({ error: insertErr.message });
 
-                const transporter = getMailTransporter();
-
-                // Se o servidor tiver serviço de e-mail configurado:
-                if (transporter) {
-                    try {
-                        const fromSender = process.env.SMTP_FROM || process.env.GMAIL_USER || '"Finanças Pessoais" <naoresponda@financas.com>';
-                        await transporter.sendMail({
-                            from: fromSender,
-                            to: cleanEmail,
-                            subject: '🔑 Código de Verificação para Recuperação de Senha - Finanças Pessoais',
-                            html: `
-                                <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; background: #0F172A; color: #FFFFFF; border-radius: 16px; border: 1px solid #1E293B;">
-                                    <div style="text-align: center; margin-bottom: 20px;">
-                                        <h2 style="color: #60A5FA; margin: 0 0 6px 0; font-size: 1.4rem;">Finanças Pessoais</h2>
-                                        <span style="font-size: 0.85rem; color: #94A3B8;">Recuperação Segura de Senha</span>
-                                    </div>
-                                    <p style="color: #E2E8F0; font-size: 0.95rem; line-height: 1.5;">Olá, <strong>${user.name || 'Usuário'}</strong>!</p>
-                                    <p style="color: #CBD5E1; font-size: 0.95rem; line-height: 1.5;">Recebemos uma solicitação para redefinir a sua senha no aplicativo Finanças Pessoais.</p>
-                                    <p style="color: #94A3B8; font-size: 0.88rem;">Para continuar, copie o código de 6 dígitos abaixo e digite na tela do aplicativo:</p>
-                                    
-                                    <div style="background: #1E293B; border: 2px dashed #3B82F6; border-radius: 12px; padding: 18px; text-align: center; margin: 22px 0;">
-                                        <div style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Código de Verificação</div>
-                                        <div style="font-size: 2.2rem; font-weight: 900; letter-spacing: 8px; color: #34D399; margin-top: 6px; font-family: monospace;">${code}</div>
-                                    </div>
-
-                                    <p style="color: #94A3B8; font-size: 0.8rem; line-height: 1.4;">
-                                        ⏱️ <strong>Atenção:</strong> Este código expira em 15 minutos.<br>
-                                        🛡️ <strong>Segurança:</strong> Se você não solicitou a alteração de senha, ignore este e-mail. Seus dados permanecem seguros.
-                                    </p>
+                try {
+                    await mailConfig.transporter.sendMail({
+                        from: mailConfig.from,
+                        to: cleanEmail,
+                        subject: '🔑 Código de Verificação para Recuperação de Senha - Finanças Pessoais',
+                        html: `
+                            <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 520px; margin: 0 auto; padding: 24px; background: #0F172A; color: #FFFFFF; border-radius: 16px; border: 1px solid #1E293B;">
+                                <div style="text-align: center; margin-bottom: 20px;">
+                                    <h2 style="color: #60A5FA; margin: 0 0 6px 0; font-size: 1.4rem;">Finanças Pessoais</h2>
+                                    <span style="font-size: 0.85rem; color: #94A3B8;">Recuperação Segura de Senha</span>
                                 </div>
-                            `
-                        });
+                                <p style="color: #E2E8F0; font-size: 0.95rem; line-height: 1.5;">Olá, <strong>${user.name || 'Usuário'}</strong>!</p>
+                                <p style="color: #CBD5E1; font-size: 0.95rem; line-height: 1.5;">Recebemos uma solicitação para redefinir a sua senha no aplicativo Finanças Pessoais.</p>
+                                <p style="color: #94A3B8; font-size: 0.88rem;">Para continuar, copie o código de 6 dígitos abaixo e digite na tela do aplicativo:</p>
+                                
+                                <div style="background: #1E293B; border: 2px dashed #3B82F6; border-radius: 12px; padding: 18px; text-align: center; margin: 22px 0;">
+                                    <div style="font-size: 0.75rem; color: #94A3B8; text-transform: uppercase; letter-spacing: 1px; font-weight: 700;">Código de Verificação</div>
+                                    <div style="font-size: 2.2rem; font-weight: 900; letter-spacing: 8px; color: #34D399; margin-top: 6px; font-family: monospace;">${code}</div>
+                                </div>
 
-                        console.log(`[Segurança] Código de recuperação enviado com sucesso para ${cleanEmail}`);
-                        return res.json({
-                            success: true,
-                            message: `Código de verificação enviado com sucesso para ${cleanEmail}! Verifique sua caixa de entrada e pasta de spam.`
-                        });
-                    } catch (mailErr) {
-                        console.error('[E-mail] Falha no envio do código:', mailErr.message);
-                        return res.status(500).json({
-                            error: 'Falha ao enviar e-mail de recuperação (' + mailErr.message + '). Verifique suas configurações de SMTP ou tente novamente.'
-                        });
-                    }
-                } else {
-                    // Sem SMTP configurado no servidor: por segurança, NUNCA expor na tela
-                    console.warn(`[SEGURANÇA] SMTP não configurado. Código gerado para ${cleanEmail} (não enviado ao front-end por segurança).`);
-                    return res.status(503).json({
-                        error: 'O serviço de e-mail do servidor ainda não foi configurado (variáveis SMTP_HOST/SMTP_USER ou GMAIL_USER ausentes). Por segurança, o código não é exibido na tela.'
+                                <p style="color: #94A3B8; font-size: 0.8rem; line-height: 1.4;">
+                                    ⏱️ <strong>Atenção:</strong> Este código expira em 15 minutos.<br>
+                                    🛡️ <strong>Segurança:</strong> Se você não solicitou a alteração de senha, ignore este e-mail. Seus dados permanecem seguros.
+                                </p>
+                            </div>
+                        `
+                    });
+
+                    console.log(`[Segurança] Código de recuperação enviado com sucesso via ${mailConfig.provider} para ${cleanEmail}`);
+                    return res.json({
+                        success: true,
+                        message: `Código de verificação enviado com sucesso para ${cleanEmail}! Verifique sua caixa de entrada e pasta de spam.`
+                    });
+                } catch (mailErr) {
+                    console.error(`[E-mail] Falha no envio do código para ${cleanEmail} via ${mailConfig.provider}:`, mailErr.message);
+                    return res.status(500).json({
+                        error: 'Falha ao enviar e-mail de recuperação (' + mailErr.message + '). Verifique suas credenciais de e-mail no servidor.'
                     });
                 }
             }
@@ -462,11 +536,18 @@ function getLocalNetworkIp() {
 const localIp = getLocalNetworkIp();
 
 app.listen(PORT, '0.0.0.0', () => {
+    const mailInfo = getMailTransporter();
     console.log('===============================================================');
     console.log('🚀 APP FINANÇAS PESSOAIS INICIADO COM SUCESSO!');
     console.log('===============================================================');
     console.log(`💻 No Computador:            http://localhost:${PORT}`);
     console.log(`📱 No Celular (mesmo Wi-Fi): http://${localIp}:${PORT}`);
     console.log('☁️  Na Nuvem (Render):        Porta configurada para ' + PORT);
+    if (mailInfo) {
+        console.log(`✉️  Serviço de E-mail:       Ativo via ${mailInfo.provider.toUpperCase()} (${mailInfo.user})`);
+    } else {
+        console.log('⚠️  Serviço de E-mail:       Não configurado (GMAIL_USER ou SMTP_HOST ausentes).');
+        console.log('                            Recuperação de senha protegida contra exposição.');
+    }
     console.log('===============================================================');
 });
