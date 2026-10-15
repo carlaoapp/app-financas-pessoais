@@ -5,7 +5,7 @@ function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
-    return '1.5.1';
+    return '1.5.2';
 }
 
 function isNewerVersion(serverVer, currentVer) {
@@ -95,8 +95,10 @@ async function checkAppVersion(isManual = false) {
         if (isNewerVersion(serverVersion, currentVersion)) {
             // Sinaliza na badge do cabeçalho
             atualizarBadgeVersao(currentVersion, true, serverVersion);
-            // Exibe o banner chamativo para baixar a atualização
-            showUpdateBanner(serverVersion, currentVersion);
+            // Exibe o banner chamativo para baixar a atualização (se não foi dispensado nesta sessão ou se for checagem manual)
+            if (isManual || !sessionStorage.getItem('banner_dismissed_' + serverVersion)) {
+                showUpdateBanner(serverVersion, currentVersion);
+            }
         } else {
             // Versão atualizada - limpa travas antigas de sessão
             sessionStorage.removeItem('updating_to_' + currentVersion);
@@ -118,6 +120,9 @@ async function checkAppVersion(isManual = false) {
 
 // Verificação manual disparada ao clicar na badge da versão
 window.verificarAtualizacaoManual = function() {
+    try {
+        sessionStorage.clear();
+    } catch (e) {}
     if (typeof showToast === 'function') {
         showToast('Verificando atualizações no servidor...');
     }
@@ -135,44 +140,45 @@ function showUpdateBanner(newVersion, currentVersion) {
 
     const banner = document.createElement('div');
     banner.id = 'update-notification-banner';
+    // ALINHAMENTO PERFEITO (NUNCA CORTA PELA METADE NO CELULAR)
     banner.style.position = 'fixed';
-    banner.style.top = 'max(14px, env(safe-area-inset-top, 14px))';
-    banner.style.left = '50%';
-    banner.style.transform = 'translateX(-50%)';
+    banner.style.top = 'max(12px, env(safe-area-inset-top, 12px))';
+    banner.style.left = '12px';
+    banner.style.right = '12px';
+    banner.style.margin = '0 auto';
+    banner.style.maxWidth = '460px';
+    banner.style.width = 'calc(100% - 24px)';
     banner.style.zIndex = '2147483647';
-    banner.style.width = 'calc(100% - 20px)';
-    banner.style.maxWidth = '490px';
     banner.style.background = '#0F172A';
     banner.style.border = '2px solid #F59E0B';
     banner.style.borderRadius = '16px';
-    banner.style.padding = '14px 18px';
-    banner.style.boxShadow = '0 20px 45px rgba(0, 0, 0, 0.95), 0 0 30px rgba(245, 158, 11, 0.5)';
+    banner.style.padding = '14px 16px';
+    banner.style.boxShadow = '0 20px 45px rgba(0, 0, 0, 0.95), 0 0 25px rgba(245, 158, 11, 0.45)';
     banner.style.color = '#FFFFFF';
     banner.style.boxSizing = 'border-box';
-    banner.style.animation = 'pulseBadge 2.5s infinite ease-in-out';
 
     banner.innerHTML = `
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
-            <div style="display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px;">
-                <span style="font-size: 26px;">🚀</span>
+        <div style="display: flex; align-items: flex-start; justify-content: space-between; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 10px; flex: 1;">
+                <span style="font-size: 24px; line-height: 1;">⚡</span>
                 <div>
-                    <div style="font-size: 0.96rem; font-weight: 800; color: #FCD34D; display: flex; align-items: center; gap: 6px;">
+                    <div style="font-size: 0.95rem; font-weight: 800; color: #FCD34D; display: flex; align-items: center; gap: 6px;">
                         <span>Nova Atualização Pronta!</span>
                         <span style="font-size: 0.72rem; background: #F59E0B; color: #0F172A; font-weight: 900; padding: 2px 7px; border-radius: 6px;">v${newVersion}</span>
                     </div>
-                    <div style="font-size: 0.78rem; color: #CBD5E1; margin-top: 3px;">
-                        Novas melhorias publicadas. Não é necessário desinstalar o app!
+                    <div style="font-size: 0.78rem; color: #CBD5E1; margin-top: 3px; line-height: 1.3;">
+                        Toque no botão abaixo para carregar as novas melhorias.
                     </div>
                 </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-                <button onclick="applyAppUpdate('${newVersion}')" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 800; font-size: 0.88rem; cursor: pointer; white-space: nowrap; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.5); display: flex; align-items: center; gap: 5px;">
-                    <span>⚡</span> <span>Baixar Atualização</span>
-                </button>
-                <button onclick="dismissUpdateBanner('${newVersion}')" title="Fechar por enquanto" style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); color: #94A3B8; font-size: 1.1rem; cursor: pointer; padding: 7px 10px; border-radius: 8px; line-height: 1;">
-                    ✕
-                </button>
-            </div>
+            <button onclick="dismissUpdateBanner('${newVersion}')" title="Fechar" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: #CBD5E1; width: 28px; height: 28px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 1rem; cursor: pointer; flex-shrink: 0; line-height: 1;">
+                ✕
+            </button>
+        </div>
+        <div style="margin-top: 12px;">
+            <button onclick="applyAppUpdate('${newVersion}')" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4); display: flex; align-items: center; justify-content: center; gap: 8px;">
+                <span>⚡</span> <span>Atualizar Agora</span>
+            </button>
         </div>
     `;
 
