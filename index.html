@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.5.0">
+    <meta name="app-build-version" content="1.5.1">
     <script>
-        window.APP_BUILD_VERSION = '1.5.0';
+        window.APP_BUILD_VERSION = '1.5.1';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -67,7 +67,7 @@
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.5.0">
+    <link rel="stylesheet" href="app-custom.css?v=1.5.1">
 </head>
 <body class="mode-desktop">
 
@@ -239,7 +239,7 @@
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
                 <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Clique para verificar se há novas atualizações do sistema" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.5.0</span>
+                    <span id="lblVersaoApp" class="version-text">v1.5.1</span>
                 </div>
             </div>
 
@@ -339,10 +339,19 @@
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
                 <span>Demonstrativo</span>
             </button>
-            <button class="tab-pill" id="navTema" onclick="switchFinanceTab('Tema')" title="Escolher Tema Visual 3D">
+            <div class="tab-pill" id="navTema" style="position: relative; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;" title="Escolher Tema (Filtro)">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v18"></path><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"></path></svg>
                 <span>Tema</span>
-            </button>
+                <select id="desktopThemeSelector" onchange="selecionarTema(this.value)" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" title="Escolha a cor do aplicativo">
+                    <option value="preto">Preto</option>
+                    <option value="verde">Verde</option>
+                    <option value="rosa">Rosa</option>
+                    <option value="cinza">Cinza</option>
+                    <option value="azul">Azul</option>
+                    <option value="roxo">Roxo</option>
+                    <option value="claro">Claro</option>
+                </select>
+            </div>
             <button class="tab-pill" id="navDesejos" onclick="switchFinanceTab('Desejos')">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
                 <span>Metas & Desejos</span>
@@ -802,165 +811,70 @@
                 </div>
             </div>
 
-            <!-- ABA 5: SELETOR DE TEMAS (7 CORES OFICIAIS DO TUDO EM DIA) -->
+            <!-- ABA 5: SELETOR DE TEMAS (FILTRO LIMPO PADRÃO TUDO EM DIA) -->
             <div id="tabTema" class="tab-content" style="display: none;">
-                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px 20px; margin-bottom: 24px; box-shadow: var(--shadow-md); max-width: 600px; margin-left: auto; margin-right: auto;">
+                <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 20px; padding: 24px 20px; margin-bottom: 24px; box-shadow: var(--shadow-sm); max-width: 480px; margin-left: auto; margin-right: auto;">
                     
-                    <!-- Cabeçalho da Aba Tema -->
-                    <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 20px; border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
-                        <div class="theme-icon-badge" style="width: 44px; height: 44px; border-radius: 14px; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0;">
+                    <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 18px; border-bottom: 1px solid var(--border-color); padding-bottom: 14px;">
+                        <div style="width: 40px; height: 40px; border-radius: 12px; background: var(--btn-primary); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0;">
                             🎨
                         </div>
                         <div>
-                            <h2 style="margin: 0; font-size: 1.3rem; font-weight: 800; color: var(--text-primary);">Temas do Aplicativo</h2>
-                            <p style="margin: 4px 0 0 0; font-size: 0.85rem; color: var(--text-secondary);">Escolha a cor visual do aplicativo (toque para ativar imediatamente)</p>
+                            <h2 style="margin: 0; font-size: 1.25rem; font-weight: 800; color: var(--text-primary);">Tema do Aplicativo</h2>
+                            <p style="margin: 2px 0 0 0; font-size: 0.82rem; color: var(--text-secondary);">Selecione a cor no filtro abaixo igual ao Tudo em Dia</p>
                         </div>
                     </div>
 
-                    <!-- Cards de Seleção dos 7 Temas -->
-                    <div style="display: flex; flex-direction: column; gap: 12px;">
-                        <!-- TEMA PRETO -->
-                        <div class="theme-choice-card theme-card-preto" onclick="selecionarTema('preto')" id="tabThemeCardPreto">
-                            <div class="theme-preview-box preview-preto">
-                                <span class="preview-dot" style="background: #ffffff;"></span>
-                                <span class="preview-dot" style="background: #3f3f46;"></span>
-                                <span class="preview-dot" style="background: #27272a;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Preto</strong>
-                                    <span class="theme-tag tag-preto">Padrão Ônix</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo preto profundo com superfícies grafite e contraste total.</div>
-                            </div>
-                            <div class="theme-check-icon" id="tabThemeCheckPreto">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
+                    <!-- FILTRO DROPDOWN PADRÃO TUDO EM DIA -->
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; font-size: 0.88rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">Filtro de Cores:</label>
+                        <select id="tabThemeSelector" onchange="selecionarTema(this.value)" class="form-control" style="width: 100%; font-size: 1.05rem; font-weight: 700; padding: 12px 14px; border-radius: 12px; background: var(--bg-secondary); color: var(--text-primary); border: 1.5px solid var(--border-color); cursor: pointer; outline: none;">
+                            <option value="preto">Preto</option>
+                            <option value="verde">Verde</option>
+                            <option value="rosa">Rosa</option>
+                            <option value="cinza">Cinza</option>
+                            <option value="azul">Azul</option>
+                            <option value="roxo">Roxo</option>
+                            <option value="claro">Claro</option>
+                        </select>
+                    </div>
 
-                        <!-- TEMA VERDE -->
-                        <div class="theme-choice-card theme-card-verde" onclick="selecionarTema('verde')" id="tabThemeCardVerde">
-                            <div class="theme-preview-box preview-verde">
-                                <span class="preview-dot" style="background: #14b8a6;"></span>
-                                <span class="preview-dot" style="background: #0d9488;"></span>
-                                <span class="preview-dot" style="background: #0f2c34;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
+                    <!-- ÍCONES DAS CORES SIMPLES E PADRÃO -->
+                    <div style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color);">
+                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px;">Toque direto na cor:</label>
+                        <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <div onclick="selecionarTema('preto')" title="Preto" style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 4px;">
+                                <span id="tabDotPreto" style="width: 32px; height: 32px; border-radius: 50%; background: #08080a; border: 2px solid #3f3f46; display: inline-block; transition: all 0.2s ease;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 700;">Preto</span>
                             </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Verde</strong>
-                                    <span class="theme-tag tag-verde">Oceânico</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo petróleo com realces modernos em esmeralda e turquesa.</div>
+                            <div onclick="selecionarTema('verde')" title="Verde" style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 4px;">
+                                <span id="tabDotVerde" style="width: 32px; height: 32px; border-radius: 50%; background: #14b8a6; border: 2px solid #0d9488; display: inline-block; transition: all 0.2s ease;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 700;">Verde</span>
                             </div>
-                            <div class="theme-check-icon" id="tabThemeCheckVerde">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            <div onclick="selecionarTema('rosa')" title="Rosa" style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 4px;">
+                                <span id="tabDotRosa" style="width: 32px; height: 32px; border-radius: 50%; background: #f43f5e; border: 2px solid #e11d48; display: inline-block; transition: all 0.2s ease;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 700;">Rosa</span>
                             </div>
-                        </div>
-
-                        <!-- TEMA ROSA -->
-                        <div class="theme-choice-card theme-card-rosa" onclick="selecionarTema('rosa')" id="tabThemeCardRosa">
-                            <div class="theme-preview-box preview-rosa">
-                                <span class="preview-dot" style="background: #f43f5e;"></span>
-                                <span class="preview-dot" style="background: #e11d48;"></span>
-                                <span class="preview-dot" style="background: #28111c;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
+                            <div onclick="selecionarTema('cinza')" title="Cinza" style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 4px;">
+                                <span id="tabDotCinza" style="width: 32px; height: 32px; border-radius: 50%; background: #64748b; border: 2px solid #475569; display: inline-block; transition: all 0.2s ease;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 700;">Cinza</span>
                             </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Rosa</strong>
-                                    <span class="theme-tag tag-rosa">Terracota</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo vinho escuro com destaques vibrantes em framboesa.</div>
+                            <div onclick="selecionarTema('azul')" title="Azul" style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 4px;">
+                                <span id="tabDotAzul" style="width: 32px; height: 32px; border-radius: 50%; background: #2563eb; border: 2px solid #38bdf8; display: inline-block; transition: all 0.2s ease;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 700;">Azul</span>
                             </div>
-                            <div class="theme-check-icon" id="tabThemeCheckRosa">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            <div onclick="selecionarTema('roxo')" title="Roxo" style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 4px;">
+                                <span id="tabDotRoxo" style="width: 32px; height: 32px; border-radius: 50%; background: #6366f1; border: 2px solid #818cf8; display: inline-block; transition: all 0.2s ease;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 700;">Roxo</span>
                             </div>
-                        </div>
-
-                        <!-- TEMA CINZA -->
-                        <div class="theme-choice-card theme-card-cinza" onclick="selecionarTema('cinza')" id="tabThemeCardCinza">
-                            <div class="theme-preview-box preview-cinza">
-                                <span class="preview-dot" style="background: #64748b;"></span>
-                                <span class="preview-dot" style="background: #475569;"></span>
-                                <span class="preview-dot" style="background: #26282c;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Cinza</strong>
-                                    <span class="theme-tag tag-cinza">Grafite</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo grafite metálico com tons neutros elegantes e limpos.</div>
-                            </div>
-                            <div class="theme-check-icon" id="tabThemeCheckCinza">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
-
-                        <!-- TEMA AZUL -->
-                        <div class="theme-choice-card theme-card-azul" onclick="selecionarTema('azul')" id="tabThemeCardAzul">
-                            <div class="theme-preview-box preview-azul">
-                                <span class="preview-dot" style="background: #38bdf8;"></span>
-                                <span class="preview-dot" style="background: #2563eb;"></span>
-                                <span class="preview-dot" style="background: #0d1e3d;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Azul</strong>
-                                    <span class="theme-tag tag-azul">Safira</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo azul marinho profundo com acentos luminosos em ciano.</div>
-                            </div>
-                            <div class="theme-check-icon" id="tabThemeCheckAzul">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
-
-                        <!-- TEMA ROXO -->
-                        <div class="theme-choice-card theme-card-roxo" onclick="selecionarTema('roxo')" id="tabThemeCardRoxo">
-                            <div class="theme-preview-box preview-roxo">
-                                <span class="preview-dot" style="background: #818cf8;"></span>
-                                <span class="preview-dot" style="background: #6366f1;"></span>
-                                <span class="preview-dot" style="background: #1b1933;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Roxo</strong>
-                                    <span class="theme-tag tag-roxo">Cósmico</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo violeta galáctico com nuances de índigo e lavanda.</div>
-                            </div>
-                            <div class="theme-check-icon" id="tabThemeCheckRoxo">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
-
-                        <!-- TEMA CLARO -->
-                        <div class="theme-choice-card theme-card-claro" onclick="selecionarTema('claro')" id="tabThemeCardClaro">
-                            <div class="theme-preview-box preview-claro">
-                                <span class="preview-dot" style="background: #3b82f6;"></span>
-                                <span class="preview-dot" style="background: #64748b;"></span>
-                                <span class="preview-dot" style="background: #cbd5e1;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Claro</strong>
-                                    <span class="theme-tag tag-claro">Clean & Suave</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo claro sofisticado, suave aos olhos e de alta nitidez.</div>
-                            </div>
-                            <div class="theme-check-icon" id="tabThemeCheckClaro">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                            <div onclick="selecionarTema('claro')" title="Claro" style="display: flex; flex-direction: column; align-items: center; gap: 6px; cursor: pointer; padding: 4px;">
+                                <span id="tabDotClaro" style="width: 32px; height: 32px; border-radius: 50%; background: #f8fafc; border: 2px solid #cbd5e1; display: inline-block; transition: all 0.2s ease;"></span>
+                                <span style="font-size: 0.75rem; font-weight: 700;">Claro</span>
                             </div>
                         </div>
                     </div>
 
-                    <div style="margin-top: 20px; display: flex; gap: 10px;">
+                    <div style="margin-top: 24px;">
                         <button type="button" class="btn-fechar-tema" onclick="switchFinanceTab('Lancamentos')" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                             <span>← Voltar aos Lançamentos</span>
                         </button>
@@ -985,10 +899,19 @@
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
             <span>Demonstrativo</span>
         </button>
-        <button class="mobile-nav-item" id="mNavTema" onclick="switchFinanceTab('Tema')" title="Escolher Tema Visual 3D">
+        <div class="mobile-nav-item" id="mNavTema" style="position: relative; cursor: pointer;" title="Escolher Tema (Filtro)">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v18"></path><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"></path></svg>
             <span>Tema</span>
-        </button>
+            <select id="mThemeSelector" onchange="selecionarTema(this.value)" style="position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; z-index: 10;" title="Escolha a cor do aplicativo">
+                <option value="preto">Preto</option>
+                <option value="verde">Verde</option>
+                <option value="rosa">Rosa</option>
+                <option value="cinza">Cinza</option>
+                <option value="azul">Azul</option>
+                <option value="roxo">Roxo</option>
+                <option value="claro">Claro</option>
+            </select>
+        </div>
         <button class="mobile-nav-item" id="mNavDesejos" onclick="switchFinanceTab('Desejos')">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
             <span>Desejos</span>
@@ -1449,166 +1372,68 @@
         </div>
     </div>
 
-    <!-- MODAL SELETOR DE TEMAS (7 CORES OFICIAIS DO TUDO EM DIA) -->
+    <!-- MODAL SELETOR DE TEMAS (FILTRO LIMPO PADRÃO TUDO EM DIA) -->
     <div id="modalTema" class="modal-overlay" onclick="if(event.target === this) fecharModalTema()" style="display: none; align-items: center; justify-content: center; z-index: 100000; position: fixed; inset: 0; background: rgba(0,0,0,0.85); backdrop-filter: blur(8px); padding: 16px;">
-        <div class="modal-content modal-tema-content" style="max-width: 460px; max-height: 90vh; width: 100%; border-radius: 20px; display: flex; flex-direction: column; overflow: hidden; padding: 22px 20px; box-sizing: border-box;">
-            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-shrink: 0;">
+        <div class="modal-content modal-tema-content" style="max-width: 380px; width: 100%; border-radius: 18px; padding: 20px; box-sizing: border-box;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
-                    <div class="theme-icon-badge" style="width: 38px; height: 38px; border-radius: 12px; display: flex; align-items: center; justify-content: center; font-size: 20px;">
+                    <div style="width: 36px; height: 36px; border-radius: 10px; background: var(--btn-primary); display: flex; align-items: center; justify-content: center; font-size: 18px;">
                         🎨
                     </div>
                     <div>
-                        <h3 style="margin: 0; font-size: 1.2rem; font-weight: 800;">Temas do Aplicativo</h3>
-                        <p style="margin: 2px 0 0 0; font-size: 0.8rem; opacity: 0.75;">Selecione o modelo e cor de sua preferência</p>
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800;">Tema do Aplicativo</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.78rem; opacity: 0.75;">Escolha a cor de sua preferência</p>
                     </div>
                 </div>
-                <button type="button" class="close-btn" onclick="fecharModalTema()" style="background: transparent; border: none; font-size: 1.4rem; cursor: pointer; color: inherit; padding: 4px 8px; border-radius: 8px;" title="Fechar">✕</button>
+                <button type="button" class="close-btn" onclick="fecharModalTema()" style="background: transparent; border: none; font-size: 1.3rem; cursor: pointer; color: inherit; padding: 4px;" title="Fechar">✕</button>
             </div>
 
-            <!-- OPÇÕES DOS 7 TEMAS (COM SCROLL INTERNO SUAVE) -->
-            <div class="theme-cards-grid" style="display: flex; flex-direction: column; gap: 10px; margin-top: 8px; overflow-y: auto; padding-right: 4px; max-height: 60vh;">
-                <!-- TEMA PRETO -->
-                        <div class="theme-choice-card theme-card-preto" onclick="selecionarTema('preto')" id="themeCardPreto">
-                            <div class="theme-preview-box preview-preto">
-                                <span class="preview-dot" style="background: #ffffff;"></span>
-                                <span class="preview-dot" style="background: #3f3f46;"></span>
-                                <span class="preview-dot" style="background: #27272a;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Preto</strong>
-                                    <span class="theme-tag tag-preto">Padrão Ônix</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo preto profundo com superfícies grafite e contraste total.</div>
-                            </div>
-                            <div class="theme-check-icon" id="themeCheckPreto">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
-
-                        <!-- TEMA VERDE -->
-                        <div class="theme-choice-card theme-card-verde" onclick="selecionarTema('verde')" id="themeCardVerde">
-                            <div class="theme-preview-box preview-verde">
-                                <span class="preview-dot" style="background: #14b8a6;"></span>
-                                <span class="preview-dot" style="background: #0d9488;"></span>
-                                <span class="preview-dot" style="background: #0f2c34;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Verde</strong>
-                                    <span class="theme-tag tag-verde">Oceânico</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo petróleo com realces modernos em esmeralda e turquesa.</div>
-                            </div>
-                            <div class="theme-check-icon" id="themeCheckVerde">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
-
-                        <!-- TEMA ROSA -->
-                        <div class="theme-choice-card theme-card-rosa" onclick="selecionarTema('rosa')" id="themeCardRosa">
-                            <div class="theme-preview-box preview-rosa">
-                                <span class="preview-dot" style="background: #f43f5e;"></span>
-                                <span class="preview-dot" style="background: #e11d48;"></span>
-                                <span class="preview-dot" style="background: #28111c;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Rosa</strong>
-                                    <span class="theme-tag tag-rosa">Terracota</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo vinho escuro com destaques vibrantes em framboesa.</div>
-                            </div>
-                            <div class="theme-check-icon" id="themeCheckRosa">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
-
-                        <!-- TEMA CINZA -->
-                        <div class="theme-choice-card theme-card-cinza" onclick="selecionarTema('cinza')" id="themeCardCinza">
-                            <div class="theme-preview-box preview-cinza">
-                                <span class="preview-dot" style="background: #64748b;"></span>
-                                <span class="preview-dot" style="background: #475569;"></span>
-                                <span class="preview-dot" style="background: #26282c;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Cinza</strong>
-                                    <span class="theme-tag tag-cinza">Grafite</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo grafite metálico com tons neutros elegantes e limpos.</div>
-                            </div>
-                            <div class="theme-check-icon" id="themeCheckCinza">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
-
-                        <!-- TEMA AZUL -->
-                        <div class="theme-choice-card theme-card-azul" onclick="selecionarTema('azul')" id="themeCardAzul">
-                            <div class="theme-preview-box preview-azul">
-                                <span class="preview-dot" style="background: #38bdf8;"></span>
-                                <span class="preview-dot" style="background: #2563eb;"></span>
-                                <span class="preview-dot" style="background: #0d1e3d;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Azul</strong>
-                                    <span class="theme-tag tag-azul">Safira</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo azul marinho profundo com acentos luminosos em ciano.</div>
-                            </div>
-                            <div class="theme-check-icon" id="themeCheckAzul">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
-
-                        <!-- TEMA ROXO -->
-                        <div class="theme-choice-card theme-card-roxo" onclick="selecionarTema('roxo')" id="themeCardRoxo">
-                            <div class="theme-preview-box preview-roxo">
-                                <span class="preview-dot" style="background: #818cf8;"></span>
-                                <span class="preview-dot" style="background: #6366f1;"></span>
-                                <span class="preview-dot" style="background: #1b1933;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Roxo</strong>
-                                    <span class="theme-tag tag-roxo">Cósmico</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo violeta galáctico com nuances de índigo e lavanda.</div>
-                            </div>
-                            <div class="theme-check-icon" id="themeCheckRoxo">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
-
-                        <!-- TEMA CLARO -->
-                        <div class="theme-choice-card theme-card-claro" onclick="selecionarTema('claro')" id="themeCardClaro">
-                            <div class="theme-preview-box preview-claro">
-                                <span class="preview-dot" style="background: #3b82f6;"></span>
-                                <span class="preview-dot" style="background: #64748b;"></span>
-                                <span class="preview-dot" style="background: #cbd5e1;"></span>
-                                <span class="preview-dot" style="background: #10b981;"></span>
-                            </div>
-                            <div class="theme-choice-info">
-                                <div class="theme-choice-title">
-                                    <strong>Claro</strong>
-                                    <span class="theme-tag tag-claro">Clean & Suave</span>
-                                </div>
-                                <div class="theme-choice-desc">Fundo claro sofisticado, suave aos olhos e de alta nitidez.</div>
-                            </div>
-                            <div class="theme-check-icon" id="themeCheckClaro">
-                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-                            </div>
-                        </div>
+            <div style="margin: 14px 0;">
+                <label style="display: block; font-size: 0.85rem; font-weight: 700; color: var(--text-secondary); margin-bottom: 8px;">Filtro de Cor:</label>
+                <select id="modalThemeSelector" onchange="selecionarTema(this.value)" class="form-control" style="width: 100%; font-size: 1rem; font-weight: 700; padding: 12px 14px; border-radius: 12px; background: var(--bg-card); color: var(--text-primary); border: 1.5px solid var(--border-color); cursor: pointer; outline: none;">
+                    <option value="preto">Preto</option>
+                    <option value="verde">Verde</option>
+                    <option value="rosa">Rosa</option>
+                    <option value="cinza">Cinza</option>
+                    <option value="azul">Azul</option>
+                    <option value="roxo">Roxo</option>
+                    <option value="claro">Claro</option>
+                </select>
             </div>
 
-            <div style="margin-top: 16px; flex-shrink: 0;">
+            <!-- ÍCONES DAS CORES SIMPLES E PADRÃO (SEM FRESCURA) -->
+            <div style="display: flex; justify-content: space-between; gap: 8px; margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+                <div onclick="selecionarTema('preto')" title="Preto" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                    <span id="dotPreto" style="width: 28px; height: 28px; border-radius: 50%; background: #08080a; border: 2px solid #3f3f46; display: inline-block;"></span>
+                    <span style="font-size: 0.68rem; font-weight: 700;">Preto</span>
+                </div>
+                <div onclick="selecionarTema('verde')" title="Verde" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                    <span id="dotVerde" style="width: 28px; height: 28px; border-radius: 50%; background: #14b8a6; border: 2px solid #0d9488; display: inline-block;"></span>
+                    <span style="font-size: 0.68rem; font-weight: 700;">Verde</span>
+                </div>
+                <div onclick="selecionarTema('rosa')" title="Rosa" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                    <span id="dotRosa" style="width: 28px; height: 28px; border-radius: 50%; background: #f43f5e; border: 2px solid #e11d48; display: inline-block;"></span>
+                    <span style="font-size: 0.68rem; font-weight: 700;">Rosa</span>
+                </div>
+                <div onclick="selecionarTema('cinza')" title="Cinza" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                    <span id="dotCinza" style="width: 28px; height: 28px; border-radius: 50%; background: #64748b; border: 2px solid #475569; display: inline-block;"></span>
+                    <span style="font-size: 0.68rem; font-weight: 700;">Cinza</span>
+                </div>
+                <div onclick="selecionarTema('azul')" title="Azul" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                    <span id="dotAzul" style="width: 28px; height: 28px; border-radius: 50%; background: #2563eb; border: 2px solid #38bdf8; display: inline-block;"></span>
+                    <span style="font-size: 0.68rem; font-weight: 700;">Azul</span>
+                </div>
+                <div onclick="selecionarTema('roxo')" title="Roxo" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                    <span id="dotRoxo" style="width: 28px; height: 28px; border-radius: 50%; background: #6366f1; border: 2px solid #818cf8; display: inline-block;"></span>
+                    <span style="font-size: 0.68rem; font-weight: 700;">Roxo</span>
+                </div>
+                <div onclick="selecionarTema('claro')" title="Claro" style="display: flex; flex-direction: column; align-items: center; gap: 5px; cursor: pointer;">
+                    <span id="dotClaro" style="width: 28px; height: 28px; border-radius: 50%; background: #f8fafc; border: 2px solid #cbd5e1; display: inline-block;"></span>
+                    <span style="font-size: 0.68rem; font-weight: 700;">Claro</span>
+                </div>
+            </div>
+
+            <div style="margin-top: 18px;">
                 <button type="button" class="btn-fechar-tema" onclick="fecharModalTema()">
                     Concluir
                 </button>
@@ -1621,12 +1446,12 @@
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
     <script src="xlsx.mini.min.js"></script>
-    <script src="finance-db.js?v=1.5.0"></script>
-    <script src="finance-sync.js?v=1.5.0"></script>
-    <script src="finance-powerbi.js?v=1.5.0"></script>
-    <script src="finance-dashboard.js?v=1.5.0"></script>
-    <script src="auth.js?v=1.5.0"></script>
-    <script src="auto-update.js?v=1.5.0"></script>
+    <script src="finance-db.js?v=1.5.1"></script>
+    <script src="finance-sync.js?v=1.5.1"></script>
+    <script src="finance-powerbi.js?v=1.5.1"></script>
+    <script src="finance-dashboard.js?v=1.5.1"></script>
+    <script src="auth.js?v=1.5.1"></script>
+    <script src="auto-update.js?v=1.5.1"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -1685,7 +1510,7 @@
                             if (newWorker) {
                                 newWorker.onstatechange = () => {
                                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                        console.log('Novo Service Worker v1.5.0 pronto no aparelho!');
+                                        console.log('Novo Service Worker v1.5.1 pronto no aparelho!');
                                         if (typeof checkAppVersion === 'function') checkAppVersion(false);
                                     }
                                 };

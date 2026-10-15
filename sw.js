@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.5.0
-const CACHE_NAME = 'financas-pessoais-v1.5.0';
+// Service Worker - APP Finanças Pessoais v1.5.1
+const CACHE_NAME = 'financas-pessoais-v1.5.1';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -24,7 +24,7 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', event => {
-    console.log('[SW v1.5.0] Instalando e forçando ativação imediata...');
+    console.log('[SW v1.5.1] Instalando e forçando ativação imediata...');
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(async cache => {
@@ -43,13 +43,13 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-    console.log('[SW v1.5.0] Ativado. Limpando caches legados...');
+    console.log('[SW v1.5.1] Ativado. Limpando caches legados...');
     event.waitUntil(
         caches.keys().then(keys => {
             return Promise.all(
                 keys.map(key => {
                     if (key !== CACHE_NAME) {
-                        console.log('[SW v1.5.0] Removendo cache obsoleto:', key);
+                        console.log('[SW v1.5.1] Removendo cache obsoleto:', key);
                         return caches.delete(key);
                     }
                 })
@@ -79,16 +79,8 @@ self.addEventListener('message', event => {
 self.addEventListener('fetch', event => {
     const url = event.request.url;
 
-    // 1. APIs e controle de versão: SEMPRE direto na rede com fallback seguro para não travar
+    // 1. APIs e controle de versão: SEMPRE direto na rede nativa (sem interceptação do Service Worker)
     if (url.includes('/api/') || url.includes('/version.json')) {
-        event.respondWith(
-            fetch(event.request, { cache: 'no-store' }).catch(() => {
-                return new Response(JSON.stringify({ offline: true, error: 'Offline ou sem conexão' }), {
-                    headers: { 'Content-Type': 'application/json' },
-                    status: 503
-                });
-            })
-        );
         return;
     }
 

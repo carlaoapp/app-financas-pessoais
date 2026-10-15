@@ -3546,18 +3546,32 @@ window.selecionarTema = selecionarTema;
 
 function atualizarCardsSelecaoTema(temaAtivo) {
     const temas = ['preto', 'verde', 'rosa', 'cinza', 'azul', 'roxo', 'claro'];
+
+    // Sincroniza todos os selects de filtro de tema da tela
+    const selectIds = ['mThemeSelector', 'desktopThemeSelector', 'modalThemeSelector', 'tabThemeSelector', 'theme-selector'];
+    selectIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = temaAtivo;
+    });
+
+    // Atualiza anel ativo nos ícones de cores simples e padrão
     temas.forEach(t => {
         const cap = t.charAt(0).toUpperCase() + t.slice(1);
-        const modalCard = document.getElementById('themeCard' + cap);
-        const tabCard = document.getElementById('tabThemeCard' + cap);
-        const modalCheck = document.getElementById('themeCheck' + cap);
-        const tabCheck = document.getElementById('tabThemeCheck' + cap);
-
+        const dot = document.getElementById('dot' + cap);
+        const tabDot = document.getElementById('tabDot' + cap);
         const isActive = (t === temaAtivo);
-        if (modalCard) modalCard.classList.toggle('active-theme', isActive);
-        if (tabCard) tabCard.classList.toggle('active-theme', isActive);
-        if (modalCheck) modalCheck.style.display = isActive ? 'flex' : 'none';
-        if (tabCheck) tabCheck.style.display = isActive ? 'flex' : 'none';
+
+        [dot, tabDot].forEach(d => {
+            if (d) {
+                if (isActive) {
+                    d.style.boxShadow = '0 0 0 3px #3b82f6, 0 0 10px rgba(59, 130, 246, 0.5)';
+                    d.style.transform = 'scale(1.15)';
+                } else {
+                    d.style.boxShadow = 'none';
+                    d.style.transform = 'scale(1)';
+                }
+            }
+        });
     });
 }
 window.atualizarCardsSelecaoTema = atualizarCardsSelecaoTema;

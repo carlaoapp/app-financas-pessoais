@@ -5,7 +5,7 @@ function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
-    return '1.5.0';
+    return '1.5.1';
 }
 
 function isNewerVersion(serverVer, currentVer) {
@@ -66,27 +66,33 @@ async function checkAppVersion(isManual = false) {
     }
 
     try {
-        const response = await fetch('/api/version?t=' + Date.now(), { 
-            cache: 'no-store',
-            headers: { 
-                'Cache-Control': 'no-cache, no-store, must-revalidate',
-                'Pragma': 'no-cache'
+        let serverVersion = null;
+        // 1. Tenta /version.json diretamente (arquivo estático puro, ultra-rápido)
+        try {
+            const rStatic = await fetch('/version.json?t=' + Date.now());
+            if (rStatic.ok) {
+                const jStatic = await rStatic.json();
+                if (jStatic && jStatic.version) serverVersion = jStatic.version.trim();
             }
-        });
-        if (!response.ok) return;
+        } catch (e1) {}
 
-        const data = await response.json();
-        const serverVersion = (data.version || '').trim();
+        // 2. Fallback para /api/version
+        if (!serverVersion) {
+            try {
+                const rApi = await fetch('/api/version?t=' + Date.now());
+                if (rApi.ok) {
+                    const jApi = await rApi.json();
+                    if (jApi && jApi.version) serverVersion = jApi.version.trim();
+                }
+            } catch (e2) {}
+        }
+
+        if (!serverVersion) return;
+
         const currentVersion = getCurrentRunningVersion();
-
         console.log(`[Auto-Update] Versão Renderizada: v${currentVersion} | Versão Servidor: v${serverVersion}`);
 
         if (isNewerVersion(serverVersion, currentVersion)) {
-            // Se for verificação automática em background, respeita dispensa temporária na sessão
-            if (!isManual && (sessionStorage.getItem('updating_to_' + serverVersion) || sessionStorage.getItem('banner_dismissed_' + serverVersion))) {
-                console.log('[Auto-Update] Atualização para v' + serverVersion + ' já tratada nesta sessão.');
-                return;
-            }
             // Sinaliza na badge do cabeçalho
             atualizarBadgeVersao(currentVersion, true, serverVersion);
             // Exibe o banner chamativo para baixar a atualização
@@ -130,17 +136,17 @@ function showUpdateBanner(newVersion, currentVersion) {
     const banner = document.createElement('div');
     banner.id = 'update-notification-banner';
     banner.style.position = 'fixed';
-    banner.style.top = '12px';
+    banner.style.top = 'max(14px, env(safe-area-inset-top, 14px))';
     banner.style.left = '50%';
     banner.style.transform = 'translateX(-50%)';
-    banner.style.zIndex = '999999';
+    banner.style.zIndex = '2147483647';
     banner.style.width = 'calc(100% - 20px)';
     banner.style.maxWidth = '490px';
     banner.style.background = '#0F172A';
     banner.style.border = '2px solid #F59E0B';
     banner.style.borderRadius = '16px';
     banner.style.padding = '14px 18px';
-    banner.style.boxShadow = '0 20px 45px rgba(0, 0, 0, 0.9), 0 0 30px rgba(245, 158, 11, 0.45)';
+    banner.style.boxShadow = '0 20px 45px rgba(0, 0, 0, 0.95), 0 0 30px rgba(245, 158, 11, 0.5)';
     banner.style.color = '#FFFFFF';
     banner.style.boxSizing = 'border-box';
     banner.style.animation = 'pulseBadge 2.5s infinite ease-in-out';
@@ -258,13 +264,17 @@ window.addEventListener('DOMContentLoaded', () => {
     // 1. Limpa Service Workers com query strings legadas
     limparServiceWorkersLegados();
 
-    // 2. Escuta mensagens enviadas pelo Service Worker ativo
+    // 2. Escuta mensagens e ativações do Service Worker
     if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('message', event => {
             if (event.data && event.data.type === 'SW_ACTIVATED') {
                 console.log('[Auto-Update] Service Worker atualizado ativado:', event.data.version);
                 checkAppVersion(false);
             }
+        });
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+            console.log('[Auto-Update] Novo controlador ativo detectado!');
+            checkAppVersion(false);
         });
     }
 
