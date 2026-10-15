@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.4.5">
-    <script>window.APP_BUILD_VERSION = '1.4.5';</script>
+    <meta name="app-build-version" content="1.4.6">
+    <script>window.APP_BUILD_VERSION = '1.4.6';</script>
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
@@ -16,18 +16,18 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Finanças">
     
-    <!-- Dexie IndexedDB -->
-    <script src="https://unpkg.com/dexie@3.2.4/dist/dexie.js"></script>
+    <!-- Dexie IndexedDB (Local 100% Offline) -->
+    <script src="dexie.min.js"></script>
     
-    <!-- Apache ECharts para Dashboards Power BI -->
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <!-- Apache ECharts para Dashboards Power BI (Local 100% Offline) -->
+    <script src="echarts.min.js"></script>
     
     <!-- Lucide Icons -->
     <script src="lucide.min.js"></script>
     
     <!-- Estilos -->
     <link rel="stylesheet" href="finance-style.css?v=1.0.8">
-    <link rel="stylesheet" href="app-custom.css?v=1.4.5">
+    <link rel="stylesheet" href="app-custom.css?v=1.4.6">
 </head>
 <body class="mode-desktop">
 
@@ -199,7 +199,7 @@
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
                 <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Clique para verificar se há novas atualizações do sistema" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.4.5</span>
+                    <span id="lblVersaoApp" class="version-text">v1.4.6</span>
                 </div>
             </div>
 
@@ -1241,12 +1241,12 @@
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
     <script src="xlsx.mini.min.js"></script>
-    <script src="finance-db.js?v=1.4.5"></script>
-    <script src="finance-sync.js?v=1.4.5"></script>
-    <script src="finance-powerbi.js?v=1.4.5"></script>
-    <script src="finance-dashboard.js?v=1.4.5"></script>
-    <script src="auth.js?v=1.4.5"></script>
-    <script src="auto-update.js?v=1.4.5"></script>
+    <script src="finance-db.js?v=1.4.6"></script>
+    <script src="finance-sync.js?v=1.4.6"></script>
+    <script src="finance-powerbi.js?v=1.4.6"></script>
+    <script src="finance-dashboard.js?v=1.4.6"></script>
+    <script src="auth.js?v=1.4.6"></script>
+    <script src="auto-update.js?v=1.4.6"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

@@ -51,6 +51,7 @@ async function syncFinanceWithServer() {
                 const pushResponse = await fetch('/api/sync/push', {
                     method: 'POST',
                     headers: headers,
+                    signal: AbortSignal.timeout(5000),
                     body: JSON.stringify({
                         userId: currentUserId,
                         origens_renda: pendingRenda,
@@ -74,7 +75,10 @@ async function syncFinanceWithServer() {
         const pullUrl = currentUserId ? 
             `/api/sync/pull?lastSync=${lastSync}&userId=${encodeURIComponent(currentUserId)}` : 
             `/api/sync/pull?lastSync=${lastSync}`;
-        const pullResponse = await fetch(pullUrl, { headers });
+        const pullResponse = await fetch(pullUrl, { 
+            headers,
+            signal: AbortSignal.timeout(5000)
+        });
 
         if (pullResponse.ok) {
             const updates = await pullResponse.json();
