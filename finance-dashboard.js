@@ -1478,10 +1478,10 @@ async function carregarContasAPagar() {
 
     if (contasAPagar.length === 0) {
         container.innerHTML = `
-            <div style="text-align:center; padding: 26px 16px; color: #64748B; background: var(--bg-card); border-radius: 14px; border: 1px dashed var(--border-color);">
+            <div style="text-align:center; padding: 26px 16px; color: var(--text-muted); background: var(--card-3d-bg, var(--bg-card)); border-radius: 14px; border: 1.5px dashed var(--border-color); box-shadow: var(--card-3d-shadow);">
                 <div style="font-size: 2rem; margin-bottom: 6px;">📂</div>
-                <div style="font-weight: 700; color: #94A3B8; margin-bottom: 2px;">Nenhuma conta na gaveta</div>
-                <div style="font-size: 0.85rem;">Cadastre acima as contas que você quer monitorar para programar o pagamento!</div>
+                <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 4px;">Nenhuma conta na gaveta</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cadastre acima as contas que você quer monitorar para programar o pagamento!</div>
             </div>
         `;
         return;
@@ -1490,13 +1490,13 @@ async function carregarContasAPagar() {
     contasAPagar.forEach(c => {
         const div = document.createElement('div');
         div.className = 'conta-card-item';
-        div.style.cssText = 'background: var(--bg-card); border: 1px solid var(--border-color); border-left: 4px solid #F59E0B; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; box-shadow: 0 2px 8px rgba(0,0,0,0.15);';
+        div.style.cssText = 'background: var(--card-3d-bg, var(--bg-card)); border: 1.5px solid var(--border-color); border-left: 5px solid #F59E0B; border-radius: 12px; padding: 14px 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; box-shadow: var(--card-3d-shadow);';
 
         const valorFormatado = window.privacyMode ? '•••••' : 'R$ ' + parseFloat(c.valor_total || 0).toFixed(2).replace('.', ',');
 
         div.innerHTML = `
             <div style="flex: 1; min-width: 170px;">
-                <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: #F8FAFC; font-weight: 700;">${c.descricao}</h4>
+                <h4 style="margin: 0 0 4px 0; font-size: 1rem; color: var(--text-primary); font-weight: 700;">${c.descricao}</h4>
                 <div style="font-size: 0.88rem; color: #F59E0B; font-weight: 700;">
                     Valor Estimado: ${valorFormatado}
                 </div>
@@ -2523,10 +2523,10 @@ function renderizarExtratoCompleto() {
         const tagParcela = item.parcelado === 'Sim' ? `<span class="badge" style="margin-left: 6px;">Parc. ${item.parcela_atual}/${item.total_parcelas}</span>` : '';
         
         const btnActions = item.isVirtual ? 
-            `<p style="font-size:0.75rem; color:#94A3B8; margin-top:6px;">Projeção de parcelamento. Edite no mês da 1ª parcela.</p>` :
+            `<p style="font-size:0.75rem; color:var(--text-secondary); margin-top:6px; font-weight:500;">Projeção de parcelamento. Edite no mês da 1ª parcela.</p>` :
             `<div style="display:flex; gap:8px; margin-top:8px;">
-                <button onclick="editarLancamento('${item.id}')" style="background:#1E293B; border:1px solid var(--border-color); color:#60A5FA; padding:4px 10px; border-radius:6px; font-size:0.78rem; cursor:pointer; font-weight:600;">Editar</button>
-                <button onclick="excluirLancamento('${item.id}')" style="background:#1E293B; border:1px solid var(--border-color); color:#EF4444; padding:4px 10px; border-radius:6px; font-size:0.78rem; cursor:pointer; font-weight:600;">Excluir</button>
+                <button onclick="editarLancamento('${item.id}')" class="btn-card-action-edit" style="background:var(--bg-secondary); border:1px solid var(--border-color); color:#60A5FA; padding:5px 12px; border-radius:7px; font-size:0.78rem; cursor:pointer; font-weight:700;">Editar</button>
+                <button onclick="excluirLancamento('${item.id}')" class="btn-card-action-delete" style="background:var(--bg-secondary); border:1px solid var(--border-color); color:#EF4444; padding:5px 12px; border-radius:7px; font-size:0.78rem; cursor:pointer; font-weight:700;">Excluir</button>
             </div>`;
 
         const vOrcado = window.privacyMode ? '•••••' : parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
@@ -2561,16 +2561,16 @@ function renderizarExtratoCompleto() {
         div.className = `card ${cssClass}`;
         div.style.flexDirection = 'column';
         div.style.alignItems = 'flex-start';
-        div.style.borderLeft = '4px solid ' + borderLeftColor;
+        div.style.borderLeft = '5px solid ' + borderLeftColor;
 
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                 <div class="card-details">
-                    <h4 style="display:flex; align-items:center; gap:6px; font-size: 0.95rem;">
+                    <h4 style="display:flex; align-items:center; gap:6px; font-size: 0.96rem; color:var(--text-primary); font-weight:700;">
                         <span>${iconCat}</span>
                         ${item.descricao} ${tagCancelado} ${tagStatus}
                     </h4>
-                    <p style="color:#94A3B8; font-size:0.8rem; margin-top:3px;">
+                    <p style="color:var(--text-secondary); font-size:0.82rem; margin-top:3px; font-weight:500;">
                         ${dataBr} • ${item.tipo_gasto || 'Geral'} &nbsp; ${tagParcela}
                     </p>
                 </div>
@@ -2578,7 +2578,7 @@ function renderizarExtratoCompleto() {
                     <div style="font-size:1.05rem; font-weight:800; color:${corValor};">
                         ${sinalValor} R$ ${vRealizado !== '0,00' ? vRealizado : vOrcado}
                     </div>
-                    <div style="font-size:0.75rem; color:#64748B;">Previsto: R$ ${vOrcado}</div>
+                    <div class="card-value-previsto" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Previsto: R$ ${vOrcado}</div>
                 </div>
             </div>
             ${btnActions}

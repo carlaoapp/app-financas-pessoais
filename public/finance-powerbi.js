@@ -343,6 +343,19 @@ async function renderPowerBIDashboard() {
             }
         }
 
+        // --- Cores Dinâmicas por Tema (Garante que linhas e letras nunca fiquem apagadas) ---
+        const currentTheme = document.documentElement.getAttribute('data-theme') || 'preto';
+        const isThemeClaro = currentTheme === 'claro';
+        const isThemeCinza = currentTheme === 'cinza';
+
+        const chartTextColor = isThemeClaro ? '#0F172A' : '#F8FAFC';
+        const chartSubtextColor = isThemeClaro ? '#334155' : (isThemeCinza ? '#E2E8F0' : '#CBD5E1');
+        const chartAxisLineColor = isThemeClaro ? '#94A3B8' : (isThemeCinza ? '#475569' : '#334155');
+        const chartSplitLineColor = isThemeClaro ? 'rgba(148, 163, 184, 0.45)' : (isThemeCinza ? 'rgba(255, 255, 255, 0.15)' : 'rgba(51, 65, 85, 0.5)');
+        const chartTooltipBg = isThemeClaro ? '#FFFFFF' : (isThemeCinza ? '#282E39' : '#1E293B');
+        const chartTooltipBorder = isThemeClaro ? '#CBD5E1' : (isThemeCinza ? '#475569' : '#334155');
+        const chartPieBorder = isThemeClaro ? '#FFFFFF' : (isThemeCinza ? '#242932' : '#0F172A');
+
         // --- Gráfico 1: Comparativo Amigável (Entradas vs Saídas vs Investido) ---
         const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
         const mesExtenso = mesesNomes[mes] + ' / ' + ano;
@@ -351,9 +364,9 @@ async function renderPowerBIDashboard() {
             backgroundColor: 'transparent',
             tooltip: {
                 trigger: 'axis',
-                backgroundColor: '#1E293B',
-                borderColor: '#334155',
-                textStyle: { color: '#F8FAFC' },
+                backgroundColor: chartTooltipBg,
+                borderColor: chartTooltipBorder,
+                textStyle: { color: chartTextColor },
                 formatter: function(params) {
                     let res = '<strong>' + params[0].name + '</strong><br/>';
                     params.forEach(p => {
@@ -366,20 +379,20 @@ async function renderPowerBIDashboard() {
             },
             legend: {
                 data: ['Receitas (Entrou)', 'Despesas (Saiu)', 'Investimentos (Guardado)'],
-                textStyle: { color: '#94A3B8', fontSize: 12 },
+                textStyle: { color: chartSubtextColor, fontSize: 12, fontWeight: 'bold' },
                 top: 0
             },
             grid: { left: '3%', right: '4%', bottom: '8%', top: '45px', containLabel: true },
             xAxis: {
                 type: 'category',
                 data: [mesExtenso],
-                axisLabel: { color: '#CBD5E1', fontSize: 12, fontWeight: 'bold' },
-                axisLine: { lineStyle: { color: '#334155' } }
+                axisLabel: { color: chartTextColor, fontSize: 12, fontWeight: 'bold' },
+                axisLine: { lineStyle: { color: chartAxisLineColor, width: 1.5 } }
             },
             yAxis: {
                 type: 'value',
-                axisLabel: { color: '#94A3B8', formatter: (val) => formatBRL(val) },
-                splitLine: { lineStyle: { color: 'rgba(51, 65, 85, 0.4)' } }
+                axisLabel: { color: chartSubtextColor, fontWeight: 'bold', formatter: (val) => formatBRL(val) },
+                splitLine: { lineStyle: { color: chartSplitLineColor, type: 'dashed' } }
             },
             series: [
                 {
@@ -387,25 +400,25 @@ async function renderPowerBIDashboard() {
                     type: 'bar',
                     data: [totalReceitasMes],
                     itemStyle: { color: '#10B981', borderRadius: [6, 6, 0, 0] },
-                    label: { show: true, position: 'top', color: '#34D399', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
+                    label: { show: true, position: 'top', color: '#10B981', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
                 },
                 {
                     name: 'Despesas (Saiu)',
                     type: 'bar',
                     data: [totalDespesasMes],
                     itemStyle: { color: '#EF4444', borderRadius: [6, 6, 0, 0] },
-                    label: { show: true, position: 'top', color: '#F87171', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
+                    label: { show: true, position: 'top', color: '#EF4444', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
                 },
                 {
                     name: 'Investimentos (Guardado)',
                     type: 'bar',
                     data: [totalInvestimentosMes],
                     itemStyle: { color: '#8B5CF6', borderRadius: [6, 6, 0, 0] },
-                    label: { show: true, position: 'top', color: '#C4B5FD', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
+                    label: { show: true, position: 'top', color: '#8B5CF6', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
                 }
             ]
         };
-        pbiChartDiff.setOption(diffOption);
+        pbiChartDiff.setOption(diffOption, true);
 
         // --- Gráfico 2: De Onde Veio o Dinheiro (Receitas) ---
         const catRecArr = Object.keys(receitasPorCat)
@@ -416,9 +429,9 @@ async function renderPowerBIDashboard() {
             backgroundColor: 'transparent',
             tooltip: {
                 trigger: 'axis',
-                backgroundColor: '#1E293B',
-                borderColor: '#334155',
-                textStyle: { color: '#F8FAFC' },
+                backgroundColor: chartTooltipBg,
+                borderColor: chartTooltipBorder,
+                textStyle: { color: chartTextColor },
                 formatter: function(params) {
                     return params[0].name + '<br/><strong>' + formatBRL(params[0].value) + '</strong>';
                 }
@@ -428,17 +441,17 @@ async function renderPowerBIDashboard() {
             yAxis: {
                 type: 'category',
                 data: catRecArr.length > 0 ? catRecArr.map(c => c.name) : ['Nenhum lançamento'],
-                axisLabel: { color: '#CBD5E1', fontSize: 11 },
-                axisLine: { lineStyle: { color: '#334155' } }
+                axisLabel: { color: chartSubtextColor, fontSize: 11, fontWeight: '600' },
+                axisLine: { lineStyle: { color: chartAxisLineColor, width: 1.5 } }
             },
             series: [{
                 type: 'bar',
                 data: catRecArr.length > 0 ? catRecArr.map(c => c.value) : [0],
                 itemStyle: { color: '#10B981', borderRadius: [0, 6, 6, 0] },
-                label: { show: true, position: 'right', color: '#34D399', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
+                label: { show: true, position: 'right', color: '#10B981', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
             }]
         };
-        pbiChartFontesRec.setOption(fontesRecOption);
+        pbiChartFontesRec.setOption(fontesRecOption, true);
 
         // --- Gráfico 3: Onde Foi Gasto o Dinheiro (Despesas - Rosca / Pizza Clara) ---
         const catDesArr = Object.keys(despesasPorCat)
@@ -449,9 +462,9 @@ async function renderPowerBIDashboard() {
             backgroundColor: 'transparent',
             tooltip: {
                 trigger: 'item',
-                backgroundColor: '#1E293B',
-                borderColor: '#334155',
-                textStyle: { color: '#F8FAFC' },
+                backgroundColor: chartTooltipBg,
+                borderColor: chartTooltipBorder,
+                textStyle: { color: chartTextColor },
                 formatter: function(p) {
                     return p.name + '<br/><strong>' + formatBRL(p.value) + '</strong> (' + p.percent + '%)';
                 }
@@ -459,7 +472,7 @@ async function renderPowerBIDashboard() {
             legend: {
                 orient: 'horizontal',
                 bottom: '0',
-                textStyle: { color: '#94A3B8', fontSize: 11 }
+                textStyle: { color: chartSubtextColor, fontSize: 11, fontWeight: '600' }
             },
             series: [{
                 name: 'Despesas',
@@ -469,7 +482,7 @@ async function renderPowerBIDashboard() {
                 avoidLabelOverlap: true,
                 itemStyle: {
                     borderRadius: 8,
-                    borderColor: '#0F172A',
+                    borderColor: chartPieBorder,
                     borderWidth: 2
                 },
                 label: {
@@ -481,14 +494,14 @@ async function renderPowerBIDashboard() {
                         show: true,
                         fontSize: 14,
                         fontWeight: 'bold',
-                        color: '#FFFFFF',
+                        color: chartTextColor,
                         formatter: '{b}\n{d}%'
                     }
                 },
                 data: catDesArr.length > 0 ? catDesArr : [{ name: 'Sem Despesas', value: 0 }]
             }]
         };
-        pbiChartFontesDes.setOption(fontesDesOption);
+        pbiChartFontesDes.setOption(fontesDesOption, true);
 
         // --- Gráfico 4: Medidor / Termômetro da Reserva de Emergência ---
         // Meta de segurança: 3 meses de despesas médias (ou 3x despesa do mês atual)
@@ -529,8 +542,8 @@ async function renderPowerBIDashboard() {
                 },
                 axisTick: { length: 8, lineStyle: { color: 'auto', width: 2 } },
                 splitLine: { length: 18, lineStyle: { color: 'auto', width: 4 } },
-                axisLabel: { color: '#94A3B8', distance: -36, formatter: '{value}%' },
-                title: { offsetCenter: [0, '25%'], color: '#94A3B8', fontSize: 13 },
+                axisLabel: { color: chartSubtextColor, distance: -36, formatter: '{value}%', fontWeight: '600' },
+                title: { offsetCenter: [0, '25%'], color: chartSubtextColor, fontSize: 13, fontWeight: 'bold' },
                 detail: {
                     fontSize: 22,
                     offsetCenter: [0, '-5%'],
@@ -538,13 +551,13 @@ async function renderPowerBIDashboard() {
                     formatter: function (value) {
                         return window.privacyMode ? '•••%' : value.toFixed(0) + '% da meta';
                     },
-                    color: '#FFFFFF',
+                    color: chartTextColor,
                     fontWeight: 'bold'
                 },
                 data: [{ value: percentualReserva.toFixed(1), name: 'Segurança Atual' }]
             }]
         };
-        pbiChartGauge.setOption(gaugeOption);
+        pbiChartGauge.setOption(gaugeOption, true);
 
         // Aplica o filtro selecionado inicialmente
         aplicarFiltrosDemonstrativo();

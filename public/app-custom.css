@@ -915,9 +915,9 @@ body {
 }
 
 .modal-content {
-    background: #1E293B !important;
-    color: #FFFFFF !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    background: var(--bg-modal, var(--bg-card)) !important;
+    color: var(--text-primary) !important;
+    border: 1.5px solid var(--border-color) !important;
     border-radius: 20px !important;
     width: 100% !important;
     max-width: 520px !important;
@@ -942,7 +942,7 @@ body {
 }
 
 .modal-header {
-    border-bottom: 1px solid rgba(255, 255, 255, 0.12) !important;
+    border-bottom: 1.5px solid var(--border-color) !important;
     padding-bottom: 14px !important;
     margin-bottom: 16px !important;
     display: flex !important;
@@ -953,15 +953,15 @@ body {
 .modal-header h3 {
     font-size: 1.25rem !important;
     font-weight: 800 !important;
-    color: #FFFFFF !important;
+    color: var(--text-primary) !important;
     margin: 0 !important;
     letter-spacing: -0.3px !important;
 }
 
 .modal-header .close-btn {
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: 1px solid rgba(255, 255, 255, 0.15) !important;
-    color: #94A3B8 !important;
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-muted) !important;
     width: 32px !important;
     height: 32px !important;
     border-radius: 50% !important;
@@ -988,7 +988,7 @@ body {
     display: block !important;
     font-size: 0.82rem !important;
     font-weight: 700 !important;
-    color: #94A3B8 !important;
+    color: var(--text-secondary) !important;
     margin-bottom: 6px !important;
     text-transform: uppercase !important;
     letter-spacing: 0.5px !important;
@@ -998,12 +998,12 @@ body {
 .modal-content .form-group select {
     width: 100% !important;
     padding: 12px 14px !important;
-    border: 1px solid #334155 !important;
+    border: 1.5px solid var(--border-color) !important;
     border-radius: 10px !important;
     font-size: 0.95rem !important;
     font-weight: 600 !important;
-    color: #FFFFFF !important;
-    background-color: #0F172A !important;
+    color: var(--text-primary) !important;
+    background-color: var(--bg-secondary) !important;
     outline: none !important;
     box-sizing: border-box !important;
     transition: all 0.2s !important;
@@ -1013,7 +1013,7 @@ body {
 .modal-content .form-group select:focus {
     border-color: #3B82F6 !important;
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
-    background-color: #131E35 !important;
+    background-color: var(--bg-card-hover) !important;
 }
 
 .modal-content .form-group-row {
@@ -1060,26 +1060,26 @@ body {
 }
 
 .desejo-item-card {
-    background: #141F36;
-    border: 1px solid var(--border-color);
-    border-left: 4px solid #8B5CF6;
+    background: var(--card-3d-bg, var(--bg-card));
+    border: 1.5px solid var(--border-color);
+    border-left: 5px solid #8B5CF6;
     border-radius: 14px;
     padding: 14px;
     display: flex;
     gap: 14px;
     align-items: center;
-    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--card-3d-shadow);
     transition: all 0.2s ease;
 }
 
 .desejo-item-card:hover {
     border-color: #8B5CF6;
-    box-shadow: 0 6px 20px rgba(139, 92, 246, 0.15);
+    box-shadow: var(--card-3d-hover-shadow);
 }
 
 .desejo-item-card.desejo-conquistado {
     border-left-color: #10B981;
-    background: rgba(20, 31, 54, 0.6);
+    opacity: 0.88;
 }
 
 .desejo-midia-box {
@@ -1090,8 +1090,8 @@ body {
     overflow: hidden;
     position: relative;
     cursor: pointer;
-    background: #0B1120;
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--bg-secondary);
+    border: 1.5px solid var(--border-color);
 }
 
 .desejo-midia-box img,
@@ -1139,7 +1139,7 @@ body {
 .desejo-titulo {
     font-size: 1rem;
     font-weight: 700;
-    color: #F8FAFC;
+    color: var(--text-primary);
     margin: 0;
     word-break: break-word;
 }
@@ -1786,12 +1786,12 @@ body {
     --bg-card: #0F172A;
     --bg-card-hover: #16223B;
     --bg-modal: #0F172A;
-    --border-color: rgba(59, 130, 246, 0.22);
-    --border-light: rgba(255, 255, 255, 0.09);
+    --border-color: rgba(59, 130, 246, 0.35);
+    --border-light: rgba(255, 255, 255, 0.12);
     
-    --text-primary: #F8FAFC;
-    --text-secondary: #94A3B8;
-    --text-muted: #64748B;
+    --text-primary: #FFFFFF;
+    --text-secondary: #CBD5E1;
+    --text-muted: #94A3B8;
     
     --card-3d-bg: linear-gradient(150deg, #131E35 0%, #0B1120 100%);
     --card-3d-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.8), 0 4px 10px -2px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), inset 0 -2px 3px 0 rgba(0, 0, 0, 0.6);
@@ -1802,7 +1802,7 @@ body {
 body[data-theme="preto"],
 [data-theme="preto"] body {
     background: radial-gradient(120% 100% at 50% 0%, #0F172A 0%, #070D18 50%, #020408 100%);
-    color: #F8FAFC;
+    color: #FFFFFF;
 }
 
 /* 2. TEMA CINZA 3D (TITÂNIO, GRAFITE & CHANFROS METÁLICOS) */
@@ -1812,12 +1812,12 @@ body[data-theme="preto"],
     --bg-card: #2B313C;
     --bg-card-hover: #343C4A;
     --bg-modal: #282E39;
-    --border-color: rgba(148, 163, 184, 0.28);
-    --border-light: rgba(255, 255, 255, 0.14);
+    --border-color: #475569;
+    --border-light: rgba(255, 255, 255, 0.18);
     
-    --text-primary: #F1F5F9;
-    --text-secondary: #CBD5E1;
-    --text-muted: #94A3B8;
+    --text-primary: #FFFFFF;
+    --text-secondary: #E2E8F0;
+    --text-muted: #CBD5E1;
     
     --card-3d-bg: linear-gradient(150deg, #353D4B 0%, #242A34 100%);
     --card-3d-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.65), 0 4px 10px -2px rgba(0, 0, 0, 0.45), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.2), inset 0 -2px 3px 0 rgba(0, 0, 0, 0.5);
@@ -1828,7 +1828,7 @@ body[data-theme="preto"],
 body[data-theme="cinza"],
 [data-theme="cinza"] body {
     background: radial-gradient(120% 100% at 50% 0%, #2D333B 0%, #20242B 55%, #181B20 100%);
-    color: #F1F5F9;
+    color: #FFFFFF;
 }
 
 [data-theme="cinza"] .top-navbar {
@@ -1850,22 +1850,22 @@ body[data-theme="cinza"],
 [data-theme="cinza"] .filters-header-row .mes-select-box option,
 [data-theme="cinza"] select option {
     background: #242932;
-    color: #F1F5F9;
+    color: #FFFFFF;
 }
 
 /* 3. TEMA CLARO SUAVE 3D (COR SUAVE AOS OLHOS, PROFUNDIDADE TÁTIL & ALTO CONFORTO) */
 [data-theme="claro"] {
-    --bg-primary: #E9ECEF;
+    --bg-primary: #EEF2F6;
     --bg-secondary: #F8FAFC;
     --bg-card: #FFFFFF;
     --bg-card-hover: #F1F5F9;
     --bg-modal: #FFFFFF;
-    --border-color: rgba(148, 163, 184, 0.45);
+    --border-color: #CBD5E1;
     --border-light: rgba(255, 255, 255, 0.95);
     
     --text-primary: #0F172A;
     --text-secondary: #334155;
-    --text-muted: #64748B;
+    --text-muted: #475569;
     
     --card-3d-bg: linear-gradient(150deg, #FFFFFF 0%, #E8EDF5 100%);
     --card-3d-shadow: 0 10px 24px -4px rgba(100, 116, 139, 0.22), 0 4px 8px -2px rgba(100, 116, 139, 0.12), inset 0 1.5px 1.5px 0 #FFFFFF, inset 0 -2px 3px 0 rgba(148, 163, 184, 0.22);
@@ -1875,7 +1875,7 @@ body[data-theme="cinza"],
 
 body[data-theme="claro"],
 [data-theme="claro"] body {
-    background: radial-gradient(120% 100% at 50% 0%, #F8FAFC 0%, #E9ECEF 60%, #DEE2E6 100%);
+    background: radial-gradient(120% 100% at 50% 0%, #F8FAFC 0%, #EEF2F6 60%, #E2E8F0 100%);
     color: #0F172A;
 }
 
@@ -1991,10 +1991,12 @@ body[data-theme="claro"],
 .demo-kpi-card,
 .demo-chart-box,
 .card,
-.auth-card-container {
+.auth-card-container,
+.desejo-item-card,
+.conta-card-item {
     background: var(--card-3d-bg, var(--bg-card)) !important;
     box-shadow: var(--card-3d-shadow) !important;
-    border: 1px solid var(--border-color) !important;
+    border: 1.5px solid var(--border-color) !important;
     position: relative;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
@@ -2003,7 +2005,9 @@ body[data-theme="claro"],
 .demo-header-card:hover,
 .demo-kpi-card:hover,
 .demo-chart-box:hover,
-.card:hover {
+.card:hover,
+.desejo-item-card:hover,
+.conta-card-item:hover {
     box-shadow: var(--card-3d-hover-shadow) !important;
 }
 
@@ -2220,6 +2224,271 @@ body[data-theme="claro"],
     transform: translateY(-1px);
     box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55);
 }
+
+/* ==========================================================================
+   CONECTIVIDADE ESTRUTURAL E ALTA NITIDEZ (SEM LINHAS OU LETRAS APAGADAS)
+   Garante que todos os elementos, bordas de tabelas, botões de ação e
+   textos mantenham alto contraste e conexão contínua em todos os temas 3D.
+   ========================================================================== */
+
+/* 1. Divisores da Tabela de Resumo Conectados e Nítidos */
+.summary-table-card {
+    border: 1.5px solid var(--border-color) !important;
+}
+
+.summary-table-card > div:first-child {
+    border-bottom: 1.5px solid var(--border-color) !important;
+}
+
+.summary-row-interactive {
+    border-bottom: 1px solid var(--border-color);
+    padding: 7px 8px;
+    margin: 0;
+    border-radius: 8px;
+    transition: background 0.15s ease;
+}
+
+.summary-row-interactive:last-child {
+    border-bottom: none;
+}
+
+.summary-row-interactive > div[style*="border-top"] {
+    border-top: 1.5px solid var(--border-color) !important;
+}
+
+/* 2. Textos de Detalhes dos Cards de Lançamento */
+.card-details h4 {
+    color: var(--text-primary) !important;
+    font-weight: 700 !important;
+}
+
+.card-details p {
+    color: var(--text-secondary) !important;
+    font-weight: 500 !important;
+}
+
+.card-value-previsto {
+    color: var(--text-muted) !important;
+    font-weight: 600 !important;
+}
+
+/* 3. Botões de Ação de Edição e Exclusão nos Cards */
+.btn-card-action-edit {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    color: #3B82F6 !important;
+    padding: 5px 12px;
+    border-radius: 7px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.btn-card-action-edit:hover {
+    background: rgba(59, 130, 246, 0.18) !important;
+    border-color: #3B82F6 !important;
+    transform: translateY(-1px);
+}
+
+.btn-card-action-delete {
+    background: var(--bg-secondary) !important;
+    border: 1px solid var(--border-color) !important;
+    color: #EF4444 !important;
+    padding: 5px 12px;
+    border-radius: 7px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    font-weight: 700;
+    transition: all 0.2s ease;
+}
+
+.btn-card-action-delete:hover {
+    background: rgba(239, 68, 68, 0.18) !important;
+    border-color: #EF4444 !important;
+    transform: translateY(-1px);
+}
+
+/* 4. Cores e Contrastes Específicos para o Tema Claro Suave 3D */
+[data-theme="claro"] .btn-card-action-edit {
+    background: #EFF6FF !important;
+    border-color: #93C5FD !important;
+    color: #1D4ED8 !important;
+}
+
+[data-theme="claro"] .btn-card-action-edit:hover {
+    background: #DBEAFE !important;
+    border-color: #2563EB !important;
+}
+
+[data-theme="claro"] .btn-card-action-delete {
+    background: #FEF2F2 !important;
+    border-color: #FCA5A5 !important;
+    color: #DC2626 !important;
+}
+
+[data-theme="claro"] .btn-card-action-delete:hover {
+    background: #FEE2E2 !important;
+    border-color: #EF4444 !important;
+}
+
+[data-theme="claro"] #valSaldoOrcado {
+    color: #1D4ED8 !important;
+}
+
+[data-theme="claro"] #valSaldoRealizado {
+    color: #1E40AF !important;
+}
+
+[data-theme="claro"] #demoSaldoTitulo {
+    color: #0F172A !important;
+}
+
+[data-theme="claro"] .filtros-extrato-container .tab-pill {
+    background: #F1F5F9 !important;
+    border: 1px solid #CBD5E1 !important;
+    color: #334155 !important;
+}
+
+[data-theme="claro"] .filtros-extrato-container .tab-pill:hover {
+    background: #E2E8F0 !important;
+    color: #0F172A !important;
+}
+
+[data-theme="claro"] .filtros-extrato-container .tab-pill.active {
+    background: #2563EB !important;
+    color: #FFFFFF !important;
+    border-color: #1D4ED8 !important;
+}
+
+[data-theme="claro"] .btn-extrato-top-action.btn-action-backup {
+    background: #EFF6FF !important;
+    border: 1px solid #93C5FD !important;
+    color: #1D4ED8 !important;
+}
+
+[data-theme="claro"] .btn-extrato-top-action.btn-action-importar {
+    background: #ECFDF5 !important;
+    border: 1px solid #6EE7B7 !important;
+    color: #047857 !important;
+}
+
+[data-theme="claro"] .btn-acao-editar {
+    background: #F1F5F9 !important;
+    border: 1px solid #CBD5E1 !important;
+    color: #334155 !important;
+}
+
+[data-theme="claro"] .btn-acao-editar:hover {
+    background: #E2E8F0 !important;
+    color: #0F172A !important;
+}
+
+[data-theme="claro"] .btn-desejo-link {
+    background: #EFF6FF !important;
+    border: 1px solid #93C5FD !important;
+    color: #1D4ED8 !important;
+}
+
+[data-theme="claro"] .btn-desejo-link:hover {
+    background: #DBEAFE !important;
+    border-color: #2563EB !important;
+    color: #1E40AF !important;
+}
+
+[data-theme="claro"] .btn-acao-andamento {
+    background: #EFF6FF !important;
+    border: 1px solid #93C5FD !important;
+    color: #1D4ED8 !important;
+}
+
+[data-theme="claro"] .btn-acao-programar {
+    background: #FFFBEB !important;
+    border: 1px solid #FCD34D !important;
+    color: #B45309 !important;
+}
+
+[data-theme="claro"] .btn-acao-conquistar {
+    background: #ECFDF5 !important;
+    border: 1px solid #6EE7B7 !important;
+    color: #047857 !important;
+}
+
+[data-theme="claro"] .btn-acao-excluir {
+    background: #FEF2F2 !important;
+    border: 1px solid #FCA5A5 !important;
+    color: #DC2626 !important;
+}
+
+[data-theme="claro"] .badge-conquistado {
+    background: #ECFDF5 !important;
+    border-color: #A7F3D0 !important;
+    color: #047857 !important;
+}
+
+[data-theme="claro"] .badge-planejado {
+    background: #F5F3FF !important;
+    border-color: #DDD6FE !important;
+    color: #6D28D9 !important;
+}
+
+/* 5. Cores e Contrastes para o Tema Cinza 3D (Titânio) */
+[data-theme="cinza"] .filtros-extrato-container .tab-pill {
+    background: #242932 !important;
+    border: 1px solid #475569 !important;
+    color: #E2E8F0 !important;
+}
+
+[data-theme="cinza"] .filtros-extrato-container .tab-pill:hover {
+    background: #343C4A !important;
+    color: #FFFFFF !important;
+}
+
+[data-theme="cinza"] .btn-extrato-top-action.btn-action-backup {
+    background: #242932 !important;
+    border: 1px solid #3B82F6 !important;
+    color: #93C5FD !important;
+}
+
+[data-theme="cinza"] .btn-extrato-top-action.btn-action-importar {
+    background: #242932 !important;
+    border: 1px solid #10B981 !important;
+    color: #6EE7B7 !important;
+}
+
+[data-theme="cinza"] .btn-acao-editar {
+    background: #242932 !important;
+    border: 1px solid #475569 !important;
+    color: #E2E8F0 !important;
+}
+
+[data-theme="cinza"] .btn-desejo-link {
+    background: #242932 !important;
+    border: 1px solid #3B82F6 !important;
+    color: #93C5FD !important;
+}
+
+/* 6. Inputs e Seletor com Borda Sólida e Foco Conectado */
+input[type="text"],
+input[type="number"],
+input[type="date"],
+input[type="password"],
+input[type="email"],
+select,
+textarea {
+    border: 1.5px solid var(--border-color) !important;
+    background: var(--bg-secondary) !important;
+    color: var(--text-primary) !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+    border-color: #3B82F6 !important;
+    outline: none !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25) !important;
+}
+
 
 
 
