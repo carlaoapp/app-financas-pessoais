@@ -1429,7 +1429,7 @@ function switchFinanceTab(tabName) {
     // Redireciona qualquer chamada legada da aba Painel/Resumo para a aba Lançamentos
     if (tabName === 'Painel') tabName = 'Lancamentos';
 
-    const tabs = ['Lancamentos', 'APagar', 'PowerBI', 'Desejos'];
+    const tabs = ['Lancamentos', 'APagar', 'PowerBI', 'Tema', 'Desejos'];
     
     // Oculta todas as abas
     tabs.forEach(t => {
@@ -1460,11 +1460,15 @@ function switchFinanceTab(tabName) {
     } else if (tabName === 'Lancamentos') {
         carregarPlanejamento();
         if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+    } else if (tabName === 'Tema') {
+        const temaAtual = localStorage.getItem('financas_app_theme') || 'preto';
+        atualizarCardsSelecaoTema(temaAtual);
     }
 
     // Rola para o topo suavemente
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
+window.switchFinanceTab = switchFinanceTab;
 window.switchTab = switchFinanceTab;
 
 // --- CARREGAR CONTAS A PAGAR (GAVETA) ---
@@ -3490,6 +3494,7 @@ function imprimirExtratoHTML(nomeMes, anoNum, nomeUsuario, totalReceitas, totalD
 // ==========================================================================
 
 function abrirModalTema() {
+    switchFinanceTab('Tema');
     const modal = document.getElementById('modalTema');
     if (modal) {
         modal.style.display = 'flex';
@@ -3523,7 +3528,7 @@ function selecionarTema(tema, salvar = true) {
         localStorage.setItem('financas_app_theme', tema);
     }
 
-    // Atualiza estado visual no modal de seleção
+    // Atualiza estado visual no modal de seleção e na aba dedicada
     atualizarCardsSelecaoTema(tema);
 
     // Se a aba de Demonstrativo estiver aberta, atualizar gráficos se necessário
@@ -3536,15 +3541,17 @@ window.selecionarTema = selecionarTema;
 function atualizarCardsSelecaoTema(temaAtivo) {
     const temas = ['preto', 'cinza', 'claro'];
     temas.forEach(t => {
-        const cardId = 'themeCard' + t.charAt(0).toUpperCase() + t.slice(1);
-        const card = document.getElementById(cardId);
-        if (card) {
-            if (t === temaAtivo) {
-                card.classList.add('active-theme');
-            } else {
-                card.classList.remove('active-theme');
-            }
-        }
+        const cap = t.charAt(0).toUpperCase() + t.slice(1);
+        const modalCard = document.getElementById('themeCard' + cap);
+        const tabCard = document.getElementById('tabThemeCard' + cap);
+        const modalCheck = document.getElementById('themeCheck' + cap);
+        const tabCheck = document.getElementById('tabThemeCheck' + cap);
+
+        const isActive = (t === temaAtivo);
+        if (modalCard) modalCard.classList.toggle('active-theme', isActive);
+        if (tabCard) tabCard.classList.toggle('active-theme', isActive);
+        if (modalCheck) modalCheck.style.display = isActive ? 'flex' : 'none';
+        if (tabCheck) tabCheck.style.display = isActive ? 'flex' : 'none';
     });
 }
 window.atualizarCardsSelecaoTema = atualizarCardsSelecaoTema;
