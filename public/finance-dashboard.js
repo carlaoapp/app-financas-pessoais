@@ -3485,5 +3485,80 @@ function imprimirExtratoHTML(nomeMes, anoNum, nomeUsuario, totalReceitas, totalD
     setTimeout(() => { janela.print(); }, 500);
 }
 
+// ==========================================================================
+// GERENCIADOR DE TEMAS VISUAIS 3D (PRETO, CINZA, CLARO SUAVE)
+// ==========================================================================
+
+function abrirModalTema() {
+    const modal = document.getElementById('modalTema');
+    if (modal) {
+        modal.style.display = 'flex';
+        const temaAtual = localStorage.getItem('financas_app_theme') || 'preto';
+        atualizarCardsSelecaoTema(temaAtual);
+    }
+}
+window.abrirModalTema = abrirModalTema;
+
+function fecharModalTema() {
+    const modal = document.getElementById('modalTema');
+    if (modal) {
+        modal.style.display = 'none';
+    }
+}
+window.fecharModalTema = fecharModalTema;
+
+function selecionarTema(tema, salvar = true) {
+    if (!['preto', 'cinza', 'claro'].includes(tema)) {
+        tema = 'preto';
+    }
+
+    // Aplica o tema na tag <html> e no <body> para máxima compatibilidade
+    document.documentElement.setAttribute('data-theme', tema);
+    if (document.body) {
+        document.body.setAttribute('data-theme', tema);
+    }
+
+    // Salva preferência no localStorage
+    if (salvar) {
+        localStorage.setItem('financas_app_theme', tema);
+    }
+
+    // Atualiza estado visual no modal de seleção
+    atualizarCardsSelecaoTema(tema);
+
+    // Se a aba de Demonstrativo estiver aberta, atualizar gráficos se necessário
+    if (typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
+        setTimeout(renderPowerBIDashboard, 100);
+    }
+}
+window.selecionarTema = selecionarTema;
+
+function atualizarCardsSelecaoTema(temaAtivo) {
+    const temas = ['preto', 'cinza', 'claro'];
+    temas.forEach(t => {
+        const cardId = 'themeCard' + t.charAt(0).toUpperCase() + t.slice(1);
+        const card = document.getElementById(cardId);
+        if (card) {
+            if (t === temaAtivo) {
+                card.classList.add('active-theme');
+            } else {
+                card.classList.remove('active-theme');
+            }
+        }
+    });
+}
+window.atualizarCardsSelecaoTema = atualizarCardsSelecaoTema;
+
+// Inicialização automática do tema
+(function inicializarTemaApp() {
+    try {
+        const temaSalvo = localStorage.getItem('financas_app_theme') || 'preto';
+        selecionarTema(temaSalvo, false);
+    } catch(e) {
+        console.warn('Erro ao inicializar tema:', e);
+    }
+})();
+
+
 
 
