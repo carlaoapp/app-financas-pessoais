@@ -127,6 +127,9 @@ function updateMonthLabel() {
 
     carregarPlanejamento();
     if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+    if (typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
+        renderPowerBIDashboard();
+    }
 }
 
 function selecionarMes(mesIndex) {
@@ -430,6 +433,9 @@ async function carregarPlanejamento() {
     const pendentesParaExibir = itensDoMes.filter(item => (item.status === 'Pendente' || item.status === 'Cancelado') && item.tipo_gasto !== 'Cartão de Crédito');
     renderizarLista(pendentesParaExibir);
     renderizarExtratoCompleto();
+    if (typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
+        renderPowerBIDashboard();
+    }
 
     // Injeta o Item da Fatura na lista de Despesas (Painel Principal) se existir
     if (window.currentFaturaItens && window.currentFaturaItens.length > 0) {
@@ -2486,12 +2492,26 @@ function renderizarExtratoCompleto() {
         return;
     }
     
-    itens.sort((a, b) => new Date(a.data_lancamento) - new Date(b.data_lancamento));
-    
-    itens.forEach(item => {
+    const getValorComparacao = (item) => {
+        const vr = parseFloat(item.valor_realizado) || 0;
+        const vo = parseFloat(item.valor_total) || 0;
+        return vr > 0 ? vr : vo;
+    };
+
+    const isReceita = (i) => (i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
+
+    // Separar Receitas e Despesas/Saídas
+    const listaReceitas = itens.filter(isReceita);
+    const listaDespesas = itens.filter(i => !isReceita(i));
+
+    // Ordenar da MAIOR para a MENOR
+    listaReceitas.sort((a, b) => getValorComparacao(b) - getValorComparacao(a));
+    listaDespesas.sort((a, b) => getValorComparacao(b) - getValorComparacao(a));
+
+    const renderItemCard = (item) => {
         const [y, m, d] = (item.data_lancamento || '2026-01-01').split('-');
         const dataBr = `${d}/${m}`;
-        const isReceita = (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva');
+        const itemIsReceita = isReceita(item);
         
         let cssClass = item.isVirtual ? 'projected' : 'pending';
         if (item.status === 'Cancelado') cssClass = 'cancelled';
@@ -2520,7 +2540,7 @@ function renderizarExtratoCompleto() {
         let corValor = '#EF4444';
         let sinalValor = '-';
 
-        if (isReceita) {
+        if (itemIsReceita) {
             borderLeftColor = '#10B981';
             iconCat = '📥';
             corValor = '#10B981';
@@ -2563,8 +2583,36 @@ function renderizarExtratoCompleto() {
             </div>
             ${btnActions}
         `;
-        container.appendChild(div);
-    });
+        return div;
+    };
+
+    // SEÇÃO DE RECEITAS (SEMPRE NO INÍCIO)
+    if (listaReceitas.length > 0) {
+        if (!window.extratoFiltroAtual || window.extratoFiltroAtual === 'todos') {
+            const headerRec = document.createElement('div');
+            headerRec.style.cssText = 'font-size:0.85rem; font-weight:800; color:#10B981; padding:8px 12px; margin-top:4px; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between; background:rgba(16,185,129,0.08); border-radius:10px; border-left:4px solid #10B981;';
+            headerRec.innerHTML = `
+                <span style="display:flex; align-items:center; gap:6px;"><span>📥</span> RECEITAS (MAIOR PARA A MENOR)</span>
+                <span style="font-size:0.75rem; background:rgba(16,185,129,0.18); padding:2px 8px; border-radius:6px;">${listaReceitas.length} item(ns)</span>
+            `;
+            container.appendChild(headerRec);
+        }
+        listaReceitas.forEach(item => container.appendChild(renderItemCard(item)));
+    }
+
+    // SEÇÃO DE DESPESAS (SEMPRE ABAIXO DAS RECEITAS, NUNCA MISTURADAS)
+    if (listaDespesas.length > 0) {
+        if (!window.extratoFiltroAtual || window.extratoFiltroAtual === 'todos') {
+            const headerDes = document.createElement('div');
+            headerDes.style.cssText = 'font-size:0.85rem; font-weight:800; color:#EF4444; padding:8px 12px; margin-top:14px; margin-bottom:4px; display:flex; align-items:center; justify-content:space-between; background:rgba(239,68,68,0.08); border-radius:10px; border-left:4px solid #EF4444;';
+            headerDes.innerHTML = `
+                <span style="display:flex; align-items:center; gap:6px;"><span>📤</span> DESPESAS E SAÍDAS (MAIOR PARA A MENOR)</span>
+                <span style="font-size:0.75rem; background:rgba(239,68,68,0.18); padding:2px 8px; border-radius:6px;">${listaDespesas.length} item(ns)</span>
+            `;
+            container.appendChild(headerDes);
+        }
+        listaDespesas.forEach(item => container.appendChild(renderItemCard(item)));
+    }
 }
 
 // ==========================================================================
@@ -3173,7 +3221,16 @@ async function gerarExtratoPDF() {
             return;
         }
 
-        itens.sort((a, b) => new Date(a.data_lancamento || '1970-01-01') - new Date(b.data_lancamento || '1970-01-01'));
+        const getValorComparacao = (item) => {
+            const vr = parseFloat(item.valor_realizado) || 0;
+            const vo = parseFloat(item.valor_total) || 0;
+            return vr > 0 ? vr : vo;
+        };
+        const isReceita = (i) => (i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
+
+        const recsPDF = itens.filter(isReceita).sort((a, b) => getValorComparacao(b) - getValorComparacao(a));
+        const despsPDF = itens.filter(i => !isReceita(i)).sort((a, b) => getValorComparacao(b) - getValorComparacao(a));
+        itens = [...recsPDF, ...despsPDF];
 
         const mesesNomes = [
             'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',

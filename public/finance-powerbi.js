@@ -238,11 +238,13 @@ async function renderPowerBIDashboard() {
 
     initPowerBICharts();
 
-    // Pegar o ano e mês selecionados no select do cabeçalho
-    const anoBaseSelect = document.getElementById('anoBaseSelector');
-    const ano = anoBaseSelect ? parseInt(anoBaseSelect.value) : new Date().getFullYear();
-    const mesBaseSelect = document.getElementById('mesBaseSelector');
-    const mes = mesBaseSelect ? parseInt(mesBaseSelect.value) : new Date().getMonth();
+    // Pegar o ano e mês selecionados no cabeçalho ou data ativa
+    const ano = (typeof currentViewDate !== 'undefined') 
+        ? currentViewDate.getFullYear() 
+        : (document.getElementById('anoBaseSelector') ? parseInt(document.getElementById('anoBaseSelector').value) : new Date().getFullYear());
+    const mes = (typeof currentViewDate !== 'undefined') 
+        ? currentViewDate.getMonth() 
+        : (document.getElementById('mesBaseSelector') ? parseInt(document.getElementById('mesBaseSelector').value) : new Date().getMonth());
 
     try {
         const todasMovs = await dbLocal.movimentacoes.toArray();
@@ -256,38 +258,58 @@ async function renderPowerBIDashboard() {
         const receitasPorCat = {};
         const despesasPorCat = {};
 
+        // 1. Histórico acumulado total da Reserva de Emergência
         todasMovs.forEach(m => {
             if (m.deleted === 1 || m.status === 'Cancelado') return;
+            const vr = parseFloat(m.valor_realizado) || 0;
+            const vt = parseFloat(m.valor_total) || 0;
+            const val = vr > 0 ? vr : vt;
+
+            if (m.tipo_gasto === 'Reserva de Emergência') {
+                reservaAcumuladaTotal += val;
+            } else if (m.tipo_gasto === 'Resgate de Reserva') {
+                reservaAcumuladaTotal -= val;
+            }
+        });
+
+        // 2. Coletar itens específicos do mês selecionado
+        // Prioriza window.currentMesItens para total paridade com o painel e parcelas virtuais
+        let itensDoMesAtivo = null;
+        if (window.currentMesItens && window.currentMesItens.length > 0 && typeof currentViewDate !== 'undefined' && currentViewDate.getFullYear() === ano && currentViewDate.getMonth() === mes) {
+            itensDoMesAtivo = window.currentMesItens;
+        } else {
+            itensDoMesAtivo = todasMovs.filter(m => {
+                if (m.deleted === 1 || m.status === 'Cancelado') return false;
+                if (m.tipo_gasto === 'Conta a Pagar') return false;
+                if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return false;
+                if (!m.data_lancamento) return false;
+                const [y, mm] = m.data_lancamento.split('-');
+                return parseInt(y) === ano && (parseInt(mm) - 1) === mes;
+            });
+        }
+
+        itensDoMesAtivo.forEach(m => {
+            if (m.deleted === 1 || m.status === 'Cancelado') return;
+            if (m.tipo_gasto === 'Conta a Pagar') return;
+            if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
 
             const vTotal = parseFloat(m.valor_total) || 0;
-            const vReal = (m.valor_realizado !== undefined && m.valor_realizado !== null && m.valor_realizado !== '')
-                ? parseFloat(m.valor_realizado)
-                : vTotal;
+            const vReal = parseFloat(m.valor_realizado) || 0;
+            // Para lançamentos pendentes/simulados, usa vTotal (orçado). Para realizados, usa vReal se > 0
+            const vEfetivo = vReal > 0 ? vReal : vTotal;
 
-            // Histórico geral acumulado da Reserva de Emergência
-            if (m.tipo_gasto === 'Reserva de Emergência') {
-                reservaAcumuladaTotal += vReal;
-            } else if (m.tipo_gasto === 'Resgate de Reserva') {
-                reservaAcumuladaTotal -= vReal;
-            }
+            const descName = m.descricao ? m.descricao.split(' (')[0].trim() : 'Outros';
 
-            // Filtragem específica do mês selecionado
-            if (!m.data_lancamento) return;
-            const dataObj = new Date(m.data_lancamento + 'T12:00:00');
-            if (dataObj.getFullYear() === ano && dataObj.getMonth() === mes) {
-                const descName = m.descricao ? m.descricao.split(' (')[0].trim() : 'Outros';
-
-                if (m.tipo_gasto === 'Receita' || m.tipo_gasto === 'Resgate de Reserva') {
-                    totalReceitasMes += vReal;
-                    receitasPorCat[descName] = (receitasPorCat[descName] || 0) + vReal;
-                } else if (m.tipo_gasto === 'Investimento') {
-                    totalInvestimentosMes += vReal;
-                } else if (m.tipo_gasto === 'Reserva de Emergência') {
-                    totalReservaMes += vReal;
-                } else if (m.tipo_gasto !== 'Lista de Desejos' && m.tipo_gasto !== 'Conta a Pagar') {
-                    totalDespesasMes += vReal;
-                    despesasPorCat[descName] = (despesasPorCat[descName] || 0) + vReal;
-                }
+            if (m.tipo_gasto === 'Receita' || m.tipo_gasto === 'Resgate de Reserva') {
+                totalReceitasMes += vEfetivo;
+                receitasPorCat[descName] = (receitasPorCat[descName] || 0) + vEfetivo;
+            } else if (m.tipo_gasto === 'Investimento') {
+                totalInvestimentosMes += vEfetivo;
+            } else if (m.tipo_gasto === 'Reserva de Emergência') {
+                totalReservaMes += vEfetivo;
+            } else {
+                totalDespesasMes += vEfetivo;
+                despesasPorCat[descName] = (despesasPorCat[descName] || 0) + vEfetivo;
             }
         });
 

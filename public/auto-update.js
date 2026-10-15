@@ -5,7 +5,7 @@ function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
-    return '1.4.4';
+    return '1.4.5';
 }
 
 function isNewerVersion(serverVer, currentVer) {
