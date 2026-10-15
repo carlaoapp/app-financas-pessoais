@@ -1775,149 +1775,274 @@ body {
 }
 
 /* ==========================================================================
-   SISTEMA DE TEMAS VISUAIS 3D (PRETO, CINZA, CLARO SUAVE)
+   SISTEMA DE TEMAS OFICIAIS (MODELO E CORES TUDO EM DIA)
+   7 Temas: Preto (Default), Verde, Rosa, Cinza, Azul, Roxo, Claro
    ========================================================================== */
 
-/* 1. TEMA PRETO 3D (OLED PROFUNDO & ALTO CONTRASTE) */
+/* 1. TEMA PRETO (PADRÃO ÔNIX / DEFAULT) */
 :root,
-[data-theme="preto"] {
-    --bg-primary: #05080E;
-    --bg-secondary: #0A0F1D;
-    --bg-card: #0F172A;
-    --bg-card-hover: #16223B;
-    --bg-modal: #0F172A;
-    --border-color: rgba(59, 130, 246, 0.35);
-    --border-light: rgba(255, 255, 255, 0.12);
-    
-    --text-primary: #FFFFFF;
-    --text-secondary: #CBD5E1;
-    --text-muted: #94A3B8;
-    
-    --card-3d-bg: linear-gradient(150deg, #131E35 0%, #0B1120 100%);
-    --card-3d-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.8), 0 4px 10px -2px rgba(0, 0, 0, 0.6), inset 0 1px 1px 0 rgba(255, 255, 255, 0.15), inset 0 -2px 3px 0 rgba(0, 0, 0, 0.6);
-    --card-3d-hover-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.9), 0 0 16px rgba(37, 99, 235, 0.3), inset 0 1px 1px 0 rgba(255, 255, 255, 0.22), inset 0 -2px 3px 0 rgba(0, 0, 0, 0.7);
-    --button-3d-shadow: 0 4px 10px rgba(0, 0, 0, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.2);
+[data-theme="preto"],
+body.theme-preto {
+    --bg-primary: #08080a;
+    --bg-secondary: #131316;
+    --bg-card: #131316;
+    --bg-card-hover: #1c1c20;
+    --bg-modal: #131316;
+    --border-color: #242429;
+    --border-light: rgba(255, 255, 255, 0.08);
+    --border-focus: #52525c;
+    --text-primary: #ffffff;
+    --text-secondary: #d4d4d8;
+    --text-muted: #a1a1aa;
+    --color-brand: #3f3f46;
+    --btn-primary: #27272a;
+    --btn-hover: #3f3f46;
+    --color-card-gradient: linear-gradient(180deg, #16161a 0%, #0d0d10 100%);
+    --bg-app-gradient: radial-gradient(ellipse 90% 55% at 50% -5%, rgba(255, 255, 255, 0.08) 0%, rgba(20, 20, 24, 0.6) 50%, #08080a 100%), #08080a;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.6);
 }
 
 body[data-theme="preto"],
+body.theme-preto,
 [data-theme="preto"] body {
-    background: radial-gradient(120% 100% at 50% 0%, #0F172A 0%, #070D18 50%, #020408 100%);
-    color: #FFFFFF;
+    background: var(--bg-app-gradient) !important;
+    color: #ffffff !important;
 }
 
-/* 2. TEMA CINZA 3D (TITÂNIO, GRAFITE & CHANFROS METÁLICOS) */
-[data-theme="cinza"] {
-    --bg-primary: #1C2026;
-    --bg-secondary: #242932;
-    --bg-card: #2B313C;
-    --bg-card-hover: #343C4A;
-    --bg-modal: #282E39;
-    --border-color: #475569;
-    --border-light: rgba(255, 255, 255, 0.18);
-    
-    --text-primary: #FFFFFF;
-    --text-secondary: #E2E8F0;
-    --text-muted: #CBD5E1;
-    
-    --card-3d-bg: linear-gradient(150deg, #353D4B 0%, #242A34 100%);
-    --card-3d-shadow: 0 10px 25px -4px rgba(0, 0, 0, 0.65), 0 4px 10px -2px rgba(0, 0, 0, 0.45), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.2), inset 0 -2px 3px 0 rgba(0, 0, 0, 0.5);
-    --card-3d-hover-shadow: 0 14px 30px -4px rgba(0, 0, 0, 0.75), 0 0 16px rgba(148, 163, 184, 0.3), inset 0 1px 1.5px 0 rgba(255, 255, 255, 0.28), inset 0 -2px 3px 0 rgba(0, 0, 0, 0.6);
-    --button-3d-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), inset 0 1px 1.5px rgba(255, 255, 255, 0.25);
+/* 2. TEMA VERDE (OCEÂNICO / PETRÓLEO) */
+[data-theme="verde"],
+body.theme-verde {
+    --bg-primary: #081a1f;
+    --bg-secondary: #0f2c34;
+    --bg-card: #0f2c34;
+    --bg-card-hover: #184754;
+    --bg-modal: #0f2c34;
+    --border-color: #1c4955;
+    --border-light: rgba(20, 184, 166, 0.25);
+    --border-focus: #14b8a6;
+    --text-primary: #ffffff;
+    --text-secondary: #ccfbf1;
+    --text-muted: #99f6e4;
+    --color-brand: #14b8a6;
+    --btn-primary: #0d9488;
+    --btn-hover: #0f766e;
+    --color-card-gradient: linear-gradient(180deg, #133943 0%, #0c232a 100%);
+    --bg-app-gradient: radial-gradient(ellipse 85% 55% at 50% 20%, rgba(20, 184, 166, 0.28) 0%, rgba(15, 44, 52, 0.5) 50%, #081a1f 100%), #081a1f;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.65);
+}
+
+body[data-theme="verde"],
+body.theme-verde,
+[data-theme="verde"] body {
+    background: var(--bg-app-gradient) !important;
+    color: #ffffff !important;
+}
+
+/* 3. TEMA ROSA (TERRACOTA / FRAMBOESA) */
+[data-theme="rosa"],
+body.theme-rosa {
+    --bg-primary: #170910;
+    --bg-secondary: #28111c;
+    --bg-card: #28111c;
+    --bg-card-hover: #451d32;
+    --bg-modal: #28111c;
+    --border-color: #4d1d33;
+    --border-light: rgba(244, 63, 94, 0.25);
+    --border-focus: #fb7185;
+    --text-primary: #ffffff;
+    --text-secondary: #ffe4e6;
+    --text-muted: #fda4af;
+    --color-brand: #f43f5e;
+    --btn-primary: #e11d48;
+    --btn-hover: #be123c;
+    --color-card-gradient: linear-gradient(180deg, #351726 0%, #1e0c15 100%);
+    --bg-app-gradient: radial-gradient(ellipse 85% 55% at 50% 20%, rgba(244, 63, 94, 0.25) 0%, rgba(55, 15, 29, 0.5) 50%, #170910 100%), #170910;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.65);
+}
+
+body[data-theme="rosa"],
+body.theme-rosa,
+[data-theme="rosa"] body {
+    background: var(--bg-app-gradient) !important;
+    color: #ffffff !important;
+}
+
+/* 4. TEMA CINZA (GRAFITE METÁLICO) */
+[data-theme="cinza"],
+body.theme-cinza {
+    --bg-primary: #18191b;
+    --bg-secondary: #26282c;
+    --bg-card: #26282c;
+    --bg-card-hover: #3a3e44;
+    --bg-modal: #26282c;
+    --border-color: #3f4247;
+    --border-light: rgba(148, 163, 184, 0.2);
+    --border-focus: #64748b;
+    --text-primary: #ffffff;
+    --text-secondary: #e2e8f0;
+    --text-muted: #94a3b8;
+    --color-brand: #64748b;
+    --btn-primary: #475569;
+    --btn-hover: #334155;
+    --color-card-gradient: linear-gradient(180deg, #2f3237 0%, #202225 100%);
+    --bg-app-gradient: radial-gradient(ellipse 90% 50% at 50% 0%, rgba(148, 163, 184, 0.18) 0%, rgba(38, 40, 44, 0.5) 50%, #18191b 100%), #18191b;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.6);
 }
 
 body[data-theme="cinza"],
+body.theme-cinza,
 [data-theme="cinza"] body {
-    background: radial-gradient(120% 100% at 50% 0%, #2D333B 0%, #20242B 55%, #181B20 100%);
-    color: #FFFFFF;
+    background: var(--bg-app-gradient) !important;
+    color: #ffffff !important;
 }
 
-[data-theme="cinza"] .top-navbar {
-    background: rgba(36, 41, 50, 0.95);
-    border-bottom: 1px solid rgba(148, 163, 184, 0.28);
+/* 5. TEMA AZUL (SAFIRA / OCEANO) */
+[data-theme="azul"],
+body.theme-azul {
+    --bg-primary: #060e22;
+    --bg-secondary: #0d1e3d;
+    --bg-card: #0d1e3d;
+    --bg-card-hover: #162f5e;
+    --bg-modal: #0d1e3d;
+    --border-color: #1a386e;
+    --border-light: rgba(56, 189, 248, 0.25);
+    --border-focus: #38bdf8;
+    --text-primary: #ffffff;
+    --text-secondary: #dbeafe;
+    --text-muted: #93c5fd;
+    --color-brand: #2563eb;
+    --btn-primary: #2563eb;
+    --btn-hover: #1d4ed8;
+    --color-card-gradient: linear-gradient(180deg, #102449 0%, #091730 100%);
+    --bg-app-gradient: radial-gradient(ellipse 85% 55% at 50% 15%, rgba(56, 189, 248, 0.32) 0%, rgba(13, 30, 61, 0.6) 50%, #060e22 100%), #060e22;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.65);
 }
 
-[data-theme="cinza"] .mobile-bottom-nav {
-    background: rgba(36, 41, 50, 0.96);
-    border-top: 1px solid rgba(148, 163, 184, 0.28);
+body[data-theme="azul"],
+body.theme-azul,
+[data-theme="azul"] body {
+    background: var(--bg-app-gradient) !important;
+    color: #ffffff !important;
 }
 
-[data-theme="cinza"] .modal-content {
-    background: #282E39 !important;
-    border-color: rgba(148, 163, 184, 0.3) !important;
+/* 6. TEMA ROXO (CÓSMICO / GALÁCTICO) */
+[data-theme="roxo"],
+body.theme-roxo {
+    --bg-primary: #0e0d1d;
+    --bg-secondary: #1b1933;
+    --bg-card: #1b1933;
+    --bg-card-hover: #2e2b58;
+    --bg-modal: #1b1933;
+    --border-color: #332f5e;
+    --border-light: rgba(99, 102, 241, 0.25);
+    --border-focus: #6366f1;
+    --text-primary: #ffffff;
+    --text-secondary: #e0e7ff;
+    --text-muted: #a5b4fc;
+    --color-brand: #6366f1;
+    --btn-primary: #6366f1;
+    --btn-hover: #4f46e5;
+    --color-card-gradient: linear-gradient(180deg, #232043 0%, #141227 100%);
+    --bg-app-gradient: radial-gradient(ellipse 85% 55% at 50% 15%, rgba(99, 102, 241, 0.28) 0%, rgba(27, 25, 51, 0.5) 50%, #0e0d1d 100%), #0e0d1d;
+    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.45);
+    --shadow-lg: 0 16px 36px rgba(0, 0, 0, 0.65);
 }
 
-[data-theme="cinza"] .filters-header-row .ano-select-box option,
-[data-theme="cinza"] .filters-header-row .mes-select-box option,
-[data-theme="cinza"] select option {
-    background: #242932;
-    color: #FFFFFF;
+body[data-theme="roxo"],
+body.theme-roxo,
+[data-theme="roxo"] body {
+    background: var(--bg-app-gradient) !important;
+    color: #ffffff !important;
 }
 
-/* 3. TEMA CLARO SUAVE 3D (COR SUAVE AOS OLHOS, PROFUNDIDADE TÁTIL & ALTO CONFORTO) */
-[data-theme="claro"] {
-    --bg-primary: #EEF2F6;
-    --bg-secondary: #F8FAFC;
-    --bg-card: #FFFFFF;
-    --bg-card-hover: #F1F5F9;
-    --bg-modal: #FFFFFF;
-    --border-color: #CBD5E1;
-    --border-light: rgba(255, 255, 255, 0.95);
-    
-    --text-primary: #0F172A;
-    --text-secondary: #334155;
-    --text-muted: #475569;
-    
-    --card-3d-bg: linear-gradient(150deg, #FFFFFF 0%, #E8EDF5 100%);
-    --card-3d-shadow: 0 10px 24px -4px rgba(100, 116, 139, 0.22), 0 4px 8px -2px rgba(100, 116, 139, 0.12), inset 0 1.5px 1.5px 0 #FFFFFF, inset 0 -2px 3px 0 rgba(148, 163, 184, 0.22);
-    --card-3d-hover-shadow: 0 14px 28px -4px rgba(100, 116, 139, 0.3), 0 0 16px rgba(37, 99, 235, 0.15), inset 0 1.5px 1.5px 0 #FFFFFF, inset 0 -2px 3px 0 rgba(148, 163, 184, 0.28);
-    --button-3d-shadow: 0 3px 8px rgba(100, 116, 139, 0.25), inset 0 1px 1px #FFFFFF;
+/* 7. TEMA CLARO (CLEAN & SUAVE AOS OLHOS) */
+[data-theme="claro"],
+body.theme-claro {
+    --bg-primary: #f8fafc;
+    --bg-secondary: #ffffff;
+    --bg-card: #ffffff;
+    --bg-card-hover: #f1f5f9;
+    --bg-modal: #ffffff;
+    --border-color: #e2e8f0;
+    --border-light: #f1f5f9;
+    --border-focus: #3b82f6;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --text-muted: #64748b;
+    --color-brand: #3b82f6;
+    --btn-primary: #3b82f6;
+    --btn-hover: #2563eb;
+    --color-card-gradient: linear-gradient(180deg, #ffffff 0%, #fbfcfd 100%);
+    --bg-app-gradient: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    --shadow-sm: 0 2px 8px rgba(100, 116, 139, 0.12);
+    --shadow-md: 0 6px 20px rgba(100, 116, 139, 0.15);
+    --shadow-lg: 0 12px 28px rgba(100, 116, 139, 0.2);
 }
 
 body[data-theme="claro"],
+body.theme-claro,
 [data-theme="claro"] body {
-    background: radial-gradient(120% 100% at 50% 0%, #F8FAFC 0%, #EEF2F6 60%, #E2E8F0 100%);
-    color: #0F172A;
+    background: var(--bg-app-gradient) !important;
+    color: #1e293b !important;
 }
 
-[data-theme="claro"] .top-navbar {
-    background: rgba(248, 250, 252, 0.95) !important;
-    border-bottom: 1px solid rgba(148, 163, 184, 0.35) !important;
+/* Regras específicas para o Tema Claro nos componentes */
+[data-theme="claro"] .top-navbar,
+body.theme-claro .top-navbar {
+    background: rgba(255, 255, 255, 0.95) !important;
+    border-bottom: 1px solid #e2e8f0 !important;
 }
 
-[data-theme="claro"] .mobile-bottom-nav {
-    background: rgba(248, 250, 252, 0.96) !important;
-    border-top: 1px solid rgba(148, 163, 184, 0.35) !important;
+[data-theme="claro"] .mobile-bottom-nav,
+body.theme-claro .mobile-bottom-nav {
+    background: rgba(255, 255, 255, 0.96) !important;
+    border-top: 1px solid #e2e8f0 !important;
 }
 
-[data-theme="claro"] .brand-title {
-    color: #0F172A;
+[data-theme="claro"] .brand-title,
+body.theme-claro .brand-title {
+    color: #1e293b !important;
 }
 
-[data-theme="claro"] .modal-content {
-    background: #FFFFFF !important;
-    color: #0F172A !important;
-    border: 1px solid rgba(148, 163, 184, 0.4) !important;
+[data-theme="claro"] .modal-content,
+body.theme-claro .modal-content {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border: 1px solid #e2e8f0 !important;
 }
 
-[data-theme="claro"] .modal-header {
-    border-bottom: 1px solid rgba(148, 163, 184, 0.3) !important;
+[data-theme="claro"] .modal-header,
+body.theme-claro .modal-header {
+    border-bottom: 1px solid #e2e8f0 !important;
 }
 
 [data-theme="claro"] .demo-chart-title,
 [data-theme="claro"] .demo-title-text,
-[data-theme="claro"] .summary-title {
-    color: #0F172A;
+[data-theme="claro"] .summary-title,
+body.theme-claro .demo-chart-title,
+body.theme-claro .demo-title-text,
+body.theme-claro .summary-title {
+    color: #1e293b !important;
 }
 
 [data-theme="claro"] .filters-header-row .ano-select-box,
-[data-theme="claro"] .filters-header-row .mes-select-box {
-    color: #0F172A;
-}
-
-[data-theme="claro"] .filters-header-row .ano-select-box option,
-[data-theme="claro"] .filters-header-row .mes-select-box option {
-    background: #FFFFFF;
-    color: #0F172A;
+[data-theme="claro"] .filters-header-row .mes-select-box,
+body.theme-claro .filters-header-row .ano-select-box,
+body.theme-claro .filters-header-row .mes-select-box {
+    background: #ffffff !important;
+    color: #1e293b !important;
+    border-color: #cbd5e1 !important;
 }
 
 [data-theme="claro"] input[type="text"],
@@ -1927,64 +2052,85 @@ body[data-theme="claro"],
 [data-theme="claro"] input[type="email"],
 [data-theme="claro"] select,
 [data-theme="claro"] textarea,
-[data-theme="claro"] .auth-input-field {
-    background: #F8FAFC !important;
-    color: #0F172A !important;
-    border: 1px solid #CBD5E1 !important;
+[data-theme="claro"] .auth-input-field,
+body.theme-claro input[type="text"],
+body.theme-claro input[type="number"],
+body.theme-claro input[type="date"],
+body.theme-claro input[type="password"],
+body.theme-claro input[type="email"],
+body.theme-claro select,
+body.theme-claro textarea,
+body.theme-claro .auth-input-field {
+    background: #f8fafc !important;
+    color: #1e293b !important;
+    border: 1px solid #cbd5e1 !important;
 }
 
-[data-theme="claro"] select option {
-    background: #FFFFFF;
-    color: #0F172A;
+[data-theme="claro"] select option,
+body.theme-claro select option {
+    background: #ffffff !important;
+    color: #1e293b !important;
 }
 
-[data-theme="claro"] .btn-user-badge {
-    background: #E2E8F0;
+[data-theme="claro"] .btn-user-badge,
+body.theme-claro .btn-user-badge {
+    background: #e2e8f0;
     color: #334155;
-    border-color: #CBD5E1;
+    border-color: #cbd5e1;
 }
 
-[data-theme="claro"] .btn-user-badge:hover {
-    background: #CBD5E1;
-    color: #0F172A;
+[data-theme="claro"] .btn-user-badge:hover,
+body.theme-claro .btn-user-badge:hover {
+    background: #cbd5e1;
+    color: #0f172a;
 }
 
-[data-theme="claro"] .demo-info-banner {
+[data-theme="claro"] .demo-info-banner,
+body.theme-claro .demo-info-banner {
     background: rgba(226, 232, 240, 0.7);
-    border-color: #CBD5E1;
+    border-color: #cbd5e1;
 }
 
-[data-theme="claro"] .demo-info-text {
+[data-theme="claro"] .demo-info-text,
+body.theme-claro .demo-info-text {
     color: #334155;
 }
 
-[data-theme="claro"] .summary-row-interactive:hover {
+[data-theme="claro"] .summary-row-interactive:hover,
+body.theme-claro .summary-row-interactive:hover {
     background: rgba(148, 163, 184, 0.15);
 }
 
-[data-theme="claro"] .desktop-tabs-bar .tab-pill {
+[data-theme="claro"] .desktop-tabs-bar .tab-pill,
+body.theme-claro .desktop-tabs-bar .tab-pill {
     color: #475569;
 }
-[data-theme="claro"] .desktop-tabs-bar .tab-pill:hover {
-    color: #0F172A;
-    background: #F1F5F9;
+[data-theme="claro"] .desktop-tabs-bar .tab-pill:hover,
+body.theme-claro .desktop-tabs-bar .tab-pill:hover {
+    color: #0f172a;
+    background: #f1f5f9;
 }
-[data-theme="claro"] .desktop-tabs-bar .tab-pill.active {
-    color: #FFFFFF;
+[data-theme="claro"] .desktop-tabs-bar .tab-pill.active,
+body.theme-claro .desktop-tabs-bar .tab-pill.active {
+    color: #ffffff;
+    background: #2563eb !important;
 }
 
-[data-theme="claro"] .mobile-nav-item {
-    color: #64748B;
+[data-theme="claro"] .mobile-nav-item,
+body.theme-claro .mobile-nav-item {
+    color: #64748b;
 }
-[data-theme="claro"] .mobile-nav-item.active {
-    color: #2563EB;
+[data-theme="claro"] .mobile-nav-item.active,
+body.theme-claro .mobile-nav-item.active {
+    color: #2563eb;
 }
-[data-theme="claro"] .mobile-nav-item.active svg {
-    stroke: #2563EB;
+[data-theme="claro"] .mobile-nav-item.active svg,
+body.theme-claro .mobile-nav-item.active svg {
+    stroke: #2563eb;
 }
 
 /* ==========================================================================
-   EFEITO 3D REALISTA NOS ELEMENTOS VISUAIS E CARDS
+   MODELO VISUAL LIMPO E ELEGANTE (CARDS, ABAS E SUPERFÍCIES)
    ========================================================================== */
 .summary-table-card,
 .demo-header-card,
@@ -1994,10 +2140,11 @@ body[data-theme="claro"],
 .auth-card-container,
 .desejo-item-card,
 .conta-card-item {
-    background: var(--card-3d-bg, var(--bg-card)) !important;
-    box-shadow: var(--card-3d-shadow) !important;
-    border: 1.5px solid var(--border-color) !important;
+    background: var(--color-card-gradient, var(--bg-card)) !important;
+    box-shadow: var(--shadow-sm, 0 2px 8px rgba(0, 0, 0, 0.25)) !important;
+    border: 1px solid var(--border-color) !important;
     position: relative;
+    border-radius: 16px;
     transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
@@ -2008,135 +2155,139 @@ body[data-theme="claro"],
 .card:hover,
 .desejo-item-card:hover,
 .conta-card-item:hover {
-    box-shadow: var(--card-3d-hover-shadow) !important;
+    box-shadow: var(--shadow-md, 0 8px 24px rgba(0, 0, 0, 0.4)) !important;
 }
 
-/* Abas e Pílulas com profundidade 3D */
+/* Abas e Pílulas Modernas */
 .desktop-tabs-bar .tab-pill {
-    background: var(--card-3d-bg, var(--bg-card));
-    box-shadow: var(--card-3d-shadow);
+    background: var(--bg-card);
+    box-shadow: var(--shadow-sm);
     border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    transition: all 0.2s ease;
 }
 
 .desktop-tabs-bar .tab-pill:hover {
-    box-shadow: var(--card-3d-hover-shadow);
-    transform: translateY(-1px);
-}
-
-.desktop-tabs-bar .tab-pill:active {
-    transform: translateY(1px);
+    box-shadow: var(--shadow-md);
+    color: var(--text-primary);
 }
 
 .desktop-tabs-bar .tab-pill.active {
-    background: linear-gradient(135deg, #2563EB, #1D4ED8) !important;
-    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.5), inset 0 1px 1px rgba(255, 255, 255, 0.3) !important;
+    background: var(--btn-primary, #2563eb) !important;
+    border-color: var(--border-focus, #3b82f6) !important;
+    color: #ffffff !important;
 }
 
 /* ==========================================================================
-   MODAL DE SELEÇÃO DE TEMA 3D & CARDS INTERATIVOS
+   MODAL E ABA DE SELEÇÃO DOS 7 TEMAS (ESTILO TUDO EM DIA)
    ========================================================================== */
 .modal-tema-content {
     background: var(--bg-card) !important;
     color: var(--text-primary) !important;
     border: 1px solid var(--border-color) !important;
-    box-shadow: var(--card-3d-shadow) !important;
+    box-shadow: var(--shadow-lg) !important;
 }
 
 .theme-icon-badge {
-    background: linear-gradient(135deg, #2563EB, #8B5CF6);
-    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.4);
+    background: var(--color-brand, #3f3f46);
+    box-shadow: var(--shadow-sm);
 }
 
 .theme-choice-card {
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 14px 16px;
-    border-radius: 16px;
+    padding: 12px 14px;
+    border-radius: 14px;
     cursor: pointer;
-    border: 2px solid transparent;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    border: 1.5px solid var(--border-color);
+    transition: all 0.2s ease;
     position: relative;
     user-select: none;
+    background: var(--bg-card);
 }
 
 .theme-choice-card:hover {
-    transform: translateY(-2px);
-}
-
-.theme-choice-card:active {
-    transform: translateY(1px);
-}
-
-.theme-card-preto {
-    background: linear-gradient(145deg, #162036 0%, #0B1120 100%);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.7), inset 0 1px 1px rgba(255, 255, 255, 0.15), inset 0 -1px 2px rgba(0, 0, 0, 0.6);
-    border-color: rgba(59, 130, 246, 0.25);
-    color: #F8FAFC;
-}
-
-.theme-card-cinza {
-    background: linear-gradient(145deg, #353D4B 0%, #222731 100%);
-    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5), inset 0 1px 1.5px rgba(255, 255, 255, 0.22), inset 0 -1.5px 2px rgba(0, 0, 0, 0.5);
-    border-color: rgba(148, 163, 184, 0.35);
-    color: #F1F5F9;
-}
-
-.theme-card-claro {
-    background: linear-gradient(145deg, #FFFFFF 0%, #E2E8F0 100%);
-    box-shadow: 0 6px 16px rgba(100, 116, 139, 0.25), inset 0 1.5px 2px #FFFFFF, inset 0 -1.5px 2px rgba(148, 163, 184, 0.3);
-    border-color: rgba(148, 163, 184, 0.45);
-    color: #0F172A;
+    border-color: var(--border-focus, #52525c);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
 }
 
 .theme-choice-card.active-theme {
-    border-color: #3B82F6 !important;
-    box-shadow: 0 8px 22px rgba(37, 99, 235, 0.45), inset 0 1px 2px rgba(255, 255, 255, 0.3) !important;
-    transform: scale(1.02);
+    border-color: var(--border-focus, #3b82f6) !important;
+    background: var(--surface-card-hover, #1c1c20) !important;
+    box-shadow: 0 0 0 1px var(--border-focus, #3b82f6), var(--shadow-md) !important;
+}
+
+/* Cores específicas de cada card de tema no seletor */
+.theme-card-preto {
+    background: linear-gradient(135deg, #131316 0%, #08080a 100%);
+    border-color: #242429;
+    color: #ffffff;
+}
+.theme-card-verde {
+    background: linear-gradient(135deg, #0f2c34 0%, #081a1f 100%);
+    border-color: #1c4955;
+    color: #ffffff;
+}
+.theme-card-rosa {
+    background: linear-gradient(135deg, #28111c 0%, #170910 100%);
+    border-color: #4d1d33;
+    color: #ffffff;
+}
+.theme-card-cinza {
+    background: linear-gradient(135deg, #26282c 0%, #18191b 100%);
+    border-color: #3f4247;
+    color: #ffffff;
+}
+.theme-card-azul {
+    background: linear-gradient(135deg, #0d1e3d 0%, #060e22 100%);
+    border-color: #1a386e;
+    color: #ffffff;
+}
+.theme-card-roxo {
+    background: linear-gradient(135deg, #1b1933 0%, #0e0d1d 100%);
+    border-color: #332f5e;
+    color: #ffffff;
+}
+.theme-card-claro {
+    background: linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%);
+    border-color: #cbd5e1;
+    color: #1e293b;
 }
 
 .theme-preview-box {
-    width: 48px;
-    height: 48px;
-    border-radius: 12px;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 4px;
     flex-wrap: wrap;
-    padding: 6px;
+    padding: 5px;
     box-sizing: border-box;
     flex-shrink: 0;
 }
 
-.preview-preto {
-    background: #070D18;
-    border: 1px solid #334155;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.8);
-}
-
-.preview-cinza {
-    background: #242932;
-    border: 1px solid #475569;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.5);
-}
-
-.preview-claro {
-    background: #F1F5F9;
-    border: 1px solid #CBD5E1;
-    box-shadow: inset 0 2px 4px rgba(148,163,184,0.3);
-}
+.preview-preto { background: #08080a; border: 1px solid #242429; }
+.preview-verde { background: #081a1f; border: 1px solid #1c4955; }
+.preview-rosa  { background: #170910; border: 1px solid #4d1d33; }
+.preview-cinza { background: #18191b; border: 1px solid #3f4247; }
+.preview-azul  { background: #060e22; border: 1px solid #1a386e; }
+.preview-roxo  { background: #0e0d1d; border: 1px solid #332f5e; }
+.preview-claro { background: #f8fafc; border: 1px solid #cbd5e1; }
 
 .preview-dot {
-    width: 8px;
-    height: 8px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
     display: inline-block;
 }
-.dot-green { background: #10B981; box-shadow: 0 0 6px #10B981; }
-.dot-red { background: #EF4444; box-shadow: 0 0 6px #EF4444; }
-.dot-purple { background: #8B5CF6; box-shadow: 0 0 6px #8B5CF6; }
-.dot-gold { background: #F59E0B; box-shadow: 0 0 6px #F59E0B; }
+.dot-green { background: #10B981; }
+.dot-red { background: #EF4444; }
+.dot-purple { background: #8B5CF6; }
+.dot-gold { background: #F59E0B; }
 
 .theme-choice-info {
     flex: 1;
@@ -2147,82 +2298,72 @@ body[data-theme="claro"],
     display: flex;
     align-items: center;
     gap: 8px;
-    font-size: 1rem;
+    font-size: 0.95rem;
     font-weight: 700;
 }
 
 .theme-tag {
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
-    padding: 2px 8px;
+    padding: 2px 7px;
     border-radius: 9999px;
     text-transform: uppercase;
     letter-spacing: 0.3px;
 }
 
-.tag-preto {
-    background: rgba(59, 130, 246, 0.2);
-    color: #93C5FD;
-    border: 1px solid rgba(59, 130, 246, 0.3);
-}
-
-.tag-cinza {
-    background: rgba(148, 163, 184, 0.2);
-    color: #E2E8F0;
-    border: 1px solid rgba(148, 163, 184, 0.35);
-}
-
-.tag-claro {
-    background: rgba(37, 99, 235, 0.15);
-    color: #1D4ED8;
-    border: 1px solid rgba(37, 99, 235, 0.3);
-}
+.tag-preto { background: #27272a; color: #d4d4d8; }
+.tag-verde { background: rgba(20, 184, 166, 0.2); color: #2dd4bf; }
+.tag-rosa  { background: rgba(244, 63, 94, 0.2); color: #fb7185; }
+.tag-cinza { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+.tag-azul  { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+.tag-roxo  { background: rgba(99, 102, 241, 0.2); color: #818cf8; }
+.tag-claro { background: #e2e8f0; color: #1e293b; }
 
 .theme-choice-desc {
-    font-size: 0.78rem;
-    opacity: 0.8;
-    margin-top: 3px;
-    line-height: 1.35;
+    font-size: 0.76rem;
+    opacity: 0.75;
+    margin-top: 2px;
+    line-height: 1.3;
 }
 
 .theme-check-icon {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     background: rgba(255, 255, 255, 0.1);
-    border: 1.5px solid rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.2);
     color: transparent;
     transition: all 0.2s ease;
     flex-shrink: 0;
 }
 
 .theme-choice-card.active-theme .theme-check-icon {
-    background: #2563EB;
-    border-color: #60A5FA;
-    color: #FFFFFF;
-    box-shadow: 0 0 10px rgba(37, 99, 235, 0.6);
+    background: #10b981;
+    border-color: #34d399;
+    color: #ffffff;
 }
 
 .btn-fechar-tema {
     width: 100%;
-    padding: 13px;
+    padding: 12px;
     border-radius: 12px;
-    background: linear-gradient(135deg, #2563EB, #1D4ED8);
-    color: #FFFFFF;
-    font-weight: 800;
+    background: var(--btn-primary, #27272a);
+    color: #ffffff;
+    font-weight: 700;
     font-size: 0.95rem;
-    border: none;
+    border: 1px solid var(--border-color);
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);
+    box-shadow: var(--shadow-sm);
     transition: all 0.2s ease;
 }
 
 .btn-fechar-tema:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 18px rgba(37, 99, 235, 0.55);
+    background: var(--btn-hover, #3f3f46);
+    box-shadow: var(--shadow-md);
 }
 
 /* ==========================================================================

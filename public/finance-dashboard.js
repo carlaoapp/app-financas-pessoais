@@ -3513,19 +3513,25 @@ function fecharModalTema() {
 window.fecharModalTema = fecharModalTema;
 
 function selecionarTema(tema, salvar = true) {
-    if (!['preto', 'cinza', 'claro'].includes(tema)) {
+    const temasValidos = ['preto', 'verde', 'rosa', 'cinza', 'azul', 'roxo', 'claro'];
+    if (!temasValidos.includes(tema)) {
         tema = 'preto';
     }
 
-    // Aplica o tema na tag <html> e no <body> para máxima compatibilidade
+    // Aplica o tema na tag <html> e no <body>
     document.documentElement.setAttribute('data-theme', tema);
     if (document.body) {
         document.body.setAttribute('data-theme', tema);
+        
+        // Sincroniza classes de tema compatíveis com o Tudo em Dia
+        temasValidos.forEach(t => document.body.classList.remove('theme-' + t));
+        document.body.classList.add('theme-' + tema);
     }
 
     // Salva preferência no localStorage
     if (salvar) {
         localStorage.setItem('financas_app_theme', tema);
+        localStorage.setItem('app-theme', tema);
     }
 
     // Atualiza estado visual no modal de seleção e na aba dedicada
@@ -3539,7 +3545,7 @@ function selecionarTema(tema, salvar = true) {
 window.selecionarTema = selecionarTema;
 
 function atualizarCardsSelecaoTema(temaAtivo) {
-    const temas = ['preto', 'cinza', 'claro'];
+    const temas = ['preto', 'verde', 'rosa', 'cinza', 'azul', 'roxo', 'claro'];
     temas.forEach(t => {
         const cap = t.charAt(0).toUpperCase() + t.slice(1);
         const modalCard = document.getElementById('themeCard' + cap);
@@ -3559,7 +3565,7 @@ window.atualizarCardsSelecaoTema = atualizarCardsSelecaoTema;
 // Inicialização automática do tema
 (function inicializarTemaApp() {
     try {
-        const temaSalvo = localStorage.getItem('financas_app_theme') || 'preto';
+        const temaSalvo = localStorage.getItem('financas_app_theme') || localStorage.getItem('app-theme') || 'preto';
         selecionarTema(temaSalvo, false);
     } catch(e) {
         console.warn('Erro ao inicializar tema:', e);
