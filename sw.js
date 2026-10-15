@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.4.7
-const CACHE_NAME = 'financas-pessoais-v1.4.7';
+// Service Worker - APP Finanças Pessoais v1.4.8
+const CACHE_NAME = 'financas-pessoais-v1.4.8';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -24,7 +24,7 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', event => {
-    console.log('[SW v1.4.7] Instalando e forçando ativação imediata...');
+    console.log('[SW v1.4.8] Instalando e forçando ativação imediata...');
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(async cache => {
@@ -43,13 +43,13 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-    console.log('[SW v1.4.7] Ativado. Limpando caches legados...');
+    console.log('[SW v1.4.8] Ativado. Limpando caches legados...');
     event.waitUntil(
         caches.keys().then(keys => {
             return Promise.all(
                 keys.map(key => {
                     if (key !== CACHE_NAME) {
-                        console.log('[SW v1.4.7] Removendo cache obsoleto:', key);
+                        console.log('[SW v1.4.8] Removendo cache obsoleto:', key);
                         return caches.delete(key);
                     }
                 })
@@ -98,7 +98,8 @@ self.addEventListener('fetch', event => {
         event.respondWith(
             (async () => {
                 const cache = await caches.open(CACHE_NAME);
-                const cachedPage = await cache.match('/index.html') || await cache.match('/') || await cache.match(event.request);
+                const isExplicitReload = url.includes('reload=') || url.includes('update=');
+                const cachedPage = isExplicitReload ? null : (await cache.match('/index.html') || await cache.match('/') || await cache.match(event.request));
 
                 const networkPromise = fetch(event.request, { cache: 'no-cache' })
                     .then(async response => {

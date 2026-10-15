@@ -5,7 +5,7 @@ function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
-    return '1.4.7';
+    return '1.4.8';
 }
 
 function isNewerVersion(serverVer, currentVer) {
@@ -82,8 +82,8 @@ async function checkAppVersion(isManual = false) {
         console.log(`[Auto-Update] Versão Renderizada: v${currentVersion} | Versão Servidor: v${serverVersion}`);
 
         if (isNewerVersion(serverVersion, currentVersion)) {
-            // Previne loop na mesma sessão se o usuário já solicitou atualização ou fechou o aviso
-            if (sessionStorage.getItem('updating_to_' + serverVersion) || sessionStorage.getItem('banner_dismissed_' + serverVersion)) {
+            // Se for verificação automática em background, respeita dispensa temporária na sessão
+            if (!isManual && (sessionStorage.getItem('updating_to_' + serverVersion) || sessionStorage.getItem('banner_dismissed_' + serverVersion))) {
                 console.log('[Auto-Update] Atualização para v' + serverVersion + ' já tratada nesta sessão.');
                 return;
             }
@@ -92,7 +92,10 @@ async function checkAppVersion(isManual = false) {
             // Exibe o banner chamativo para baixar a atualização
             showUpdateBanner(serverVersion, currentVersion);
         } else {
-            // Versão atualizada
+            // Versão atualizada - limpa travas antigas de sessão
+            sessionStorage.removeItem('updating_to_' + currentVersion);
+            sessionStorage.removeItem('banner_dismissed_' + currentVersion);
+            sessionStorage.removeItem('updating_app');
             atualizarBadgeVersao(currentVersion, false);
             dismissUpdateBanner();
             if (isManual && typeof showToast === 'function') {
@@ -245,6 +248,13 @@ async function limparServiceWorkersLegados() {
 
 // Inicia verificação imediata, limpezas e monitoramento do Service Worker
 window.addEventListener('DOMContentLoaded', () => {
+    // 0. Limpa query string de recarga (?reload=...) da barra de endereços
+    if (window.location.search.includes('reload=') || window.location.search.includes('update=')) {
+        try {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        } catch (e) {}
+    }
+
     // 1. Limpa Service Workers com query strings legadas
     limparServiceWorkersLegados();
 
