@@ -68,9 +68,15 @@ app.use(express.static(path.join(__dirname, 'public'), {
     maxAge: 0
 }));
 
-// Status da API
-app.get('/api/status', (req, res) => {
-    res.json({ status: 'online', app: 'Finanças Pessoais', timestamp: Date.now() });
+// Status da API e Health Check (Anti-Sleep do Render e Monitoramento)
+app.get(['/api/status', '/api/health', '/api/ping', '/health', '/ping'], (req, res) => {
+    res.json({
+        status: 'online',
+        app: 'Finanças Pessoais',
+        keep_alive: true,
+        uptime: Math.floor(process.uptime()),
+        timestamp: Date.now()
+    });
 });
 
 // Versão do Aplicativo (Auto-Update)
@@ -535,6 +541,35 @@ function getLocalNetworkIp() {
 
 const localIp = getLocalNetworkIp();
 
+// Keep-Alive Anti-Sleep do Render (Mantém o servidor desperto a cada 7 segundos para resposta instantânea)
+const KEEP_ALIVE_INTERVAL_SEC = parseInt(process.env.KEEP_ALIVE_INTERVAL || '7', 10);
+const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL || 'https://app-financas-pessoais.onrender.com';
+
+function startRenderKeepAlive() {
+    const delayMs = Math.max(3, KEEP_ALIVE_INTERVAL_SEC) * 1000;
+    console.log(`[Keep-Alive] Monitor ativo: mantendo o Render desperto a cada ${KEEP_ALIVE_INTERVAL_SEC}s`);
+
+    setInterval(async () => {
+        try {
+            const targets = [`http://127.0.0.1:${PORT}/api/health`];
+            if (process.env.RENDER || process.env.NODE_ENV === 'production') {
+                targets.unshift(`${RENDER_EXTERNAL_URL}/api/health`);
+            }
+
+            for (const target of targets) {
+                try {
+                    await fetch(target, {
+                        signal: AbortSignal.timeout(4000),
+                        headers: { 'User-Agent': 'Render-KeepAlive/1.0' }
+                    });
+                } catch (e) {
+                    // Silencioso em caso de oscilações normais de rede
+                }
+            }
+        } catch (e) {}
+    }, delayMs);
+}
+
 app.listen(PORT, '0.0.0.0', () => {
     const mailInfo = getMailTransporter();
     console.log('===============================================================');
@@ -550,4 +585,7 @@ app.listen(PORT, '0.0.0.0', () => {
         console.log('                            Recuperação de senha protegida contra exposição.');
     }
     console.log('===============================================================');
+
+    // Inicia o anti-sleep do Render
+    startRenderKeepAlive();
 });

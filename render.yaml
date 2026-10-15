@@ -13,3 +13,7 @@ services:
         value: marianosanto33@gmail.com
       - key: NODE_ENV
         value: production
+      - key: KEEP_ALIVE_INTERVAL
+        value: "7"
+      - key: RENDER_EXTERNAL_URL
+        value: https://app-financas-pessoais.onrender.com
