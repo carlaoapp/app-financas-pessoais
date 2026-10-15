@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.5.2
-const CACHE_NAME = 'financas-pessoais-v1.5.2';
+// Service Worker - APP Finanças Pessoais v1.5.3
+const CACHE_NAME = 'financas-pessoais-v1.5.3';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -24,7 +24,7 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', event => {
-    console.log('[SW v1.5.2] Instalando e forçando ativação imediata...');
+    console.log('[SW v1.5.3] Instalando e forçando ativação imediata...');
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(async cache => {
@@ -43,13 +43,13 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-    console.log('[SW v1.5.2] Ativado. Limpando caches legados...');
+    console.log('[SW v1.5.3] Ativado. Limpando caches legados...');
     event.waitUntil(
         caches.keys().then(keys => {
             return Promise.all(
                 keys.map(key => {
                     if (key !== CACHE_NAME) {
-                        console.log('[SW v1.5.2] Removendo cache obsoleto:', key);
+                        console.log('[SW v1.5.3] Removendo cache obsoleto:', key);
                         return caches.delete(key);
                     }
                 })
@@ -84,75 +84,51 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // 2. Navegação / HTML: ESTRATÉGIA ANTI-SPLASH (TIMEOUT RÁPIDO DE 1.2s COM CACHE IMEDIATO)
-    // Se o Render estiver dormindo ou a rede móvel oscilar, NUNCA deixa o celular preso na splash!
+    // 2. Navegação / HTML: CACHE-FIRST COM AVISO DE ATUALIZAÇÃO
+    // Abre instantaneamente (0ms) e permite que o auto-update detecte e exiba o aviso para o usuário
     if (event.request.mode === 'navigate' || url.endsWith('/index.html') || url.endsWith('/')) {
         event.respondWith(
             (async () => {
                 const cache = await caches.open(CACHE_NAME);
                 const isExplicitReload = url.includes('reload=') || url.includes('update=');
-                const cachedPage = isExplicitReload ? null : (await cache.match('/index.html') || await cache.match('/') || await cache.match(event.request));
 
-                const networkPromise = fetch(event.request, { cache: 'no-cache' })
-                    .then(async response => {
-                        if (response && response.status === 200) {
-                            const copy = response.clone();
-                            await cache.put(event.request, copy.clone());
-                            await cache.put('/index.html', copy.clone());
-                            await cache.put('/', copy);
-                        }
-                        return response;
-                    });
-
-                // Se já temos a página no cache local:
-                // Dá 1.2 segundos para a rede responder. Se demorar (Render dormindo ou 4G lento), serve o cache NA HORA!
-                if (cachedPage) {
-                    const timeoutPromise = new Promise(resolve => setTimeout(() => resolve(null), 1200));
+                // Se for recarga explícita disparada pelo botão "Atualizar Agora", busca direto na rede
+                if (isExplicitReload) {
                     try {
-                        const fastResult = await Promise.race([networkPromise, timeoutPromise]);
-                        if (fastResult && fastResult.status === 200) {
-                            return fastResult;
+                        const netRes = await fetch(event.request, { cache: 'no-store' });
+                        if (netRes && netRes.status === 200) {
+                            await cache.put(event.request, netRes.clone());
+                            await cache.put('/index.html', netRes.clone());
+                            await cache.put('/', netRes.clone());
                         }
-                    } catch (e) {
-                        // Offline
-                    }
+                        return netRes;
+                    } catch (e) {}
+                }
+
+                const cachedPage = await cache.match('/index.html') || await cache.match('/') || await cache.match(event.request);
+
+                // Se já temos a página em cache, serve na hora (0ms) sem travar tela
+                if (cachedPage) {
                     return cachedPage;
                 }
 
-                // Se for o primeiro acesso sem cache, aguarda a rede
+                // Primeiro acesso sem cache: busca na rede
                 try {
-                    return await networkPromise;
+                    const netRes = await fetch(event.request, { cache: 'no-cache' });
+                    if (netRes && netRes.status === 200) {
+                        await cache.put(event.request, netRes.clone());
+                        await cache.put('/index.html', netRes.clone());
+                        await cache.put('/', netRes.clone());
+                    }
+                    return netRes;
                 } catch (e) {
-                    return cachedPage || new Response(`
-                        <!DOCTYPE html>
-                        <html lang="pt-BR">
-                        <head>
-                            <meta charset="UTF-8">
-                            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                            <title>Finanças Pessoais - Modo Offline</title>
-                            <style>
-                                body { background: #070D18; color: #F8FAFC; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; text-align: center; }
-                                .box { background: #0F172A; border: 1px solid #1E293B; border-radius: 20px; padding: 28px 24px; max-width: 380px; width: 100%; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
-                                h2 { color: #38BDF8; font-size: 1.25rem; margin-top: 12px; margin-bottom: 8px; }
-                                p { color: #94A3B8; font-size: 0.88rem; line-height: 1.4; margin-bottom: 22px; }
-                                button { background: linear-gradient(135deg, #2563EB, #1D4ED8); color: white; border: none; padding: 12px 24px; border-radius: 12px; font-weight: 700; font-size: 0.95rem; cursor: pointer; width: 100%; box-shadow: 0 4px 14px rgba(37,99,235,0.4); }
-                            </style>
-                        </head>
-                        <body>
-                            <div class="box">
-                                <div style="font-size: 42px;">📶</div>
-                                <h2>Conectando ao Finanças Pessoais</h2>
-                                <p>O servidor está acordando na nuvem. Toque no botão abaixo para entrar.</p>
-                                <button onclick="window.location.reload()">🔄 Carregar Aplicativo</button>
-                            </div>
-                        </body>
-                        </html>
-                    `, { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+                    return cachedPage || new Response('<!DOCTYPE html><html><body style="background:#0F172A;color:#fff;text-align:center;padding:40px;font-family:sans-serif;"><h2>Sem conexão com a internet</h2><p>Conecte-se para o primeiro acesso ao aplicativo.</p><button onclick="window.location.reload()" style="background:#2563EB;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:700;">Tentar Novamente</button></body></html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
                 }
             })()
         );
         return;
     }
+
 
     // 3. Recursos estáticos (JS, CSS, Imagens, Fontes): CACHE-FIRST ULTRA RÁPIDO
     // Responde em 0ms do cache local e revalida silenciosamente em background

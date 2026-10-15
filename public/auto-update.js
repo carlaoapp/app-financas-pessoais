@@ -5,7 +5,7 @@ function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
-    return '1.5.2';
+    return '1.5.3';
 }
 
 function isNewerVersion(serverVer, currentVer) {
@@ -187,7 +187,10 @@ function showUpdateBanner(newVersion, currentVersion) {
 
 // Aplicação atômica e limpa da atualização, sem necessidade de desinstalação
 async function applyAppUpdate(newVersion) {
-    if (newVersion) sessionStorage.setItem('updating_to_' + newVersion, 'true');
+    if (newVersion) {
+        sessionStorage.setItem('updating_to_' + newVersion, 'true');
+        sessionStorage.setItem('just_updated', newVersion);
+    }
     sessionStorage.setItem('updating_app', 'true');
 
     const banner = document.getElementById('update-notification-banner');
@@ -260,7 +263,20 @@ async function limparServiceWorkersLegados() {
 
 // Inicia verificação imediata, limpezas e monitoramento do Service Worker
 window.addEventListener('DOMContentLoaded', () => {
-    // 0. Limpa query string de recarga (?reload=...) da barra de endereços
+    // 0. Feedback de atualização bem-sucedida caso tenha acabado de atualizar
+    try {
+        const justUpdated = sessionStorage.getItem('just_updated');
+        if (justUpdated) {
+            sessionStorage.removeItem('just_updated');
+            setTimeout(() => {
+                if (typeof showToast === 'function') {
+                    showToast(`✅ Aplicativo atualizado com sucesso para a versão v${justUpdated}!`);
+                }
+            }, 800);
+        }
+    } catch (e) {}
+
+    // 0.1 Limpa query string de recarga (?reload=...) da barra de endereços
     if (window.location.search.includes('reload=') || window.location.search.includes('update=')) {
         try {
             window.history.replaceState({}, document.title, window.location.pathname);
