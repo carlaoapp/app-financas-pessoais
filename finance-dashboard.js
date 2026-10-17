@@ -1267,9 +1267,10 @@ async function salvarLancamento(event) {
     if (tipoGasto === 'Lista de Desejos') {
         const inputLink = document.getElementById('modalInputLinkUrl');
         if (inputLink) linkDesejo = inputLink.value.trim();
-        if (typeof midiaModalDesejoTemp !== 'undefined') {
-            midiaUrlDesejo = midiaModalDesejoTemp.url || '';
-            midiaTipoDesejo = midiaModalDesejoTemp.tipo || '';
+        if (typeof serializarMidiasDesejo === 'function' && Array.isArray(midiasModalDesejoTemp)) {
+            const ser = serializarMidiasDesejo(midiasModalDesejoTemp);
+            midiaUrlDesejo = ser.midia_url;
+            midiaTipoDesejo = ser.midia_tipo;
         }
     }
 
@@ -1287,13 +1288,8 @@ async function salvarLancamento(event) {
         };
         if (tipoGasto === 'Lista de Desejos') {
             updateData.link_url = linkDesejo;
-            if (midiaUrlDesejo) {
-                updateData.midia_url = midiaUrlDesejo;
-                updateData.midia_tipo = midiaTipoDesejo;
-            } else if (typeof midiaModalDesejoRemovida !== 'undefined' && midiaModalDesejoRemovida) {
-                updateData.midia_url = '';
-                updateData.midia_tipo = '';
-            }
+            updateData.midia_url = midiaUrlDesejo;
+            updateData.midia_tipo = midiaTipoDesejo;
         }
         await dbLocal.movimentacoes.update(idAtual, updateData);
         console.log('Lançamento atualizado localmente:', idAtual);
@@ -1522,13 +1518,54 @@ async function carregarContasAPagar() {
 }
 
 // ==================================================================
-// MÓDULO LISTA DE DESEJOS - FOTOS, VÍDEOS, LINK DA FONTE E LIGHTBOX
+// MÓDULO LISTA DE DESEJOS - MÚLTIPLAS FOTOS, VÍDEOS, LINK E LIGHTBOX
 // ==================================================================
 
-// Variáveis temporárias de mídia para a criação rápida e modal
-let midiaDesejoTemp = { url: '', tipo: '' };
-let midiaModalDesejoTemp = { url: '', tipo: '' };
+// Listas acumulativas de mídias para o formulário de Desejos e para o Modal
+let midiasDesejoTemp = [];
+let midiasModalDesejoTemp = [];
 let midiaModalDesejoRemovida = false;
+window.midiasDesejosCache = {};
+
+// Converte midia_url / midia_tipo do banco em array padronizado [{ url, tipo }, ...]
+function parseMidiasDesejo(midia_url, midia_tipo) {
+    if (!midia_url || typeof midia_url !== 'string' || !midia_url.trim()) return [];
+    const raw = midia_url.trim();
+    if (raw.startsWith('[')) {
+        try {
+            const parsed = JSON.parse(raw);
+            if (Array.isArray(parsed)) {
+                return parsed
+                    .filter(item => item && item.url)
+                    .map(item => ({
+                        url: item.url,
+                        tipo: item.tipo === 'video' || String(item.url).startsWith('data:video') ? 'video' : 'foto'
+                    }));
+            }
+        } catch (e) {}
+    }
+    const isVideo = midia_tipo === 'video' || raw.startsWith('data:video');
+    return [{ url: raw, tipo: isVideo ? 'video' : 'foto' }];
+}
+window.parseMidiasDesejo = parseMidiasDesejo;
+
+// Serializa o array [{ url, tipo }, ...] para salvar nas colunas midia_url e midia_tipo
+function serializarMidiasDesejo(lista) {
+    if (!Array.isArray(lista) || lista.length === 0) {
+        return { midia_url: '', midia_tipo: '' };
+    }
+    if (lista.length === 1) {
+        return {
+            midia_url: lista[0].url || '',
+            midia_tipo: lista[0].tipo || 'foto'
+        };
+    }
+    return {
+        midia_url: JSON.stringify(lista),
+        midia_tipo: 'multi'
+    };
+}
+window.serializarMidiasDesejo = serializarMidiasDesejo;
 
 // Otimização de imagem via Canvas para alta performance e leveza
 function otimizarImagemDesejo(file, maxWidth = 1200, maxHeight = 1200, quality = 0.8) {
@@ -1563,11 +1600,11 @@ function otimizarImagemDesejo(file, maxWidth = 1200, maxHeight = 1200, quality =
     });
 }
 
-// Leitura de vídeo com validação de tamanho (máx 25MB)
+// Leitura de vídeo com validação de tamanho (máx 35MB por vídeo)
 function lerVideoDesejo(file) {
     return new Promise((resolve, reject) => {
-        if (file.size > 25 * 1024 * 1024) {
-            alert('O vídeo selecionado ultrapassa 25MB. Grave um vídeo mais curto (até 30 segundos).');
+        if (file.size > 35 * 1024 * 1024) {
+            alert(`O vídeo "${file.name || ''}" ultrapassa 35MB. Grave ou escolha um vídeo mais curto.`);
             return reject(new Error('Vídeo muito grande'));
         }
         const reader = new FileReader();
@@ -1577,24 +1614,44 @@ function lerVideoDesejo(file) {
     });
 }
 
-// Manipulador de upload para a criação rápida
+// Manipulador de upload acumulativo para a aba Lista de Desejos (quantas fotos e vídeos quiser)
 window.capturarMidiaDesejo = async function(input, tipoDesejado) {
     if (!input || !input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    const isVideo = file.type.startsWith('video/') || tipoDesejado === 'video';
+    const files = Array.from(input.files);
 
     try {
-        showToast('Processando mídia...');
-        if (isVideo) {
-            const videoData = await lerVideoDesejo(file);
-            midiaDesejoTemp = { url: videoData, tipo: 'video' };
-        } else {
-            const fotoData = await otimizarImagemDesejo(file);
-            midiaDesejoTemp = { url: fotoData, tipo: 'foto' };
+        showToast(files.length > 1 ? `Processando ${files.length} mídias...` : 'Processando mídia...');
+        let adicionados = 0;
+
+        for (const file of files) {
+            const isVideo = (file.type && file.type.startsWith('video/')) || tipoDesejado === 'video';
+            try {
+                if (isVideo) {
+                    const videoData = await lerVideoDesejo(file);
+                    midiasDesejoTemp.push({ url: videoData, tipo: 'video' });
+                    adicionados++;
+                } else {
+                    const fotoData = await otimizarImagemDesejo(file);
+                    midiasDesejoTemp.push({ url: fotoData, tipo: 'foto' });
+                    adicionados++;
+                }
+            } catch (itemErr) {
+                console.warn('Falha ao processar um arquivo de mídia:', itemErr);
+            }
         }
+
+        // Limpa o input para permitir tirar outra foto/vídeo ou escolher mais arquivos em seguida
+        input.value = '';
         renderizarPreviewMidiaDesejo();
-        showToast('Mídia anexada com sucesso!');
-    } catch(err) {
+
+        if (adicionados > 0) {
+            showToast(
+                adicionados > 1
+                    ? `✅ ${adicionados} mídias adicionadas! Total: ${midiasDesejoTemp.length}`
+                    : `✅ Mídia adicionada! Total anexado: ${midiasDesejoTemp.length}`
+            );
+        }
+    } catch (err) {
         console.error('Erro ao capturar mídia:', err);
     }
 };
@@ -1604,28 +1661,68 @@ function renderizarPreviewMidiaDesejo() {
     const thumb = document.getElementById('previewMidiaThumb');
     const titulo = document.getElementById('previewMidiaTitulo');
     const info = document.getElementById('previewMidiaInfo');
+    const badgeContador = document.getElementById('badgeContadorMidiasDesejo');
     if (!container || !thumb) return;
 
-    if (!midiaDesejoTemp.url) {
+    if (!Array.isArray(midiasDesejoTemp) || midiasDesejoTemp.length === 0) {
         container.style.display = 'none';
         thumb.innerHTML = '';
+        if (badgeContador) {
+            badgeContador.style.display = 'none';
+            badgeContador.innerText = '0 anexos';
+        }
         return;
     }
 
-    container.style.display = 'flex';
-    if (midiaDesejoTemp.tipo === 'video') {
-        thumb.innerHTML = `<video src="${midiaDesejoTemp.url}" muted style="width:100%; height:100%; object-fit:cover;"></video>`;
-        if (titulo) titulo.innerText = '🎥 Vídeo Gravado Anexado';
-        if (info) info.innerText = 'Pronto para salvar no seu desejo';
-    } else {
-        thumb.innerHTML = `<img src="${midiaDesejoTemp.url}" style="width:100%; height:100%; object-fit:cover;">`;
-        if (titulo) titulo.innerText = '📷 Foto Anexada';
-        if (info) info.innerText = 'Imagem otimizada em alta qualidade';
+    const qtdFotos = midiasDesejoTemp.filter(m => m.tipo !== 'video').length;
+    const qtdVideos = midiasDesejoTemp.filter(m => m.tipo === 'video').length;
+    const partesResumo = [];
+    if (qtdFotos > 0) partesResumo.push(`${qtdFotos} ${qtdFotos === 1 ? 'foto' : 'fotos'}`);
+    if (qtdVideos > 0) partesResumo.push(`${qtdVideos} ${qtdVideos === 1 ? 'vídeo' : 'vídeos'}`);
+
+    if (badgeContador) {
+        badgeContador.style.display = 'inline-block';
+        badgeContador.innerText = `${midiasDesejoTemp.length} ${midiasDesejoTemp.length === 1 ? 'anexo' : 'anexos'}`;
     }
+
+    container.style.display = 'flex';
+    if (titulo) {
+        titulo.innerText = `📎 ${midiasDesejoTemp.length} ${midiasDesejoTemp.length === 1 ? 'Mídia Anexada' : 'Mídias Anexadas'} (${partesResumo.join(' e ')})`;
+    }
+    if (info) {
+        info.innerText = 'Toque na miniatura para ampliar ou use os botões acima para anexar mais';
+    }
+
+    thumb.innerHTML = midiasDesejoTemp.map((m, idx) => {
+        const isVid = m.tipo === 'video';
+        return `
+            <div style="position: relative; width: 72px; height: 72px; border-radius: 10px; overflow: hidden; background: #000; border: 1.5px solid ${isVid ? '#EC4899' : '#8B5CF6'}; flex-shrink: 0; box-shadow: 0 4px 10px rgba(0,0,0,0.4);">
+                <div onclick="abrirModalLightboxTemporario('desejo', ${idx})" title="Toque para visualizar em tela cheia" style="width: 100%; height: 100%; cursor: pointer;">
+                    ${isVid
+                        ? `<video src="${m.url}" muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>`
+                        : `<img src="${m.url}" style="width:100%; height:100%; object-fit:cover;">`
+                    }
+                    <span style="position: absolute; bottom: 3px; left: 3px; background: rgba(0,0,0,0.75); color: #fff; font-size: 0.62rem; font-weight: 800; padding: 1px 5px; border-radius: 4px; pointer-events: none;">
+                        ${isVid ? '🎥' : '📷'} ${idx + 1}
+                    </span>
+                </div>
+                <button type="button" onclick="removerItemMidiaDesejo(${idx})" title="Remover apenas esta mídia" style="position: absolute; top: 3px; right: 3px; width: 22px; height: 22px; border-radius: 50%; background: rgba(239, 68, 68, 0.95); border: 1px solid #fff; color: #fff; font-size: 0.72rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0; box-shadow: 0 2px 6px rgba(0,0,0,0.5);">
+                    ✕
+                </button>
+            </div>
+        `;
+    }).join('');
 }
 
+window.removerItemMidiaDesejo = function(index) {
+    if (!Array.isArray(midiasDesejoTemp)) return;
+    midiasDesejoTemp.splice(index, 1);
+    renderizarPreviewMidiaDesejo();
+    showToast('Mídia removida da lista.');
+};
+
 window.removerMidiaDesejo = function() {
-    midiaDesejoTemp = { url: '', tipo: '' };
+    midiasDesejoTemp = [];
     ['inputCapturaFoto', 'inputCapturaVideo', 'inputCapturaGaleria'].forEach(id => {
         const el = document.getElementById(id);
         if (el) el.value = '';
@@ -1633,37 +1730,58 @@ window.removerMidiaDesejo = function() {
     renderizarPreviewMidiaDesejo();
 };
 
-// Manipulador de upload para o Modal de Lançamento / Edição
+// Manipulador de upload acumulativo para o Modal de Lançamento / Edição
 window.capturarMidiaModalDesejo = async function(input, tipoDesejado) {
     if (!input || !input.files || input.files.length === 0) return;
-    const file = input.files[0];
-    const isVideo = file.type.startsWith('video/') || tipoDesejado === 'video';
+    const files = Array.from(input.files);
 
     try {
-        showToast('Processando mídia...');
-        if (isVideo) {
-            const videoData = await lerVideoDesejo(file);
-            midiaModalDesejoTemp = { url: videoData, tipo: 'video' };
-        } else {
-            const fotoData = await otimizarImagemDesejo(file);
-            midiaModalDesejoTemp = { url: fotoData, tipo: 'foto' };
+        showToast(files.length > 1 ? `Processando ${files.length} mídias...` : 'Processando mídia...');
+        let adicionados = 0;
+
+        for (const file of files) {
+            const isVideo = (file.type && file.type.startsWith('video/')) || tipoDesejado === 'video';
+            try {
+                if (isVideo) {
+                    const videoData = await lerVideoDesejo(file);
+                    midiasModalDesejoTemp.push({ url: videoData, tipo: 'video' });
+                    adicionados++;
+                } else {
+                    const fotoData = await otimizarImagemDesejo(file);
+                    midiasModalDesejoTemp.push({ url: fotoData, tipo: 'foto' });
+                    adicionados++;
+                }
+            } catch (itemErr) {
+                console.warn('Falha ao processar mídia no modal:', itemErr);
+            }
         }
+
+        input.value = '';
         midiaModalDesejoRemovida = false;
         atualizarPreviewMidiaModal();
-        showToast('Mídia anexada ao lançamento!');
-    } catch(err) {
+        if (adicionados > 0) {
+            showToast(`✅ ${adicionados} ${adicionados === 1 ? 'mídia adicionada' : 'mídias adicionadas'} ao lançamento!`);
+        }
+    } catch (err) {
         console.error('Erro ao capturar mídia modal:', err);
     }
 };
 
 window.carregarMidiaNoModal = function(url, tipo) {
-    midiaModalDesejoTemp = { url: url || '', tipo: tipo || 'foto' };
+    midiasModalDesejoTemp = parseMidiasDesejo(url, tipo);
     midiaModalDesejoRemovida = false;
     atualizarPreviewMidiaModal();
 };
 
+window.removerItemMidiaModalDesejo = function(index) {
+    if (!Array.isArray(midiasModalDesejoTemp)) return;
+    midiasModalDesejoTemp.splice(index, 1);
+    if (midiasModalDesejoTemp.length === 0) midiaModalDesejoRemovida = true;
+    atualizarPreviewMidiaModal();
+};
+
 window.removerMidiaModalDesejo = function() {
-    midiaModalDesejoTemp = { url: '', tipo: '' };
+    midiasModalDesejoTemp = [];
     midiaModalDesejoRemovida = true;
     ['modalInputCapturaFoto', 'modalInputCapturaVideo', 'modalInputCapturaGaleria'].forEach(id => {
         const el = document.getElementById(id);
@@ -1678,20 +1796,33 @@ function atualizarPreviewMidiaModal() {
     const label = document.getElementById('modalPreviewMidiaLabel');
     if (!container || !thumb) return;
 
-    if (!midiaModalDesejoTemp.url) {
+    if (!Array.isArray(midiasModalDesejoTemp) || midiasModalDesejoTemp.length === 0) {
         container.style.display = 'none';
         thumb.innerHTML = '';
         return;
     }
 
     container.style.display = 'flex';
-    if (midiaModalDesejoTemp.tipo === 'video') {
-        thumb.innerHTML = `<video src="${midiaModalDesejoTemp.url}" muted style="width:100%; height:100%; object-fit:cover;"></video>`;
-        if (label) label.innerText = '🎥 Vídeo anexado';
-    } else {
-        thumb.innerHTML = `<img src="${midiaModalDesejoTemp.url}" style="width:100%; height:100%; object-fit:cover;">`;
-        if (label) label.innerText = '📷 Foto anexada';
+    if (label) {
+        label.innerText = `📎 ${midiasModalDesejoTemp.length} ${midiasModalDesejoTemp.length === 1 ? 'mídia anexada' : 'mídias anexadas'}`;
     }
+
+    thumb.innerHTML = midiasModalDesejoTemp.map((m, idx) => {
+        const isVid = m.tipo === 'video';
+        return `
+            <div style="position: relative; width: 58px; height: 58px; border-radius: 8px; overflow: hidden; background: #000; border: 1.5px solid ${isVid ? '#EC4899' : '#8B5CF6'}; flex-shrink: 0;">
+                <div onclick="abrirModalLightboxTemporario('modal', ${idx})" style="width: 100%; height: 100%; cursor: pointer;">
+                    ${isVid
+                        ? `<video src="${m.url}" muted playsinline style="width:100%; height:100%; object-fit:cover;"></video>`
+                        : `<img src="${m.url}" style="width:100%; height:100%; object-fit:cover;">`
+                    }
+                </div>
+                <button type="button" onclick="removerItemMidiaModalDesejo(${idx})" title="Remover esta mídia" style="position: absolute; top: 2px; right: 2px; width: 18px; height: 18px; border-radius: 50%; background: rgba(239, 68, 68, 0.95); border: 1px solid #fff; color: #fff; font-size: 0.65rem; font-weight: 900; cursor: pointer; display: flex; align-items: center; justify-content: center; line-height: 1; padding: 0;">
+                    ✕
+                </button>
+            </div>
+        `;
+    }).join('');
 }
 
 // Colar link da área de transferência
@@ -1725,22 +1856,114 @@ function formatarUrlLink(url) {
     return limpa;
 }
 
-// Lightbox Modal para fotos e vídeos ampliados
-window.abrirModalLightbox = function(url, tipo, titulo) {
+// ==================================================================
+// LIGHTBOX COM GALERIA (NAVEGAÇÃO ENTRE FOTOS E VÍDEOS DO DESEJO)
+// ==================================================================
+let lightboxListaAtual = [];
+let lightboxIndiceAtual = 0;
+let lightboxTituloAtual = '';
+
+function renderizarSlideLightbox() {
     const modal = document.getElementById('modalMidiaLightbox');
     const content = document.getElementById('modalMidiaLightboxContent');
     const caption = document.getElementById('modalMidiaLightboxCaption');
-    if (!modal || !content) return;
+    const counter = document.getElementById('modalMidiaLightboxCounter');
+    const btnPrev = document.getElementById('btnLightboxPrev');
+    const btnNext = document.getElementById('btnLightboxNext');
+    const thumbsContainer = document.getElementById('modalMidiaLightboxThumbs');
+    if (!modal || !content || lightboxListaAtual.length === 0) return;
 
-    if (tipo === 'video') {
-        content.innerHTML = `<video src="${url}" controls autoplay playsinline style="max-width:90vw; max-height:75vh; border-radius:10px; outline:none; background:#000;"></video>`;
+    if (lightboxIndiceAtual < 0) lightboxIndiceAtual = lightboxListaAtual.length - 1;
+    if (lightboxIndiceAtual >= lightboxListaAtual.length) lightboxIndiceAtual = 0;
+
+    const item = lightboxListaAtual[lightboxIndiceAtual];
+    const isVideo = item.tipo === 'video';
+
+    if (isVideo) {
+        content.innerHTML = `<video src="${item.url}" controls autoplay playsinline style="max-width:88vw; max-height:68vh; border-radius:10px; outline:none; background:#000;"></video>`;
     } else {
-        content.innerHTML = `<img src="${url}" alt="${titulo || 'Mídia'}" style="max-width:90vw; max-height:75vh; object-fit:contain; border-radius:10px; background:#000;">`;
+        content.innerHTML = `<img src="${item.url}" alt="${lightboxTituloAtual || 'Mídia'}" style="max-width:88vw; max-height:68vh; object-fit:contain; border-radius:10px; background:#000;">`;
     }
 
-    if (caption) caption.innerText = titulo || '';
+    if (caption) {
+        caption.innerText = lightboxTituloAtual
+            ? (lightboxListaAtual.length > 1 ? `${lightboxTituloAtual} (${lightboxIndiceAtual + 1}/${lightboxListaAtual.length})` : lightboxTituloAtual)
+            : '';
+    }
+
+    if (lightboxListaAtual.length > 1) {
+        if (counter) {
+            counter.style.display = 'inline-block';
+            counter.innerText = `${lightboxIndiceAtual + 1} / ${lightboxListaAtual.length}`;
+        }
+        if (btnPrev) btnPrev.style.display = 'flex';
+        if (btnNext) btnNext.style.display = 'flex';
+        if (thumbsContainer) {
+            thumbsContainer.style.display = 'flex';
+            thumbsContainer.innerHTML = lightboxListaAtual.map((m, i) => {
+                const active = i === lightboxIndiceAtual;
+                const isVid = m.tipo === 'video';
+                return `
+                    <div onclick="irParaSlideLightbox(${i})" style="width: 50px; height: 50px; border-radius: 8px; overflow: hidden; cursor: pointer; flex-shrink: 0; border: 2px solid ${active ? '#F59E0B' : 'rgba(255,255,255,0.25)'}; opacity: ${active ? '1' : '0.6'}; position: relative; background: #000;">
+                        ${isVid
+                            ? `<video src="${m.url}" muted playsinline style="width:100%; height:100%; object-fit:cover;"></video><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.75rem;background:rgba(0,0,0,0.35);">▶</span>`
+                            : `<img src="${m.url}" style="width:100%; height:100%; object-fit:cover;">`
+                        }
+                    </div>
+                `;
+            }).join('');
+        }
+    } else {
+        if (counter) counter.style.display = 'none';
+        if (btnPrev) btnPrev.style.display = 'none';
+        if (btnNext) btnNext.style.display = 'none';
+        if (thumbsContainer) {
+            thumbsContainer.style.display = 'none';
+            thumbsContainer.innerHTML = '';
+        }
+    }
+
     modal.style.display = 'flex';
     document.body.style.overflow = 'hidden';
+}
+
+window.navegarLightbox = function(delta) {
+    if (lightboxListaAtual.length <= 1) return;
+    lightboxIndiceAtual += delta;
+    renderizarSlideLightbox();
+};
+
+window.irParaSlideLightbox = function(index) {
+    lightboxIndiceAtual = index;
+    renderizarSlideLightbox();
+};
+
+window.abrirModalLightboxTemporario = function(origem, index = 0) {
+    const lista = origem === 'modal' ? midiasModalDesejoTemp : midiasDesejoTemp;
+    if (!Array.isArray(lista) || lista.length === 0) return;
+    lightboxListaAtual = lista.slice();
+    lightboxIndiceAtual = index;
+    lightboxTituloAtual = 'Pré-visualização dos Anexos';
+    renderizarSlideLightbox();
+};
+
+window.abrirModalLightboxDesejo = function(desejoId, index = 0, titulo = '') {
+    const lista = window.midiasDesejosCache && window.midiasDesejosCache[desejoId];
+    if (!Array.isArray(lista) || lista.length === 0) return;
+    lightboxListaAtual = lista.slice();
+    lightboxIndiceAtual = index;
+    lightboxTituloAtual = titulo || '';
+    renderizarSlideLightbox();
+};
+
+// Compatibilidade direta para chamadas de 1 item
+window.abrirModalLightbox = function(url, tipo, titulo) {
+    const lista = parseMidiasDesejo(url, tipo);
+    if (lista.length === 0) return;
+    lightboxListaAtual = lista;
+    lightboxIndiceAtual = 0;
+    lightboxTituloAtual = titulo || '';
+    renderizarSlideLightbox();
 };
 
 window.fecharModalLightbox = function() {
@@ -1792,7 +2015,7 @@ async function carregarListaDesejos() {
             <div style="text-align:center; padding: 40px 20px; color: #64748B; background: var(--bg-card); border-radius: 16px; border: 1px dashed var(--border-color);">
                 <div style="font-size: 2.2rem; margin-bottom: 8px;">🎁</div>
                 <div style="font-weight: 700; color: #94A3B8; margin-bottom: 4px;">Nenhum desejo na lista ainda</div>
-                <div style="font-size: 0.85rem;">Adicione acima o que você quer conquistar com foto, vídeo e link da pesquisa!</div>
+                <div style="font-size: 0.85rem;">Adicione acima o que você quer conquistar com quantas fotos e vídeos quiser!</div>
             </div>
         `;
         return;
@@ -1821,19 +2044,47 @@ async function carregarListaDesejos() {
             `;
         }
 
-        // Mídia (Foto ou Vídeo)
+        // Múltiplas Mídias (Fotos e Vídeos)
+        const midias = parseMidiasDesejo(d.midia_url, d.midia_tipo);
+        window.midiasDesejosCache[d.id] = midias;
+
         let midiaHtml = '';
-        if (d.midia_url) {
-            const isVid = d.midia_tipo === 'video';
-            const safeDesc = (d.descricao || '').replace(/'/g, "\\'");
+        let galeriaMiniaturasHtml = '';
+        const safeDesc = (d.descricao || '').replace(/'/g, "\\'");
+
+        if (midias.length > 0) {
+            const capa = midias[0];
+            const isVid = capa.tipo === 'video';
+            const badgeTexto = midias.length > 1
+                ? `📸 ${midias.length} mídias`
+                : (isVid ? '▶ Vídeo' : '🔍 Ampliar');
+
             midiaHtml = `
-                <div class="desejo-midia-box" onclick="abrirModalLightbox('${d.midia_url}', '${isVid ? 'video' : 'foto'}', '${safeDesc}')" title="${isVid ? 'Assistir vídeo em tela cheia' : 'Ampliar foto'}">
+                <div class="desejo-midia-box" onclick="abrirModalLightboxDesejo('${d.id}', 0, '${safeDesc}')" title="Toque para abrir a galeria em tela cheia">
                     ${isVid ? 
-                        `<video src="${d.midia_url}" preload="metadata" muted></video><div class="desejo-midia-badge">▶ Vídeo</div>` : 
-                        `<img src="${d.midia_url}" alt="${d.descricao}" loading="lazy"><div class="desejo-midia-badge">🔍 Ampliar</div>`
+                        `<video src="${capa.url}" preload="metadata" muted playsinline></video><div class="desejo-midia-badge">${badgeTexto}</div>` : 
+                        `<img src="${capa.url}" alt="${d.descricao}" loading="lazy"><div class="desejo-midia-badge">${badgeTexto}</div>`
                     }
                 </div>
             `;
+
+            if (midias.length > 1) {
+                galeriaMiniaturasHtml = `
+                    <div style="display: flex; gap: 6px; overflow-x: auto; padding: 4px 0; margin-top: 2px;">
+                        ${midias.map((m, idx) => {
+                            const isV = m.tipo === 'video';
+                            return `
+                                <div onclick="abrirModalLightboxDesejo('${d.id}', ${idx}, '${safeDesc}')" title="Ver mídia ${idx + 1} de ${midias.length}" style="position: relative; width: 46px; height: 46px; border-radius: 8px; overflow: hidden; cursor: pointer; flex-shrink: 0; border: 1.5px solid ${isV ? '#EC4899' : '#8B5CF6'}; background: #000;">
+                                    ${isV
+                                        ? `<video src="${m.url}" preload="metadata" muted playsinline style="width:100%; height:100%; object-fit:cover;"></video><span style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:0.7rem;color:#fff;background:rgba(0,0,0,0.35);">▶</span>`
+                                        : `<img src="${m.url}" loading="lazy" style="width:100%; height:100%; object-fit:cover;">`
+                                    }
+                                </div>
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+            }
         }
 
         const isPago = d.status === 'Pago';
@@ -1848,6 +2099,7 @@ async function carregarListaDesejos() {
                         <span class="desejo-preco">${valorFormatado}</span>
                     </div>
                     
+                    ${galeriaMiniaturasHtml}
                     ${linkBtnHtml}
 
                     <div class="desejo-rodape">
@@ -1883,6 +2135,7 @@ async function salvarDesejoFormulario() {
     }
 
     const timestamp = Date.now();
+    const midiasSerializadas = serializarMidiasDesejo(midiasDesejoTemp);
 
     if (idEdicao) {
         // Atualizar desejo existente
@@ -1894,8 +2147,8 @@ async function salvarDesejoFormulario() {
             descricao: desc,
             valor_total: valor,
             link_url: linkUrl,
-            midia_url: midiaDesejoTemp.url || (item ? item.midia_url : ''),
-            midia_tipo: midiaDesejoTemp.tipo || (item ? item.midia_tipo : ''),
+            midia_url: midiasSerializadas.midia_url,
+            midia_tipo: midiasSerializadas.midia_tipo,
             sync_status: 'pending_update',
             updated_at: timestamp
         });
@@ -1917,8 +2170,8 @@ async function salvarDesejoFormulario() {
             parcela_atual: 1,
             id_grupo: '',
             link_url: linkUrl,
-            midia_url: midiaDesejoTemp.url || '',
-            midia_tipo: midiaDesejoTemp.tipo || '',
+            midia_url: midiasSerializadas.midia_url,
+            midia_tipo: midiasSerializadas.midia_tipo,
             deleted: 0,
             sync_status: 'pending_insert',
             updated_at: timestamp
@@ -1961,13 +2214,9 @@ async function editarDesejoNoFormulario(id) {
     const linkInput = document.getElementById('novoDesejoLink');
     if (linkInput) linkInput.value = item.link_url || '';
 
-    // Mídia
-    if (item.midia_url) {
-        midiaDesejoTemp = { url: item.midia_url, tipo: item.midia_tipo || 'foto' };
-        renderizarPreviewMidiaDesejo();
-    } else {
-        removerMidiaDesejo();
-    }
+    // Mídias (carrega todas as fotos e vídeos existentes para permitir adicionar mais ou remover individuais)
+    midiasDesejoTemp = parseMidiasDesejo(item.midia_url, item.midia_tipo);
+    renderizarPreviewMidiaDesejo();
 
     // Exibir botões de Excluir e Cancelar no formulário
     const btnExcluirForm = document.getElementById('btnExcluirDesejoForm');
@@ -1982,7 +2231,7 @@ async function editarDesejoNoFormulario(id) {
         setTimeout(() => descInput.focus(), 300);
     }
 
-    showToast('Desejo carregado para edição no topo. Altere e clique em Salvar.');
+    showToast('Desejo carregado para edição no topo. Adicione mais fotos/vídeos ou altere e clique em Salvar.');
 }
 window.editarDesejoNoFormulario = editarDesejoNoFormulario;
 

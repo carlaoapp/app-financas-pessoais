@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.5.5">
+    <meta name="app-build-version" content="1.5.6">
     <script>
-        window.APP_BUILD_VERSION = '1.5.5';
+        window.APP_BUILD_VERSION = '1.5.6';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -49,8 +49,8 @@
     
     <!-- PWA e Metas Mobile -->
     <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="icon-192.png?v=1.5.5">
-    <link rel="apple-touch-icon" href="icon-192.png?v=1.5.5">
+    <link rel="icon" type="image/png" href="icon-192.png?v=1.5.6">
+    <link rel="apple-touch-icon" href="icon-192.png?v=1.5.6">
     <meta name="theme-color" content="#2563EB">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -66,8 +66,8 @@
     <script src="lucide.min.js"></script>
     
     <!-- Estilos -->
-    <link rel="stylesheet" href="finance-style.css?v=1.5.5">
-    <link rel="stylesheet" href="app-custom.css?v=1.5.5">
+    <link rel="stylesheet" href="finance-style.css?v=1.5.6">
+    <link rel="stylesheet" href="app-custom.css?v=1.5.6">
 </head>
 <body class="mode-desktop">
 
@@ -78,7 +78,7 @@
         <div class="auth-card-container">
             <!-- Logotipo e Identidade Visual -->
             <div style="text-align: center; margin-bottom: 24px;">
-                <img src="icon-192.png?v=1.5.5" alt="Finanças Pessoais" class="auth-logo-badge">
+                <img src="icon-192.png?v=1.5.6" alt="Finanças Pessoais" class="auth-logo-badge">
                 <h1 style="font-size: 1.45rem; font-weight: 800; color: #FFFFFF; margin: 0; letter-spacing: -0.5px;">Finanças Pessoais</h1>
                 <p style="color: #94A3B8; font-size: 0.85rem; margin-top: 6px;">Gestão patrimonial completa para Computador & Mobbi</p>
             </div>
@@ -229,7 +229,7 @@
             <!-- LINHA 1 (ACIMA): LOGO, NOME DO APP E VERSÃO DO SISTEMA DISCRETA -->
             <div class="brand-header-row">
                 <div class="brand-section">
-                    <img src="icon-192.png?v=1.5.5" alt="Finanças" class="brand-logo-img">
+                    <img src="icon-192.png?v=1.5.6" alt="Finanças" class="brand-logo-img">
                     <div>
                         <h1 class="brand-title">Finanças Pessoais</h1>
                         <div class="brand-sub">Computador & Mobbi</div>
@@ -239,7 +239,7 @@
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
                 <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Clique para verificar se há novas atualizações do sistema" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.5.5</span>
+                    <span id="lblVersaoApp" class="version-text">v1.5.6</span>
                 </div>
             </div>
 
@@ -653,39 +653,45 @@
                             </button>
                         </div>
 
-                        <!-- Linha 3: Botões de Captura de Mídia (Linha Única Uniforme) -->
-                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; box-sizing: border-box; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-color); border-radius: 12px;">
-                            <!-- Botão Tirar Foto -->
-                            <button type="button" onclick="document.getElementById('inputCapturaFoto').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #8B5CF6; color: #DDD6FE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
-                                <span>📷</span> <span>Tirar Foto</span>
-                            </button>
-                            <input type="file" id="inputCapturaFoto" accept="image/*" capture="environment" style="display: none;" onchange="capturarMidiaDesejo(this, 'foto')">
+                        <!-- Linha 3: Botões de Captura de Mídia (Anexe quantas fotos e vídeos quiser) -->
+                        <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-color); border-radius: 12px;">
+                            <div style="font-size: 0.76rem; color: #C084FC; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
+                                <span>📸 Adicione quantas fotos e vídeos quiser:</span>
+                                <span id="badgeContadorMidiasDesejo" style="display: none; background: rgba(139, 92, 246, 0.25); border: 1px solid #8B5CF6; color: #E9D5FF; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem;">0 anexos</span>
+                            </div>
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; box-sizing: border-box;">
+                                <!-- Botão Tirar Foto -->
+                                <button type="button" onclick="document.getElementById('inputCapturaFoto').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #8B5CF6; color: #DDD6FE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                    <span>📷</span> <span>Tirar Foto</span>
+                                </button>
+                                <input type="file" id="inputCapturaFoto" accept="image/*" capture="environment" style="display: none;" onchange="capturarMidiaDesejo(this, 'foto')">
 
-                            <!-- Botão Filmar -->
-                            <button type="button" onclick="document.getElementById('inputCapturaVideo').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #EC4899; color: #FBCFE8; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
-                                <span>🎥</span> <span>Filmar</span>
-                            </button>
-                            <input type="file" id="inputCapturaVideo" accept="video/*" capture="camcorder" style="display: none;" onchange="capturarMidiaDesejo(this, 'video')">
+                                <!-- Botão Filmar -->
+                                <button type="button" onclick="document.getElementById('inputCapturaVideo').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #EC4899; color: #FBCFE8; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                    <span>🎥</span> <span>Filmar</span>
+                                </button>
+                                <input type="file" id="inputCapturaVideo" accept="video/*" capture="camcorder" style="display: none;" onchange="capturarMidiaDesejo(this, 'video')">
 
-                            <!-- Botão Galeria -->
-                            <button type="button" onclick="document.getElementById('inputCapturaGaleria').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #3B82F6; color: #BFDBFE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
-                                <span>📁</span> <span>Galeria</span>
-                            </button>
-                            <input type="file" id="inputCapturaGaleria" accept="image/*,video/*" style="display: none;" onchange="capturarMidiaDesejo(this, 'auto')">
+                                <!-- Botão Galeria (Múltiplos arquivos) -->
+                                <button type="button" onclick="document.getElementById('inputCapturaGaleria').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #3B82F6; color: #BFDBFE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                    <span>📁</span> <span>Galeria</span>
+                                </button>
+                                <input type="file" id="inputCapturaGaleria" accept="image/*,video/*" multiple style="display: none;" onchange="capturarMidiaDesejo(this, 'auto')">
+                            </div>
                         </div>
 
-                        <!-- Pré-visualização da Mídia Anexada -->
-                        <div id="previewMidiaContainer" style="display: none; background: #0F172A; border: 1px solid #8B5CF6; border-radius: 12px; padding: 12px; align-items: center; justify-content: space-between; gap: 12px;">
-                            <div style="display: flex; align-items: center; gap: 12px; overflow: hidden;">
-                                <div id="previewMidiaThumb" style="width: 64px; height: 64px; border-radius: 8px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; flex-shrink: 0; border: 1px solid #334155;"></div>
+                        <!-- Pré-visualização de Múltiplas Mídias Anexadas -->
+                        <div id="previewMidiaContainer" style="display: none; flex-direction: column; background: #0F172A; border: 1px solid #8B5CF6; border-radius: 12px; padding: 12px; gap: 10px;">
+                            <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
                                 <div>
-                                    <div id="previewMidiaTitulo" style="color: #F8FAFC; font-weight: 700; font-size: 0.9rem;">Mídia Carregada</div>
-                                    <div id="previewMidiaInfo" style="color: #94A3B8; font-size: 0.75rem;">Pronto para salvar com o desejo</div>
+                                    <div id="previewMidiaTitulo" style="color: #F8FAFC; font-weight: 700; font-size: 0.9rem;">Mídias Anexadas</div>
+                                    <div id="previewMidiaInfo" style="color: #94A3B8; font-size: 0.74rem;">Toque em Tirar Foto, Filmar ou Galeria para anexar mais</div>
                                 </div>
+                                <button type="button" onclick="removerMidiaDesejo()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
+                                    🗑️ Limpar Tudo
+                                </button>
                             </div>
-                            <button type="button" onclick="removerMidiaDesejo()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5; padding: 6px 12px; border-radius: 8px; font-size: 0.78rem; font-weight: 700; cursor: pointer;">
-                                ✕ Remover
-                            </button>
+                            <div id="previewMidiaThumb" style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center;"></div>
                         </div>
 
                         <!-- Ações do Formulário de Desejo (Salvar com opção de Edição e Exclusão) -->
@@ -1030,7 +1036,7 @@
                         <input type="url" id="modalInputLinkUrl" placeholder="Ex: https://produto.mercadolivre.com.br/...">
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                        <span style="font-size: 0.8rem; color: #94A3B8; font-weight: 600;">Mídia:</span>
+                        <span style="font-size: 0.8rem; color: #94A3B8; font-weight: 600;">Mídias:</span>
                         <button type="button" onclick="document.getElementById('modalInputCapturaFoto').click()" style="background: #1E293B; border: 1px solid #8B5CF6; color: #DDD6FE; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
                             📷 Foto
                         </button>
@@ -1044,14 +1050,14 @@
                         <button type="button" onclick="document.getElementById('modalInputCapturaGaleria').click()" style="background: #1E293B; border: 1px solid #3B82F6; color: #BFDBFE; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer;">
                             📁 Galeria
                         </button>
-                        <input type="file" id="modalInputCapturaGaleria" accept="image/*,video/*" style="display: none;" onchange="capturarMidiaModalDesejo(this, 'auto')">
+                        <input type="file" id="modalInputCapturaGaleria" accept="image/*,video/*" multiple style="display: none;" onchange="capturarMidiaModalDesejo(this, 'auto')">
                     </div>
-                    <div id="modalPreviewMidiaContainer" style="display: none; margin-top: 10px; background: #0F172A; border-radius: 8px; padding: 8px 12px; align-items: center; justify-content: space-between;">
-                        <div style="display: flex; align-items: center; gap: 8px;">
-                            <div id="modalPreviewMidiaThumb" style="width: 44px; height: 44px; border-radius: 6px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center;"></div>
-                            <span id="modalPreviewMidiaLabel" style="font-size: 0.8rem; color: #F8FAFC; font-weight: 600;">Mídia anexada</span>
+                    <div id="modalPreviewMidiaContainer" style="display: none; flex-direction: column; gap: 8px; margin-top: 10px; background: #0F172A; border: 1px solid #334155; border-radius: 8px; padding: 10px 12px;">
+                        <div style="display: flex; align-items: center; justify-content: space-between;">
+                            <span id="modalPreviewMidiaLabel" style="font-size: 0.8rem; color: #F8FAFC; font-weight: 700;">Mídias anexadas</span>
+                            <button type="button" onclick="removerMidiaModalDesejo()" style="background: transparent; border: none; color: #F87171; font-weight: 700; font-size: 0.78rem; cursor: pointer;">🗑️ Limpar Tudo</button>
                         </div>
-                        <button type="button" onclick="removerMidiaModalDesejo()" style="background: transparent; border: none; color: #F87171; font-weight: 700; font-size: 0.8rem; cursor: pointer;">✕ Remover</button>
+                        <div id="modalPreviewMidiaThumb" style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center;"></div>
                     </div>
                 </div>
 
@@ -1094,7 +1100,7 @@
             </div>
             <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
             <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 6px;">Modo Conectado</p>
-            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.5.5</div>
+            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.5.6</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button onclick="forceSync(); fecharModalPerfil();" style="padding: 12px; background: #2563EB; color: white; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M21 3v5h-5"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path><path d="M3 21v-5h5"></path></svg>
@@ -1170,12 +1176,20 @@
         </div>
     </div>
 
-    <!-- MODAL DE VISUALIZAÇÃO AMPLIADA DE MÍDIA (LIGHTBOX) -->
-    <div id="modalMidiaLightbox" class="modal-overlay" onclick="if(event.target === this) fecharModalLightbox()" style="display: none; z-index: 999999; background: rgba(0,0,0,0.92); align-items: center; justify-content: center;">
-        <div style="position: relative; max-width: 90vw; max-height: 90vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
-            <button onclick="fecharModalLightbox()" style="position: absolute; top: -45px; right: 0; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.4rem; width: 36px; height: 36px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">✕</button>
-            <div id="modalMidiaLightboxContent" style="display: flex; align-items: center; justify-content: center; max-width: 100%; max-height: 80vh; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);"></div>
+    <!-- MODAL DE VISUALIZAÇÃO AMPLIADA DE MÍDIA (LIGHTBOX COM GALERIA) -->
+    <div id="modalMidiaLightbox" class="modal-overlay" onclick="if(event.target === this) fecharModalLightbox()" style="display: none; z-index: 999999; background: rgba(0,0,0,0.94); align-items: center; justify-content: center; padding: 12px;">
+        <div style="position: relative; width: 100%; max-width: 92vw; max-height: 92vh; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+            <div style="width: 100%; display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px;">
+                <span id="modalMidiaLightboxCounter" style="background: rgba(139, 92, 246, 0.3); border: 1px solid #8B5CF6; color: #F8FAFC; font-size: 0.8rem; font-weight: 800; padding: 4px 12px; border-radius: 999px; display: none;">1 / 1</span>
+                <button onclick="fecharModalLightbox()" style="margin-left: auto; background: rgba(255,255,255,0.2); border: none; color: white; font-size: 1.3rem; width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: background 0.2s;">✕</button>
+            </div>
+            <div style="position: relative; display: flex; align-items: center; justify-content: center; width: 100%;">
+                <button id="btnLightboxPrev" type="button" onclick="navegarLightbox(-1)" style="display: none; position: absolute; left: 4px; z-index: 10; background: rgba(15, 23, 42, 0.85); border: 1.5px solid #8B5CF6; color: #FFFFFF; width: 42px; height: 42px; border-radius: 50%; font-size: 1.1rem; font-weight: 900; cursor: pointer; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.7);">◀</button>
+                <div id="modalMidiaLightboxContent" style="display: flex; align-items: center; justify-content: center; max-width: 100%; max-height: 70vh; overflow: hidden; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.8);"></div>
+                <button id="btnLightboxNext" type="button" onclick="navegarLightbox(1)" style="display: none; position: absolute; right: 4px; z-index: 10; background: rgba(15, 23, 42, 0.85); border: 1.5px solid #8B5CF6; color: #FFFFFF; width: 42px; height: 42px; border-radius: 50%; font-size: 1.1rem; font-weight: 900; cursor: pointer; align-items: center; justify-content: center; box-shadow: 0 4px 14px rgba(0,0,0,0.7);">▶</button>
+            </div>
             <div id="modalMidiaLightboxCaption" style="color: #E2E8F0; margin-top: 10px; font-weight: 700; font-size: 0.95rem; text-align: center;"></div>
+            <div id="modalMidiaLightboxThumbs" style="display: none; gap: 8px; margin-top: 10px; max-width: 100%; overflow-x: auto; padding: 4px;"></div>
         </div>
     </div>
     <!-- MODAL DE CONFIRMAÇÃO DE EXCLUSÃO INTELIGENTE (ÚNICA / TODAS / QUANTIDADE) -->
@@ -1448,12 +1462,12 @@
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
     <script src="xlsx.mini.min.js"></script>
-    <script src="finance-db.js?v=1.5.5"></script>
-    <script src="finance-sync.js?v=1.5.5"></script>
-    <script src="finance-powerbi.js?v=1.5.5"></script>
-    <script src="finance-dashboard.js?v=1.5.5"></script>
-    <script src="auth.js?v=1.5.5"></script>
-    <script src="auto-update.js?v=1.5.5"></script>
+    <script src="finance-db.js?v=1.5.6"></script>
+    <script src="finance-sync.js?v=1.5.6"></script>
+    <script src="finance-powerbi.js?v=1.5.6"></script>
+    <script src="finance-dashboard.js?v=1.5.6"></script>
+    <script src="auth.js?v=1.5.6"></script>
+    <script src="auto-update.js?v=1.5.6"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
@@ -1512,7 +1526,7 @@
                             if (newWorker) {
                                 newWorker.onstatechange = () => {
                                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-                                        console.log('Novo Service Worker v1.5.5 pronto no aparelho!');
+                                        console.log('Novo Service Worker v1.5.6 pronto no aparelho!');
                                         if (typeof checkAppVersion === 'function') checkAppVersion(false);
                                     }
                                 };

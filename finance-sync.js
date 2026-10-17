@@ -51,7 +51,7 @@ async function syncFinanceWithServer() {
                 const pushResponse = await fetch('/api/sync/push', {
                     method: 'POST',
                     headers: headers,
-                    signal: AbortSignal.timeout(5000),
+                    signal: AbortSignal.timeout(20000),
                     body: JSON.stringify({
                         userId: currentUserId,
                         origens_renda: pendingRenda,
@@ -77,7 +77,7 @@ async function syncFinanceWithServer() {
             `/api/sync/pull?lastSync=${lastSync}`;
         const pullResponse = await fetch(pullUrl, { 
             headers,
-            signal: AbortSignal.timeout(5000)
+            signal: AbortSignal.timeout(20000)
         });
 
         if (pullResponse.ok) {
@@ -109,6 +109,7 @@ async function syncFinanceWithServer() {
                 (updates.contas_bancarias && updates.contas_bancarias.length > 0) || 
                 (updates.movimentacoes && updates.movimentacoes.length > 0)) {
                 if (typeof carregarPlanejamento === 'function') carregarPlanejamento();
+                if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
                 if (typeof renderPowerBIDashboard === 'function') renderPowerBIDashboard();
             }
         }
