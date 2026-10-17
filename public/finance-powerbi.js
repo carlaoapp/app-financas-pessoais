@@ -728,7 +728,7 @@ async function renderPowerBIDashboard() {
                 axisPointer: { type: 'shadow' }
             },
             legend: {
-                data: ['Receitas (Entrou)', 'Despesas (Saiu)', 'Investimentos (Guardado)'],
+                data: ['Receitas', 'Despesas', 'Investimentos'],
                 textStyle: { color: chartSubtextColor, fontSize: 12, fontWeight: 'bold' },
                 top: 0
             },
@@ -746,21 +746,21 @@ async function renderPowerBIDashboard() {
             },
             series: [
                 {
-                    name: 'Receitas (Entrou)',
+                    name: 'Receitas',
                     type: 'bar',
                     data: [totalReceitasMes],
                     itemStyle: { color: '#10B981', borderRadius: [6, 6, 0, 0] },
                     label: { show: true, position: 'top', color: '#10B981', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
                 },
                 {
-                    name: 'Despesas (Saiu)',
+                    name: 'Despesas',
                     type: 'bar',
                     data: [totalDespesasMes],
                     itemStyle: { color: '#EF4444', borderRadius: [6, 6, 0, 0] },
                     label: { show: true, position: 'top', color: '#EF4444', fontWeight: 'bold', formatter: (p) => formatBRL(p.value) }
                 },
                 {
-                    name: 'Investimentos (Guardado)',
+                    name: 'Investimentos',
                     type: 'bar',
                     data: [totalInvestimentosMes],
                     itemStyle: { color: '#8B5CF6', borderRadius: [6, 6, 0, 0] },
