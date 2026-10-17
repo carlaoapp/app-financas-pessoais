@@ -372,90 +372,142 @@
                         </div>
                     </div>
 
-                    <!-- Botão de Filtro de Despesa/Demonstrativo Totalmente Centralizado -->
-                    <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 4px;">
-                        <button type="button" id="btnDemoDropdownToggle" onclick="abrirModalFiltroDemo(event)" style="background: linear-gradient(135deg, #1E293B, #0F172A); border: 1.5px solid #3B82F6; color: #FFFFFF; padding: 11px 26px; border-radius: 14px; font-size: 0.96rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25); transition: all 0.2s; min-width: 250px; max-width: 100%;">
-                            <span style="font-size: 1.2rem;">⚙️</span>
+                    <!-- Botão de Filtro de Despesa/Demonstrativo e Período Totalmente Centralizado -->
+                    <div style="display: flex; flex-direction: column; justify-content: center; align-items: center; width: 100%; margin-top: 4px; gap: 8px;">
+                        <button type="button" id="btnDemoDropdownToggle" onclick="abrirModalFiltroDemo(event)" style="background: linear-gradient(135deg, #1E293B, #0F172A); border: 1.5px solid #3B82F6; color: #FFFFFF; padding: 11px 22px; border-radius: 14px; font-size: 0.95rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25); transition: all 0.2s; min-width: 260px; max-width: 100%;">
+                            <span style="font-size: 1.15rem;">⚙️</span>
                             <span id="lblDemoFiltroSelecionado">Ver Tudo (Completo)</span>
                             <span style="font-size: 0.82rem; color: #60A5FA;">▼</span>
                         </button>
+                        <div id="badgePeriodoDemoAtivo" onclick="abrirModalFiltroDemo(event)" title="Clique para escolher 1 ou mais anos e meses" style="cursor: pointer; background: rgba(37, 99, 235, 0.14); border: 1px dashed #60A5FA; color: #93C5FD; padding: 6px 14px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; text-align: center;">
+                            <span>📅</span>
+                            <span id="lblPeriodoDemoAtivoTexto">Período: Mês Atual (Toque para escolher meses/anos)</span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- MODAL EXPANDIDO DE SELEÇÃO: TELA MAIOR, MELHOR VISÃO E BOTÃO DE SAÍDA -->
-                <div id="modalFiltroDemo" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.82); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 99999; align-items: center; justify-content: center; padding: 16px;">
-                    <div style="background: #0B1120; border: 1.5px solid #334155; border-radius: 22px; width: 100%; max-width: 520px; max-height: 90vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.9); padding: 24px 22px; box-sizing: border-box; animation: modalFadeIn 0.2s ease;">
+                <!-- MODAL EXPANDIDO DE SELEÇÃO DE PERÍODO (ANOS/MESES) E CATEGORIAS -->
+                <div id="modalFiltroDemo" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.84); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 99999; align-items: center; justify-content: center; padding: 12px;">
+                    <div style="background: #0B1120; border: 1.5px solid #334155; border-radius: 22px; width: 100%; max-width: 540px; max-height: 92vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.9); padding: 20px 18px; box-sizing: border-box; animation: modalFadeIn 0.2s ease;">
                         
                         <!-- Cabeçalho do Modal com Título e Botão de Saída Superior -->
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #1E293B; padding-bottom: 14px;">
-                            <div style="font-size: 1.25rem; font-weight: 800; color: #60A5FA; display: flex; align-items: center; gap: 10px;">
-                                <span style="font-size: 1.4rem;">⚙️</span> O que deseja visualizar?
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #1E293B; padding-bottom: 12px;">
+                            <div style="font-size: 1.18rem; font-weight: 800; color: #60A5FA; display: flex; align-items: center; gap: 8px;">
+                                <span style="font-size: 1.35rem;">⚙️</span> O que deseja visualizar?
                             </div>
                             <button type="button" onclick="fecharModalFiltroDemo()" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 10px; color: #E2E8F0; padding: 6px 14px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; transition: background 0.2s;">
                                 <span>✕</span> Sair
                             </button>
                         </div>
 
-                        <p style="font-size: 0.88rem; color: #94A3B8; margin-bottom: 18px; line-height: 1.4;">
-                            Marque ou desmarque abaixo o que deseja que apareça na sua tela:
-                        </p>
+                        <!-- ============================================================
+                             BLOCO 1: SELEÇÃO DE PERÍODO (1 OU MAIS ANOS E 1 OU MAIS MESES)
+                             ============================================================ -->
+                        <div style="background: #111A2E; border: 1.5px solid #1E293B; border-radius: 16px; padding: 14px; margin-bottom: 16px;">
+                            <div style="font-size: 0.92rem; font-weight: 800; color: #F8FAFC; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                                <span>📅</span> <span>1. Escolha o Período (Anos e Meses)</span>
+                            </div>
+                            <div style="font-size: 0.76rem; color: #94A3B8; margin-bottom: 12px; line-height: 1.35;">
+                                Selecione 1 ou mais anos e 1 ou mais meses para somar quanto já gastou, investiu, guardou na reserva ou terá no período:
+                            </div>
 
-                        <!-- LISTA DE ESCOLHAS AMPLA, MAIOR E CONFORTÁVEL -->
-                        <div style="display: flex; flex-direction: column; gap: 12px;">
-                            
-                            <!-- Opção: Ver Tudo -->
-                            <div onclick="selecionarFiltroDemoTudo(event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: rgba(37, 99, 235, 0.18); border: 1.5px solid #2563EB; transition: all 0.2s;">
-                                <input type="checkbox" id="chkDemoTudo" checked style="cursor: pointer; width: 24px; height: 24px; accent-color: #2563EB;" onchange="selecionarFiltroDemoTudo(event)">
-                                <div style="flex: 1;">
-                                    <div style="font-size: 1.05rem; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 6px;">🌐 Ver Tudo (Completo)</div>
-                                    <div style="font-size: 0.8rem; color: #93C5FD; margin-top: 2px;">Exibir todas as receitas, despesas, investimentos e reserva</div>
+                            <!-- Escolha de Anos (Múltipla Seleção) -->
+                            <div style="margin-bottom: 12px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                                    <span style="font-size: 0.78rem; font-weight: 700; color: #93C5FD; text-transform: uppercase;">Anos (toque em 1 ou mais):</span>
+                                    <div style="display: flex; gap: 6px;">
+                                        <button type="button" onclick="selecionarAnosDemoRapido('atual')" style="background: #1E293B; border: 1px solid #3B82F6; color: #93C5FD; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Ano Atual</button>
+                                        <button type="button" onclick="selecionarAnosDemoRapido('todos')" style="background: #1E293B; border: 1px solid #475569; color: #CBD5E1; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Todos os Anos</button>
+                                    </div>
+                                </div>
+                                <div id="gridAnosFiltroDemo" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                                    <!-- Gerado dinamicamente via JS (2024 a 2030) -->
                                 </div>
                             </div>
 
-                            <div style="height: 1px; background: #1E293B; margin: 4px 0;"></div>
+                            <!-- Escolha de Meses (Múltipla Seleção) -->
+                            <div>
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
+                                    <span style="font-size: 0.78rem; font-weight: 700; color: #93C5FD; text-transform: uppercase;">Meses (toque em 1 ou mais):</span>
+                                    <div style="display: flex; gap: 6px;">
+                                        <button type="button" onclick="selecionarMesesDemoRapido('atual')" style="background: #1E293B; border: 1px solid #3B82F6; color: #93C5FD; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Só Mês Atual</button>
+                                        <button type="button" onclick="selecionarMesesDemoRapido('todos')" style="background: rgba(16, 185, 129, 0.18); border: 1px solid #10B981; color: #6EE7B7; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Todos os 12 Meses</button>
+                                    </div>
+                                </div>
+                                <div id="gridMesesFiltroDemo" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
+                                    <!-- Gerado dinamicamente via JS (Jan a Dez) -->
+                                </div>
+                            </div>
+
+                            <!-- Resumo do Período Selecionado -->
+                            <div id="lblResumoPeriodoModalDemo" style="margin-top: 10px; padding: 8px 10px; background: rgba(37, 99, 235, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 10px; font-size: 0.78rem; font-weight: 700; color: #BFDBFE; text-align: center;">
+                                Período selecionado: Mês Atual
+                            </div>
+                        </div>
+
+                        <!-- ============================================================
+                             BLOCO 2: SELEÇÃO DE CATEGORIAS
+                             ============================================================ -->
+                        <div style="font-size: 0.92rem; font-weight: 800; color: #F8FAFC; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
+                            <span>📊</span> <span>2. Marque o que deseja ver nesse período:</span>
+                        </div>
+
+                        <!-- LISTA DE ESCOLHAS AMPLA, MAIOR E CONFORTÁVEL -->
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            
+                            <!-- Opção: Ver Tudo -->
+                            <div onclick="selecionarFiltroDemoTudo(event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: rgba(37, 99, 235, 0.18); border: 1.5px solid #2563EB; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoTudo" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #2563EB;" onchange="selecionarFiltroDemoTudo(event)">
+                                <div style="flex: 1;">
+                                    <div style="font-size: 1rem; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 6px;">🌐 Ver Tudo (Completo)</div>
+                                    <div style="font-size: 0.78rem; color: #93C5FD; margin-top: 2px;">Exibir todas as receitas, despesas, investimentos e reserva</div>
+                                </div>
+                            </div>
+
+                            <div style="height: 1px; background: #1E293B; margin: 2px 0;"></div>
 
                             <!-- Opção 1: Receitas -->
-                            <div onclick="toggleOpcaoFiltroDemo('receitas', event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
-                                <input type="checkbox" id="chkDemoRec" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #10B981;" onchange="toggleOpcaoFiltroDemo('receitas', event)">
+                            <div onclick="toggleOpcaoFiltroDemo('receitas', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoRec" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #10B981;" onchange="toggleOpcaoFiltroDemo('receitas', event)">
                                 <div style="flex: 1;">
-                                    <div style="font-size: 1rem; font-weight: 800; color: #34D399; display: flex; align-items: center; gap: 6px;">🟢 Receitas (Entradas)</div>
-                                    <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">Dinheiro que entrou no mês</div>
+                                    <div style="font-size: 0.96rem; font-weight: 800; color: #34D399; display: flex; align-items: center; gap: 6px;">🟢 Receitas (Entradas)</div>
+                                    <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">Dinheiro que entrou ou vai entrar no período</div>
                                 </div>
                             </div>
 
                             <!-- Opção 2: Despesas -->
-                            <div onclick="toggleOpcaoFiltroDemo('despesas', event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
-                                <input type="checkbox" id="chkDemoDes" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #EF4444;" onchange="toggleOpcaoFiltroDemo('despesas', event)">
+                            <div onclick="toggleOpcaoFiltroDemo('despesas', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoDes" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #EF4444;" onchange="toggleOpcaoFiltroDemo('despesas', event)">
                                 <div style="flex: 1;">
-                                    <div style="font-size: 1rem; font-weight: 800; color: #F87171; display: flex; align-items: center; gap: 6px;">🔴 Despesas (Saídas)</div>
-                                    <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">Contas e compras do mês</div>
+                                    <div style="font-size: 0.96rem; font-weight: 800; color: #F87171; display: flex; align-items: center; gap: 6px;">🔴 Despesas (Saídas)</div>
+                                    <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">Contas e gastos realizados ou previstos no período</div>
                                 </div>
                             </div>
 
                             <!-- Opção 3: Investimentos -->
-                            <div onclick="toggleOpcaoFiltroDemo('investimentos', event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
-                                <input type="checkbox" id="chkDemoInv" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #8B5CF6;" onchange="toggleOpcaoFiltroDemo('investimentos', event)">
+                            <div onclick="toggleOpcaoFiltroDemo('investimentos', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoInv" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #8B5CF6;" onchange="toggleOpcaoFiltroDemo('investimentos', event)">
                                 <div style="flex: 1;">
-                                    <div style="font-size: 1rem; font-weight: 800; color: #A78BFA; display: flex; align-items: center; gap: 6px;">🟣 Investimentos</div>
-                                    <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">Aplicações e patrimônio futuro</div>
+                                    <div style="font-size: 0.96rem; font-weight: 800; color: #A78BFA; display: flex; align-items: center; gap: 6px;">🟣 Investimentos</div>
+                                    <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">Aplicações e patrimônio no período escolhido</div>
                                 </div>
                             </div>
 
                             <!-- Opção 4: Reserva de Emergência -->
-                            <div onclick="toggleOpcaoFiltroDemo('reserva', event)" style="display: flex; align-items: center; gap: 16px; padding: 15px 18px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
-                                <input type="checkbox" id="chkDemoRes" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #F59E0B;" onchange="toggleOpcaoFiltroDemo('reserva', event)">
+                            <div onclick="toggleOpcaoFiltroDemo('reserva', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                                <input type="checkbox" id="chkDemoRes" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #F59E0B;" onchange="toggleOpcaoFiltroDemo('reserva', event)">
                                 <div style="flex: 1;">
-                                    <div style="font-size: 1rem; font-weight: 800; color: #FBBF24; display: flex; align-items: center; gap: 6px;">🟡 Reserva de Emergência</div>
-                                    <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">Fundo seguro para imprevistos</div>
+                                    <div style="font-size: 0.96rem; font-weight: 800; color: #FBBF24; display: flex; align-items: center; gap: 6px;">🟡 Reserva de Emergência</div>
+                                    <div style="font-size: 0.78rem; color: #64748B; margin-top: 2px;">Fundo seguro no período e acumulado total</div>
                                 </div>
                             </div>
 
                         </div>
 
                         <!-- Botões de Saída e Conclusão -->
-                        <div style="margin-top: 22px; display: flex; flex-direction: column; gap: 10px;">
+                        <div style="margin-top: 18px; display: flex; flex-direction: column; gap: 10px;">
                             <!-- Botão Principal: Sair e Concluir -->
-                            <button type="button" onclick="confirmarFiltrosDemo()" style="width: 100%; padding: 15px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; border-radius: 14px; color: #FFFFFF; font-weight: 800; font-size: 1.05rem; cursor: pointer; box-shadow: 0 4px 18px rgba(37, 99, 235, 0.45); display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.15s;">
+                            <button type="button" onclick="confirmarFiltrosDemo()" style="width: 100%; padding: 14px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; border-radius: 14px; color: #FFFFFF; font-weight: 800; font-size: 1.02rem; cursor: pointer; box-shadow: 0 4px 18px rgba(37, 99, 235, 0.45); display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform 0.15s;">
                                 <span>🚪</span> Sair e Concluir Escolha
                             </button>
 
@@ -477,7 +529,7 @@
                             <span class="demo-kpi-badge">💰</span>
                         </div>
                         <div class="demo-kpi-value" id="pbiValReceitas" style="color: #34D399;">R$ 0,00</div>
-                        <div class="demo-kpi-subtext">Total de dinheiro que entrou neste mês</div>
+                        <div class="demo-kpi-subtext" id="subKpiRec">Total de dinheiro que entrou neste mês</div>
                     </div>
 
                     <!-- 2. Despesas -->
@@ -487,7 +539,7 @@
                             <span class="demo-kpi-badge">💳</span>
                         </div>
                         <div class="demo-kpi-value" id="pbiValDespesas" style="color: #F87171;">R$ 0,00</div>
-                        <div class="demo-kpi-subtext">Total de contas e compras pagas no mês</div>
+                        <div class="demo-kpi-subtext" id="subKpiDes">Total de contas e compras pagas no mês</div>
                     </div>
 
                     <!-- 3. Investimentos -->
@@ -497,7 +549,7 @@
                             <span class="demo-kpi-badge">📈</span>
                         </div>
                         <div class="demo-kpi-value" id="pbiValInvestimentos" style="color: #A78BFA;">R$ 0,00</div>
-                        <div class="demo-kpi-subtext">Aplicações guardadas para o seu futuro</div>
+                        <div class="demo-kpi-subtext" id="subKpiInv">Aplicações guardadas para o seu futuro</div>
                     </div>
 
                     <!-- 4. Reserva de Emergência -->
@@ -507,7 +559,7 @@
                             <span class="demo-kpi-badge">🛡️</span>
                         </div>
                         <div class="demo-kpi-value" id="pbiValReserva" style="color: #FBBF24;">R$ 0,00</div>
-                        <div class="demo-kpi-subtext">Fundo protegido acumulado até hoje</div>
+                        <div class="demo-kpi-subtext" id="subKpiRes">Fundo protegido acumulado até hoje</div>
                     </div>
                 </div>
 

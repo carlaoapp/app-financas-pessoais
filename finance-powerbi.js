@@ -1,10 +1,173 @@
-// Lógica do Demonstrativo Financeiro Simples - Estilo Power BI Acessível
+// Lógica do Demonstrativo Financeiro Simples - Estilo Power BI Acessível com Filtro Multi-Anos e Multi-Meses
 
 let pbiChartDiff = null;
 let pbiChartFontesRec = null;
 let pbiChartFontesDes = null;
 let pbiChartGauge = null;
 let filtroDemonstrativoAtual = 'todos';
+
+const MESES_NOMES_DEMO = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+const MESES_CURTOS_DEMO = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+const ANOS_PADRAO_DEMO = [2024, 2025, 2026, 2027, 2028, 2029, 2030];
+
+// Estado de período selecionado no Demonstrativo (permite 1 ou mais anos e 1 ou mais meses)
+let anosFiltroDemo = [];
+let mesesFiltroDemo = [];
+let periodoDemoInicializado = false;
+
+function obterAnoPadraoHeader() {
+    if (typeof currentViewDate !== 'undefined' && currentViewDate) return currentViewDate.getFullYear();
+    const sel = document.getElementById('anoBaseSelector');
+    return sel && sel.value ? parseInt(sel.value, 10) : new Date().getFullYear();
+}
+
+function obterMesPadraoHeader() {
+    if (typeof currentViewDate !== 'undefined' && currentViewDate) return currentViewDate.getMonth();
+    const sel = document.getElementById('mesBaseSelector');
+    return sel && sel.value !== '' ? parseInt(sel.value, 10) : new Date().getMonth();
+}
+
+function garantirPeriodoDemoInicializado() {
+    if (!periodoDemoInicializado || anosFiltroDemo.length === 0 || mesesFiltroDemo.length === 0) {
+        anosFiltroDemo = [obterAnoPadraoHeader()];
+        mesesFiltroDemo = [obterMesPadraoHeader()];
+        periodoDemoInicializado = true;
+    }
+}
+
+// Sincroniza quando o usuário muda o seletor de Ano ou Mês lá no topo do app
+window.sincronizarPeriodoDemoComHeader = function() {
+    anosFiltroDemo = [obterAnoPadraoHeader()];
+    mesesFiltroDemo = [obterMesPadraoHeader()];
+    periodoDemoInicializado = true;
+    renderizarBotoesPeriodoModalDemo();
+};
+
+function formatarDescricaoPeriodoDemo() {
+    garantirPeriodoDemoInicializado();
+    const anosOrd = [...anosFiltroDemo].sort((a, b) => a - b);
+    const mesesOrd = [...mesesFiltroDemo].sort((a, b) => a - b);
+
+    const strAnos = anosOrd.length === ANOS_PADRAO_DEMO.length
+        ? 'Todos os Anos (' + anosOrd[0] + '-' + anosOrd[anosOrd.length - 1] + ')'
+        : anosOrd.join(', ');
+
+    let strMeses = '';
+    if (mesesOrd.length === 12) {
+        strMeses = 'Todos os 12 meses';
+    } else if (mesesOrd.length === 1) {
+        strMeses = MESES_NOMES_DEMO[mesesOrd[0]];
+    } else if (mesesOrd.length <= 4) {
+        strMeses = mesesOrd.map(m => MESES_CURTOS_DEMO[m]).join(', ');
+    } else {
+        strMeses = `${mesesOrd.length} meses selecionados`;
+    }
+
+    const totalCombinacoes = anosOrd.length * mesesOrd.length;
+    if (anosOrd.length === 1 && mesesOrd.length === 1) {
+        return `${MESES_NOMES_DEMO[mesesOrd[0]]} / ${anosOrd[0]}`;
+    }
+    return `${strMeses} • ${strAnos} (${totalCombinacoes} ${totalCombinacoes === 1 ? 'mês' : 'meses'})`;
+}
+
+function renderizarBotoesPeriodoModalDemo() {
+    garantirPeriodoDemoInicializado();
+
+    const gridAnos = document.getElementById('gridAnosFiltroDemo');
+    if (gridAnos) {
+        const anoHeader = obterAnoPadraoHeader();
+        const listaAnos = Array.from(new Set([...ANOS_PADRAO_DEMO, anoHeader, ...anosFiltroDemo])).sort((a, b) => a - b);
+        gridAnos.innerHTML = listaAnos.map(ano => {
+            const ativo = anosFiltroDemo.includes(ano);
+            return `
+                <button type="button" onclick="toggleAnoFiltroDemo(${ano}, event)" style="padding: 8px 4px; border-radius: 9px; font-size: 0.82rem; font-weight: 800; cursor: pointer; transition: all 0.15s; border: 1.5px solid ${ativo ? '#3B82F6' : '#334155'}; background: ${ativo ? 'rgba(37, 99, 235, 0.28)' : '#0F172A'}; color: ${ativo ? '#FFFFFF' : '#94A3B8'}; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <span>${ativo ? '✓' : ''}</span>
+                    <span>${ano}</span>
+                </button>
+            `;
+        }).join('');
+    }
+
+    const gridMeses = document.getElementById('gridMesesFiltroDemo');
+    if (gridMeses) {
+        gridMeses.innerHTML = MESES_CURTOS_DEMO.map((nomeCurto, idx) => {
+            const ativo = mesesFiltroDemo.includes(idx);
+            return `
+                <button type="button" onclick="toggleMesFiltroDemo(${idx}, event)" style="padding: 8px 4px; border-radius: 9px; font-size: 0.8rem; font-weight: 800; cursor: pointer; transition: all 0.15s; border: 1.5px solid ${ativo ? '#10B981' : '#334155'}; background: ${ativo ? 'rgba(16, 185, 129, 0.24)' : '#0F172A'}; color: ${ativo ? '#FFFFFF' : '#94A3B8'}; display: flex; align-items: center; justify-content: center; gap: 3px;">
+                    <span>${ativo ? '✓' : ''}</span>
+                    <span>${nomeCurto}</span>
+                </button>
+            `;
+        }).join('');
+    }
+
+    const lblResumoModal = document.getElementById('lblResumoPeriodoModalDemo');
+    const descPeriodo = formatarDescricaoPeriodoDemo();
+    if (lblResumoModal) {
+        lblResumoModal.innerHTML = `📊 Período ativo: <strong style="color:#FFFFFF;">${descPeriodo}</strong>`;
+    }
+
+    const lblBadgeTopo = document.getElementById('lblPeriodoDemoAtivoTexto');
+    if (lblBadgeTopo) {
+        lblBadgeTopo.innerText = `Período: ${descPeriodo} (Toque para alterar)`;
+    }
+}
+
+window.toggleAnoFiltroDemo = function(ano, event) {
+    if (event) event.stopPropagation();
+    garantirPeriodoDemoInicializado();
+    const idx = anosFiltroDemo.indexOf(ano);
+    if (idx >= 0) {
+        if (anosFiltroDemo.length > 1) {
+            anosFiltroDemo.splice(idx, 1);
+        } else if (typeof showToast === 'function') {
+            showToast('Mantenha pelo menos 1 ano selecionado.');
+        }
+    } else {
+        anosFiltroDemo.push(ano);
+    }
+    renderizarBotoesPeriodoModalDemo();
+    renderPowerBIDashboard();
+};
+
+window.toggleMesFiltroDemo = function(mesIdx, event) {
+    if (event) event.stopPropagation();
+    garantirPeriodoDemoInicializado();
+    const idx = mesesFiltroDemo.indexOf(mesIdx);
+    if (idx >= 0) {
+        if (mesesFiltroDemo.length > 1) {
+            mesesFiltroDemo.splice(idx, 1);
+        } else if (typeof showToast === 'function') {
+            showToast('Mantenha pelo menos 1 mês selecionado.');
+        }
+    } else {
+        mesesFiltroDemo.push(mesIdx);
+    }
+    renderizarBotoesPeriodoModalDemo();
+    renderPowerBIDashboard();
+};
+
+window.selecionarAnosDemoRapido = function(modo) {
+    if (modo === 'todos') {
+        anosFiltroDemo = [...ANOS_PADRAO_DEMO];
+    } else {
+        anosFiltroDemo = [obterAnoPadraoHeader()];
+    }
+    periodoDemoInicializado = true;
+    renderizarBotoesPeriodoModalDemo();
+    renderPowerBIDashboard();
+};
+
+window.selecionarMesesDemoRapido = function(modo) {
+    if (modo === 'todos') {
+        mesesFiltroDemo = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11];
+    } else {
+        mesesFiltroDemo = [obterMesPadraoHeader()];
+    }
+    periodoDemoInicializado = true;
+    renderizarBotoesPeriodoModalDemo();
+    renderPowerBIDashboard();
+};
 
 function getOrCreateChart(domId) {
     const el = document.getElementById(domId);
@@ -48,6 +211,7 @@ let filtrosAtivosDemo = {
 // Abrir modal expandido de filtros
 function abrirModalFiltroDemo(event) {
     if (event) event.stopPropagation();
+    renderizarBotoesPeriodoModalDemo();
     const modal = document.getElementById('modalFiltroDemo');
     if (modal) {
         modal.style.display = 'flex';
@@ -64,10 +228,10 @@ function fecharModalFiltroDemo() {
     }
 }
 
-// Confirmar escolha: fecha o modal e mantém exatamente o que foi escolhido na tela
+// Confirmar escolha: fecha o modal e atualiza todo o demonstrativo com o período e categorias escolhidas
 function confirmarFiltrosDemo() {
     fecharModalFiltroDemo();
-    aplicarFiltrosDemonstrativo();
+    renderPowerBIDashboard();
 }
 
 // Fechar modal ao clicar fora da caixa interna
@@ -82,11 +246,8 @@ document.addEventListener('click', function(e) {
 function selecionarFiltroDemoTudo(event) {
     if (event) event.stopPropagation();
     const chkTudo = document.getElementById('chkDemoTudo');
-    const novoValor = event && event.target && event.target.id === 'chkDemoTudo' 
-        ? chkTudo.checked 
-        : true;
 
-    chkTudo.checked = true;
+    if (chkTudo) chkTudo.checked = true;
     filtrosAtivosDemo = {
         receitas: true,
         despesas: true,
@@ -94,10 +255,11 @@ function selecionarFiltroDemoTudo(event) {
         reserva: true
     };
 
-    document.getElementById('chkDemoRec').checked = true;
-    document.getElementById('chkDemoDes').checked = true;
-    document.getElementById('chkDemoInv').checked = true;
-    document.getElementById('chkDemoRes').checked = true;
+    const ids = ['chkDemoRec', 'chkDemoDes', 'chkDemoInv', 'chkDemoRes'];
+    ids.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.checked = true;
+    });
 
     aplicarFiltrosDemonstrativo();
 }
@@ -136,23 +298,26 @@ function aplicarFiltrosDemonstrativo() {
     const todasMarcadas = receitas && despesas && investimentos && reserva;
     const nenhumaMarcada = !receitas && !despesas && !investimentos && !reserva;
 
-    // Se usuário desmarcou tudo, mantém pelo menos a opção clicada ou marca tudo
     const totalSelecionadas = [receitas, despesas, investimentos, reserva].filter(Boolean).length;
 
     // Atualiza rótulo do botão principal
     const lbl = document.getElementById('lblDemoFiltroSelecionado');
     if (lbl) {
+        let nomeFiltro = 'Ver Tudo (Completo)';
         if (todasMarcadas || nenhumaMarcada) {
-            lbl.innerText = 'Ver Tudo (Completo)';
+            nomeFiltro = 'Ver Tudo (Completo)';
         } else if (totalSelecionadas === 1) {
-            if (receitas) lbl.innerText = 'Receitas (Entradas)';
-            else if (despesas) lbl.innerText = 'Despesas (Saídas)';
-            else if (investimentos) lbl.innerText = 'Investimentos';
-            else if (reserva) lbl.innerText = 'Reserva de Emergência';
+            if (receitas) nomeFiltro = 'Receitas (Entradas)';
+            else if (despesas) nomeFiltro = 'Despesas (Saídas)';
+            else if (investimentos) nomeFiltro = 'Investimentos';
+            else if (reserva) nomeFiltro = 'Reserva de Emergência';
         } else {
-            lbl.innerText = `${totalSelecionadas} Categorias Selecionadas`;
+            nomeFiltro = `${totalSelecionadas} Categorias Selecionadas`;
         }
+        lbl.innerText = nomeFiltro;
     }
+
+    renderizarBotoesPeriodoModalDemo();
 
     // Exibe / Oculta cada um dos 4 Cards de Demonstrativo (KPIs)
     const cardRec = document.getElementById('cardKpiRec');
@@ -209,7 +374,6 @@ function filtrarDemonstrativo(tipo) {
         selecionarFiltroDemoTudo();
         return;
     }
-    // Foca exclusivamente na opção clicada
     filtrosAtivosDemo = {
         receitas: tipo === 'receitas',
         despesas: tipo === 'despesas',
@@ -226,28 +390,89 @@ function filtrarDemonstrativo(tipo) {
     aplicarFiltrosDemonstrativo();
 }
 
-window.abrirModalFiltroDemo = abrirModalFiltroDemo;
-window.fecharModalFiltroDemo = fecharModalFiltroDemo;
-window.confirmarFiltrosDemo = confirmarFiltrosDemo;
-window.selecionarFiltroDemoTudo = selecionarFiltroDemoTudo;
-window.toggleOpcaoFiltroDemo = toggleOpcaoFiltroDemo;
-window.aplicarFiltrosDemonstrativo = aplicarFiltrosDemonstrativo;
+// Coleta todos os lançamentos (físicos + projeções de parcelas) para um Ano e Mês específicos sem duplicar grupos
+function obterItensDeAnoEMes(movsAtivas, targetYear, targetMonth) {
+    const itens = [];
+    const gruposFisicosNoMes = new Set();
+
+    // 1ª passagem: identifica lançamentos diretos do mês
+    movsAtivas.forEach(m => {
+        if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
+        if (m.tipo_gasto === 'Conta a Pagar') return;
+        if (!m.data_lancamento) return;
+
+        const [year, month, day] = m.data_lancamento.split('-');
+        let effectiveMonth = parseInt(month, 10) - 1;
+        let effectiveYear = parseInt(year, 10);
+
+        if (m.tipo_gasto === 'Cartão de Crédito' && parseInt(day, 10) > 25) {
+            effectiveMonth++;
+            if (effectiveMonth > 11) {
+                effectiveMonth = 0;
+                effectiveYear++;
+            }
+        }
+
+        if (effectiveYear === targetYear && effectiveMonth === targetMonth) {
+            itens.push({ ...m, isVirtual: false });
+            if (m.id_grupo) gruposFisicosNoMes.add(m.id_grupo);
+        }
+    });
+
+    // 2ª passagem: projeta parcelas virtuais apenas para grupos que não possuem parcela física salva neste mês
+    movsAtivas.forEach(m => {
+        if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
+        if (m.tipo_gasto === 'Conta a Pagar') return;
+        if (!m.data_lancamento) return;
+        if (m.parcelado !== 'Sim' || !m.id_grupo) return;
+        if (gruposFisicosNoMes.has(m.id_grupo)) return;
+
+        const [year, month, day] = m.data_lancamento.split('-');
+        const launchDate = new Date(year, parseInt(month, 10) - 1, day);
+        let effectiveMonth = launchDate.getMonth();
+        let effectiveYear = launchDate.getFullYear();
+
+        if (m.tipo_gasto === 'Cartão de Crédito' && parseInt(day, 10) > 25) {
+            effectiveMonth++;
+            if (effectiveMonth > 11) {
+                effectiveMonth = 0;
+                effectiveYear++;
+            }
+        }
+
+        const diffMonths = (targetYear - effectiveYear) * 12 + (targetMonth - effectiveMonth);
+        if (diffMonths > 0) {
+            const novaParcela = (parseInt(m.parcela_atual, 10) || 1) + diffMonths;
+            if (novaParcela <= (parseInt(m.total_parcelas, 10) || 1)) {
+                gruposFisicosNoMes.add(m.id_grupo);
+                itens.push({
+                    ...m,
+                    isVirtual: true,
+                    parcela_atual: novaParcela,
+                    status: 'Pendente'
+                });
+            }
+        }
+    });
+
+    return itens;
+}
 
 async function renderPowerBIDashboard() {
     if (typeof echarts === 'undefined') return;
 
     initPowerBICharts();
+    garantirPeriodoDemoInicializado();
 
-    // Pegar o ano e mês selecionados no cabeçalho ou data ativa
-    const ano = (typeof currentViewDate !== 'undefined') 
-        ? currentViewDate.getFullYear() 
-        : (document.getElementById('anoBaseSelector') ? parseInt(document.getElementById('anoBaseSelector').value) : new Date().getFullYear());
-    const mes = (typeof currentViewDate !== 'undefined') 
-        ? currentViewDate.getMonth() 
-        : (document.getElementById('mesBaseSelector') ? parseInt(document.getElementById('mesBaseSelector').value) : new Date().getMonth());
+    const anosOrd = [...anosFiltroDemo].sort((a, b) => a - b);
+    const mesesOrd = [...mesesFiltroDemo].sort((a, b) => a - b);
+    const qtdMesesTotal = anosOrd.length * mesesOrd.length;
+    const isMultiPeriodo = qtdMesesTotal > 1;
+    const descPeriodo = formatarDescricaoPeriodoDemo();
 
     try {
         const todasMovs = await dbLocal.movimentacoes.toArray();
+        const movsAtivas = todasMovs.filter(m => m.deleted !== 1 && m.status !== 'Cancelado');
 
         let totalReceitasMes = 0;
         let totalDespesasMes = 0;
@@ -259,8 +484,7 @@ async function renderPowerBIDashboard() {
         const despesasPorCat = {};
 
         // 1. Histórico acumulado total da Reserva de Emergência
-        todasMovs.forEach(m => {
-            if (m.deleted === 1 || m.status === 'Cancelado') return;
+        movsAtivas.forEach(m => {
             const vr = parseFloat(m.valor_realizado) || 0;
             const vt = parseFloat(m.valor_total) || 0;
             const val = vr > 0 ? vr : vt;
@@ -272,30 +496,22 @@ async function renderPowerBIDashboard() {
             }
         });
 
-        // 2. Coletar itens específicos do mês selecionado
-        // Prioriza window.currentMesItens para total paridade com o painel e parcelas virtuais
-        let itensDoMesAtivo = null;
-        if (window.currentMesItens && window.currentMesItens.length > 0 && typeof currentViewDate !== 'undefined' && currentViewDate.getFullYear() === ano && currentViewDate.getMonth() === mes) {
-            itensDoMesAtivo = window.currentMesItens;
-        } else {
-            itensDoMesAtivo = todasMovs.filter(m => {
-                if (m.deleted === 1 || m.status === 'Cancelado') return false;
-                if (m.tipo_gasto === 'Conta a Pagar') return false;
-                if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return false;
-                if (!m.data_lancamento) return false;
-                const [y, mm] = m.data_lancamento.split('-');
-                return parseInt(y) === ano && (parseInt(mm) - 1) === mes;
-            });
+        // 2. Coletar e somar itens de TODOS os anos e meses selecionados pelo usuário
+        const todosItensDoPeriodo = [];
+        for (const anoItem of anosOrd) {
+            for (const mesItem of mesesOrd) {
+                const itensPar = obterItensDeAnoEMes(movsAtivas, anoItem, mesItem);
+                todosItensDoPeriodo.push(...itensPar);
+            }
         }
 
-        itensDoMesAtivo.forEach(m => {
+        todosItensDoPeriodo.forEach(m => {
             if (m.deleted === 1 || m.status === 'Cancelado') return;
             if (m.tipo_gasto === 'Conta a Pagar') return;
             if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
 
             const vTotal = parseFloat(m.valor_total) || 0;
             const vReal = parseFloat(m.valor_realizado) || 0;
-            // Para lançamentos pendentes/simulados, usa vTotal (orçado). Para realizados, usa vReal se > 0
             const vEfetivo = vReal > 0 ? vReal : vTotal;
 
             const descName = m.descricao ? m.descricao.split(' (')[0].trim() : 'Outros';
@@ -315,17 +531,45 @@ async function renderPowerBIDashboard() {
 
         const saldoMes = totalReceitasMes - totalDespesasMes - totalInvestimentosMes - totalReservaMes;
 
-        // Atualizar os 4 Cards de Demonstrativo (KPIs)
+        // Atualizar os 4 Cards de Demonstrativo (KPIs) e seus textos explicativos conforme o período
         const elRec = document.getElementById('pbiValReceitas');
         const elDes = document.getElementById('pbiValDespesas');
         const elInv = document.getElementById('pbiValInvestimentos');
         const elRes = document.getElementById('pbiValReserva');
         const elSaldo = document.getElementById('pbiValSaldo');
 
+        const subRec = document.getElementById('subKpiRec');
+        const subDes = document.getElementById('subKpiDes');
+        const subInv = document.getElementById('subKpiInv');
+        const subRes = document.getElementById('subKpiRes');
+
         if (elRec) elRec.innerText = formatBRL(totalReceitasMes);
         if (elDes) elDes.innerText = formatBRL(totalDespesasMes);
         if (elInv) elInv.innerText = formatBRL(totalInvestimentosMes);
-        if (elRes) elRes.innerText = formatBRL(reservaAcumuladaTotal);
+        // Se o usuário selecionou vários meses/anos, mostra quanto guardou na reserva no período (ou o acumulado se for 0 no período)
+        if (elRes) elRes.innerText = formatBRL(isMultiPeriodo && totalReservaMes > 0 ? totalReservaMes : reservaAcumuladaTotal);
+
+        if (subRec) {
+            subRec.innerText = isMultiPeriodo
+                ? `Soma das entradas em ${descPeriodo}`
+                : `Total de entradas em ${descPeriodo}`;
+        }
+        if (subDes) {
+            subDes.innerText = isMultiPeriodo
+                ? `Soma das despesas (gasto/previsto) em ${descPeriodo}`
+                : `Total de contas e gastos em ${descPeriodo}`;
+        }
+        if (subInv) {
+            subInv.innerText = isMultiPeriodo
+                ? `Soma investida/prevista em ${descPeriodo}`
+                : `Aplicações no período (${descPeriodo})`;
+        }
+        if (subRes) {
+            subRes.innerText = isMultiPeriodo
+                ? `No período: ${formatBRL(totalReservaMes)} • Acumulado total: ${formatBRL(reservaAcumuladaTotal)}`
+                : `No mês: ${formatBRL(totalReservaMes)} • Acumulado total: ${formatBRL(reservaAcumuladaTotal)}`;
+        }
+
         if (elSaldo) {
             elSaldo.innerText = formatBRL(saldoMes);
             elSaldo.style.color = saldoMes >= 0 ? '#10B981' : '#EF4444';
@@ -336,14 +580,18 @@ async function renderPowerBIDashboard() {
         if (saldoIcon && saldoTitulo) {
             if (saldoMes >= 0) {
                 saldoIcon.innerText = '🟢';
-                saldoTitulo.innerText = 'Saldo Positivo no Mês (Sobra Livre)';
+                saldoTitulo.innerText = isMultiPeriodo
+                    ? `Saldo Positivo no Período (${descPeriodo})`
+                    : `Saldo Positivo no Mês (${descPeriodo})`;
             } else {
                 saldoIcon.innerText = '🔴';
-                saldoTitulo.innerText = 'Atenção: Despesas Superaram as Entradas no Mês';
+                saldoTitulo.innerText = isMultiPeriodo
+                    ? `Atenção: Saídas Superaram Entradas no Período (${descPeriodo})`
+                    : `Atenção: Despesas Superaram as Entradas (${descPeriodo})`;
             }
         }
 
-        // --- Cores Dinâmicas por Tema (Garante que linhas e letras nunca fiquem apagadas) ---
+        // --- Cores Dinâmicas por Tema ---
         const currentTheme = document.documentElement.getAttribute('data-theme') || 'preto';
         const isThemeClaro = currentTheme === 'claro';
         const isThemeCinza = currentTheme === 'cinza';
@@ -357,9 +605,6 @@ async function renderPowerBIDashboard() {
         const chartPieBorder = isThemeClaro ? '#FFFFFF' : (isThemeCinza ? '#242932' : '#0F172A');
 
         // --- Gráfico 1: Comparativo Amigável (Entradas vs Saídas vs Investido) ---
-        const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-        const mesExtenso = mesesNomes[mes] + ' / ' + ano;
-
         const diffOption = {
             backgroundColor: 'transparent',
             tooltip: {
@@ -385,8 +630,8 @@ async function renderPowerBIDashboard() {
             grid: { left: '3%', right: '4%', bottom: '8%', top: '45px', containLabel: true },
             xAxis: {
                 type: 'category',
-                data: [mesExtenso],
-                axisLabel: { color: chartTextColor, fontSize: 12, fontWeight: 'bold' },
+                data: [descPeriodo],
+                axisLabel: { color: chartTextColor, fontSize: 11, fontWeight: 'bold' },
                 axisLine: { lineStyle: { color: chartAxisLineColor, width: 1.5 } }
             },
             yAxis: {
@@ -504,8 +749,8 @@ async function renderPowerBIDashboard() {
         pbiChartFontesDes.setOption(fontesDesOption, true);
 
         // --- Gráfico 4: Medidor / Termômetro da Reserva de Emergência ---
-        // Meta de segurança: 3 meses de despesas médias (ou 3x despesa do mês atual)
-        const metaReservaRecomendada = totalDespesasMes > 0 ? (totalDespesasMes * 3) : 5000;
+        const despesaMediaMensal = qtdMesesTotal > 0 ? (totalDespesasMes / qtdMesesTotal) : totalDespesasMes;
+        const metaReservaRecomendada = despesaMediaMensal > 0 ? (despesaMediaMensal * 3) : 5000;
         let percentualReserva = 0;
         if (metaReservaRecomendada > 0) {
             percentualReserva = (reservaAcumuladaTotal / metaReservaRecomendada) * 100;
@@ -559,7 +804,6 @@ async function renderPowerBIDashboard() {
         };
         pbiChartGauge.setOption(gaugeOption, true);
 
-        // Aplica o filtro selecionado inicialmente
         aplicarFiltrosDemonstrativo();
 
     } catch(err) {

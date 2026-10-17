@@ -134,6 +134,7 @@ function updateMonthLabel() {
 
 function selecionarMes(mesIndex) {
     currentViewDate.setMonth(parseInt(mesIndex));
+    if (typeof window.sincronizarPeriodoDemoComHeader === 'function') window.sincronizarPeriodoDemoComHeader();
     updateMonthLabel();
     if(document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display === 'block' && typeof renderPowerBIDashboard === 'function') {
         renderPowerBIDashboard();
@@ -142,6 +143,7 @@ function selecionarMes(mesIndex) {
 
 function selecionarAno(anoStr) {
     currentViewDate.setFullYear(parseInt(anoStr));
+    if (typeof window.sincronizarPeriodoDemoComHeader === 'function') window.sincronizarPeriodoDemoComHeader();
     updateMonthLabel();
     if(document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display === 'block' && typeof renderPowerBIDashboard === 'function') {
         renderPowerBIDashboard();
@@ -150,6 +152,7 @@ function selecionarAno(anoStr) {
 
 function selecionarMesAtual() {
     currentViewDate = new Date();
+    if (typeof window.sincronizarPeriodoDemoComHeader === 'function') window.sincronizarPeriodoDemoComHeader();
     updateMonthLabel();
     showToast('Visualizando o mês atual!');
 }
