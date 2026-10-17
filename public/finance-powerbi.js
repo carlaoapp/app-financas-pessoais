@@ -15,16 +15,24 @@ let anosFiltroDemo = [];
 let mesesFiltroDemo = [];
 let periodoDemoInicializado = false;
 
+function isTabDemonstrativoAtiva() {
+    const tab = document.getElementById('tabPowerBI');
+    return !!(tab && tab.style.display !== 'none');
+}
+window.isTabDemonstrativoAtiva = isTabDemonstrativoAtiva;
+
 function obterAnoPadraoHeader() {
     if (typeof currentViewDate !== 'undefined' && currentViewDate) return currentViewDate.getFullYear();
     const sel = document.getElementById('anoBaseSelector');
-    return sel && sel.value ? parseInt(sel.value, 10) : new Date().getFullYear();
+    const val = sel && sel.value && sel.value !== 'MULTI_DEMO' ? parseInt(sel.value, 10) : NaN;
+    return !isNaN(val) ? val : new Date().getFullYear();
 }
 
 function obterMesPadraoHeader() {
     if (typeof currentViewDate !== 'undefined' && currentViewDate) return currentViewDate.getMonth();
     const sel = document.getElementById('mesBaseSelector');
-    return sel && sel.value !== '' ? parseInt(sel.value, 10) : new Date().getMonth();
+    const val = sel && sel.value !== '' && sel.value !== 'MULTI_DEMO' ? parseInt(sel.value, 10) : NaN;
+    return !isNaN(val) ? val : new Date().getMonth();
 }
 
 function garantirPeriodoDemoInicializado() {
@@ -35,7 +43,104 @@ function garantirPeriodoDemoInicializado() {
     }
 }
 
-// Sincroniza quando o usuário muda o seletor de Ano ou Mês lá no topo do app
+// Atualiza os seletores ANO: e MÊS: do cabeçalho superior para refletir a seleção do usuário APENAS na tela Demonstrativo
+window.sincronizarHeaderComPeriodoDemo = function() {
+    if (!isTabDemonstrativoAtiva()) return;
+    garantirPeriodoDemoInicializado();
+
+    const anosOrd = [...anosFiltroDemo].sort((a, b) => a - b);
+    const mesesOrd = [...mesesFiltroDemo].sort((a, b) => a - b);
+
+    const anoSelect = document.getElementById('anoBaseSelector');
+    if (anoSelect) {
+        let optMultiAno = document.getElementById('optAnoMultiDemo');
+        if (anosOrd.length === 1) {
+            if (optMultiAno) optMultiAno.remove();
+            anoSelect.value = String(anosOrd[0]);
+        } else {
+            const labelAnos = anosOrd.length >= ANOS_PADRAO_DEMO.length
+                ? `Todos (${anosOrd[0]}-${anosOrd[anosOrd.length - 1]})`
+                : anosOrd.join(', ');
+            if (!optMultiAno) {
+                optMultiAno = document.createElement('option');
+                optMultiAno.id = 'optAnoMultiDemo';
+                optMultiAno.value = 'MULTI_DEMO';
+                anoSelect.insertBefore(optMultiAno, anoSelect.firstChild);
+            }
+            optMultiAno.text = labelAnos;
+            anoSelect.value = 'MULTI_DEMO';
+        }
+    }
+
+    const mesSelect = document.getElementById('mesBaseSelector');
+    if (mesSelect) {
+        let optMultiMes = document.getElementById('optMesMultiDemo');
+        if (mesesOrd.length === 1) {
+            if (optMultiMes) optMultiMes.remove();
+            mesSelect.value = String(mesesOrd[0]);
+        } else {
+            let labelMeses = '';
+            if (mesesOrd.length === 12) {
+                labelMeses = 'Todos (12 Meses)';
+            } else if (mesesOrd.length <= 5) {
+                labelMeses = mesesOrd.map(m => MESES_CURTOS_DEMO[m]).join(', ');
+            } else {
+                labelMeses = `${mesesOrd.map(m => MESES_CURTOS_DEMO[m]).slice(0, 3).join(', ')}... (${mesesOrd.length} meses)`;
+            }
+            if (!optMultiMes) {
+                optMultiMes = document.createElement('option');
+                optMultiMes.id = 'optMesMultiDemo';
+                optMultiMes.value = 'MULTI_DEMO';
+                mesSelect.insertBefore(optMultiMes, mesSelect.firstChild);
+            }
+            optMultiMes.text = labelMeses;
+            mesSelect.value = 'MULTI_DEMO';
+        }
+    }
+};
+
+// Restaura o cabeçalho superior (ANO: e MÊS:) ao padrão das demais abas quando sai da tela Demonstrativo
+window.restaurarHeaderPadraoForaDoDemo = function() {
+    const optMultiAno = document.getElementById('optAnoMultiDemo');
+    if (optMultiAno) optMultiAno.remove();
+
+    const optMultiMes = document.getElementById('optMesMultiDemo');
+    if (optMultiMes) optMultiMes.remove();
+
+    const anoSelect = document.getElementById('anoBaseSelector');
+    if (anoSelect && typeof currentViewDate !== 'undefined' && currentViewDate) {
+        anoSelect.value = String(currentViewDate.getFullYear());
+    }
+
+    const mesSelect = document.getElementById('mesBaseSelector');
+    if (mesSelect && typeof currentViewDate !== 'undefined' && currentViewDate) {
+        mesSelect.value = String(currentViewDate.getMonth());
+    }
+};
+
+// Quando o usuário altera o ANO diretamente no cabeçalho estando na tela Demonstrativo
+window.definirAnoUnicoDemoPeloHeader = function(anoNum) {
+    if (isNaN(anoNum)) return;
+    garantirPeriodoDemoInicializado();
+    anosFiltroDemo = [anoNum];
+    periodoDemoInicializado = true;
+    renderizarBotoesPeriodoModalDemo();
+    window.sincronizarHeaderComPeriodoDemo();
+    renderPowerBIDashboard();
+};
+
+// Quando o usuário altera o MÊS diretamente no cabeçalho estando na tela Demonstrativo
+window.definirMesUnicoDemoPeloHeader = function(mesNum) {
+    if (isNaN(mesNum)) return;
+    garantirPeriodoDemoInicializado();
+    mesesFiltroDemo = [mesNum];
+    periodoDemoInicializado = true;
+    renderizarBotoesPeriodoModalDemo();
+    window.sincronizarHeaderComPeriodoDemo();
+    renderPowerBIDashboard();
+};
+
+// Sincroniza quando o usuário muda o seletor de Ano ou Mês lá no topo do app fora da aba Demonstrativo
 window.sincronizarPeriodoDemoComHeader = function() {
     anosFiltroDemo = [obterAnoPadraoHeader()];
     mesesFiltroDemo = [obterMesPadraoHeader()];
@@ -107,10 +212,7 @@ function renderizarBotoesPeriodoModalDemo() {
         lblResumoModal.innerHTML = `📊 Período ativo: <strong style="color:#FFFFFF;">${descPeriodo}</strong>`;
     }
 
-    const lblBadgeTopo = document.getElementById('lblPeriodoDemoAtivoTexto');
-    if (lblBadgeTopo) {
-        lblBadgeTopo.innerText = `Período: ${descPeriodo} (Toque para alterar)`;
-    }
+    window.sincronizarHeaderComPeriodoDemo();
 }
 
 window.toggleAnoFiltroDemo = function(ano, event) {
@@ -463,6 +565,9 @@ async function renderPowerBIDashboard() {
 
     initPowerBICharts();
     garantirPeriodoDemoInicializado();
+    if (typeof window.sincronizarHeaderComPeriodoDemo === 'function') {
+        window.sincronizarHeaderComPeriodoDemo();
+    }
 
     const anosOrd = [...anosFiltroDemo].sort((a, b) => a - b);
     const mesesOrd = [...mesesFiltroDemo].sort((a, b) => a - b);
@@ -581,12 +686,12 @@ async function renderPowerBIDashboard() {
             if (saldoMes >= 0) {
                 saldoIcon.innerText = '🟢';
                 saldoTitulo.innerText = isMultiPeriodo
-                    ? `Saldo Positivo no Período (${descPeriodo})`
+                    ? `Saldo Positivo no Período • ${descPeriodo}`
                     : `Saldo Positivo no Mês (${descPeriodo})`;
             } else {
                 saldoIcon.innerText = '🔴';
                 saldoTitulo.innerText = isMultiPeriodo
-                    ? `Atenção: Saídas Superaram Entradas no Período (${descPeriodo})`
+                    ? `Atenção: Saídas Superaram Entradas • ${descPeriodo}`
                     : `Atenção: Despesas Superaram as Entradas (${descPeriodo})`;
             }
         }

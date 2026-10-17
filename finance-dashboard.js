@@ -111,11 +111,16 @@ function updateMonthLabel() {
     const displayElement = document.getElementById('fullDateDisplay');
     if (displayElement) displayElement.innerText = `${diaNome}, ${diaNum} de ${mesNome} de ${ano}`;
 
-    const anoSelect = document.getElementById('anoBaseSelector');
-    if (anoSelect) anoSelect.value = ano;
+    if (typeof window.isTabDemonstrativoAtiva === 'function' && window.isTabDemonstrativoAtiva()) {
+        if (typeof window.sincronizarHeaderComPeriodoDemo === 'function') window.sincronizarHeaderComPeriodoDemo();
+    } else {
+        if (typeof window.restaurarHeaderPadraoForaDoDemo === 'function') window.restaurarHeaderPadraoForaDoDemo();
+        const anoSelect = document.getElementById('anoBaseSelector');
+        if (anoSelect) anoSelect.value = ano;
 
-    const mesSelect = document.getElementById('mesBaseSelector');
-    if (mesSelect) mesSelect.value = displayDate.getMonth();
+        const mesSelect = document.getElementById('mesBaseSelector');
+        if (mesSelect) mesSelect.value = displayDate.getMonth();
+    }
 
     const badgeMesHero = document.getElementById('lblFaturaMesHero');
     if (badgeMesHero) {
@@ -133,21 +138,27 @@ function updateMonthLabel() {
 }
 
 function selecionarMes(mesIndex) {
-    currentViewDate.setMonth(parseInt(mesIndex));
+    if (typeof window.isTabDemonstrativoAtiva === 'function' && window.isTabDemonstrativoAtiva()) {
+        if (typeof window.definirMesUnicoDemoPeloHeader === 'function') {
+            window.definirMesUnicoDemoPeloHeader(parseInt(mesIndex, 10));
+        }
+        return;
+    }
+    currentViewDate.setMonth(parseInt(mesIndex, 10));
     if (typeof window.sincronizarPeriodoDemoComHeader === 'function') window.sincronizarPeriodoDemoComHeader();
     updateMonthLabel();
-    if(document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display === 'block' && typeof renderPowerBIDashboard === 'function') {
-        renderPowerBIDashboard();
-    }
 }
 
 function selecionarAno(anoStr) {
-    currentViewDate.setFullYear(parseInt(anoStr));
+    if (typeof window.isTabDemonstrativoAtiva === 'function' && window.isTabDemonstrativoAtiva()) {
+        if (typeof window.definirAnoUnicoDemoPeloHeader === 'function') {
+            window.definirAnoUnicoDemoPeloHeader(parseInt(anoStr, 10));
+        }
+        return;
+    }
+    currentViewDate.setFullYear(parseInt(anoStr, 10));
     if (typeof window.sincronizarPeriodoDemoComHeader === 'function') window.sincronizarPeriodoDemoComHeader();
     updateMonthLabel();
-    if(document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display === 'block' && typeof renderPowerBIDashboard === 'function') {
-        renderPowerBIDashboard();
-    }
 }
 
 function selecionarMesAtual() {
@@ -1450,18 +1461,28 @@ function switchFinanceTab(tabName) {
         if (btnMobile) btnMobile.classList.toggle('active', t === tabName);
     });
 
-    if (tabName === 'PowerBI' && typeof renderPowerBIDashboard === 'function') {
-        setTimeout(renderPowerBIDashboard, 100);
-    } else if (tabName === 'Desejos') {
-        carregarListaDesejos();
-    } else if (tabName === 'APagar') {
-        carregarContasAPagar();
-    } else if (tabName === 'Lancamentos') {
-        carregarPlanejamento();
-        if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
-    } else if (tabName === 'Tema') {
-        const temaAtual = localStorage.getItem('financas_app_theme') || 'preto';
-        atualizarCardsSelecaoTema(temaAtual);
+    if (tabName === 'PowerBI') {
+        if (typeof window.sincronizarHeaderComPeriodoDemo === 'function') {
+            window.sincronizarHeaderComPeriodoDemo();
+        }
+        if (typeof renderPowerBIDashboard === 'function') {
+            setTimeout(renderPowerBIDashboard, 100);
+        }
+    } else {
+        if (typeof window.restaurarHeaderPadraoForaDoDemo === 'function') {
+            window.restaurarHeaderPadraoForaDoDemo();
+        }
+        if (tabName === 'Desejos') {
+            carregarListaDesejos();
+        } else if (tabName === 'APagar') {
+            carregarContasAPagar();
+        } else if (tabName === 'Lancamentos') {
+            carregarPlanejamento();
+            if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+        } else if (tabName === 'Tema') {
+            const temaAtual = localStorage.getItem('financas_app_theme') || 'preto';
+            atualizarCardsSelecaoTema(temaAtual);
+        }
     }
 
     // Rola para o topo suavemente

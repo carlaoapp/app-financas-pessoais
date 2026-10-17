@@ -249,7 +249,9 @@ body {
 }
 
 .filters-header-row .ano-select-box {
-    width: 68px;
+    min-width: 68px;
+    width: auto;
+    max-width: 195px;
     height: 100%;
     text-align: center;
     font-size: 0.86rem;
@@ -263,7 +265,9 @@ body {
 }
 
 .filters-header-row .mes-select-box {
-    width: 105px;
+    min-width: 105px;
+    width: auto;
+    max-width: 245px;
     height: 100%;
     font-size: 0.86rem;
     font-weight: 700;
