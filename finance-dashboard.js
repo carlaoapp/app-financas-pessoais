@@ -53,6 +53,9 @@ window.togglePrivacyMode = function() {
     if(document.getElementById('tabDesejos') && document.getElementById('tabDesejos').style.display === 'block') {
         if(typeof carregarListaDesejos === 'function') carregarListaDesejos();
     }
+    if(document.getElementById('tabRendaExtra') && document.getElementById('tabRendaExtra').style.display === 'block') {
+        if(typeof carregarPlanejamentoRendaExtra === 'function') carregarPlanejamentoRendaExtra();
+    }
     if(document.getElementById('modalFatura') && document.getElementById('modalFatura').style.display === 'flex') {
         const mesAtualLabel = document.getElementById('lblFaturaTituloMes') ? document.getElementById('lblFaturaTituloMes').innerText : '';
         abrirModalFatura(mesAtualLabel);
@@ -271,6 +274,9 @@ async function carregarPlanejamento() {
         
         // Regra especial para "Conta a Pagar": Nunca aparece no painel, é exclusivo da Gaveta
         if (m.tipo_gasto === 'Conta a Pagar') return;
+
+        // Regra especial para "Planejamento Renda Extra": Exclusivo da Aba Planejamento de Rendas Extras
+        if (m.tipo_gasto === 'Planejamento Renda Extra') return;
 
         // Se por acaso faltar a data, a gente ignora do calendário.
         if (!m.data_lancamento) return;
@@ -892,7 +898,7 @@ function aplicarMascaraMoedaEmElemento(input) {
 }
 
 function inicializarMascarasMoeda() {
-    const ids = ['inputValor', 'inputValorRealizado', 'novaContaValor', 'novoDesejoValor'];
+    const ids = ['inputValor', 'inputValorRealizado', 'novaContaValor', 'novoDesejoValor', 'inputRendaExtraValor'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) aplicarMascaraMoedaEmElemento(el);
@@ -1439,7 +1445,7 @@ function switchFinanceTab(tabName) {
     // Redireciona qualquer chamada legada da aba Painel/Resumo para a aba Lançamentos
     if (tabName === 'Painel') tabName = 'Lancamentos';
 
-    const tabs = ['Lancamentos', 'APagar', 'PowerBI', 'Tema', 'Desejos'];
+    const tabs = ['Lancamentos', 'APagar', 'PowerBI', 'Desejos', 'RendaExtra', 'Tema'];
     
     // Oculta todas as abas
     tabs.forEach(t => {
@@ -1474,6 +1480,8 @@ function switchFinanceTab(tabName) {
         }
         if (tabName === 'Desejos') {
             carregarListaDesejos();
+        } else if (tabName === 'RendaExtra') {
+            if (typeof carregarPlanejamentoRendaExtra === 'function') carregarPlanejamentoRendaExtra();
         } else if (tabName === 'APagar') {
             carregarContasAPagar();
         } else if (tabName === 'Lancamentos') {
@@ -2508,6 +2516,606 @@ async function darAndamentoAoDesejo(id) {
     showToast('Sonho pronto para lançamento! Defina a data, parcelas e confirme.');
 }
 window.darAndamentoAoDesejo = darAndamentoAoDesejo;
+
+// ==================================================================
+// MÓDULO PLANEJAMENTO DE RENDAS EXTRAS (COM ABATIMENTO ATÉ ZERAR)
+// ==================================================================
+
+function parseDadosRendaExtra(item) {
+    const padrao = { origem: '', aplicacao: '', gastos: [] };
+    if (!item) return padrao;
+    const raw = (item.midia_url && String(item.midia_url).trim()) || (item.link_url && String(item.link_url).trim()) || '';
+    if (raw.startsWith('{')) {
+        try {
+            const parsed = JSON.parse(raw);
+            return {
+                origem: parsed.origem || '',
+                aplicacao: parsed.aplicacao || '',
+                gastos: Array.isArray(parsed.gastos) ? parsed.gastos : []
+            };
+        } catch (e) {}
+    }
+    return padrao;
+}
+
+function serializarDadosRendaExtra(dados) {
+    return JSON.stringify({
+        origem: (dados && dados.origem) ? String(dados.origem).trim() : '',
+        aplicacao: (dados && dados.aplicacao) ? String(dados.aplicacao).trim() : '',
+        gastos: (dados && Array.isArray(dados.gastos)) ? dados.gastos : []
+    });
+}
+
+function formatarMoedaRendaExtra(val) {
+    if (window.privacyMode) return '•••••';
+    const num = parseFloat(val) || 0;
+    return 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+async function carregarPlanejamentoRendaExtra() {
+    const container = document.getElementById('listaRendasExtrasContainer');
+    const resumoBox = document.getElementById('resumoGeralRendaExtra');
+    if (!container) return;
+
+    const movs = await dbLocal.movimentacoes.toArray();
+    const rendas = movs
+        .filter(m => m.tipo_gasto === 'Planejamento Renda Extra' && Number(m.deleted || 0) !== 1)
+        .sort((a, b) => Number(b.updated_at || 0) - Number(a.updated_at || 0));
+
+    container.innerHTML = '';
+
+    if (rendas.length === 0) {
+        if (resumoBox) resumoBox.style.display = 'none';
+        container.innerHTML = `
+            <div style="text-align: center; padding: 36px 20px; background: var(--bg-card); border: 1.5px dashed var(--border-color); border-radius: 16px;">
+                <div style="font-size: 2.5rem; margin-bottom: 8px;">💰</div>
+                <div style="font-size: 1.05rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">Nenhuma Renda Extra planejada ainda</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cadastre acima o valor da sua renda extra, de onde veio e onde será aplicada para controlar os gastos até zerar!</div>
+            </div>
+        `;
+        return;
+    }
+
+    let somaTotalRendas = 0;
+    let somaTotalGastos = 0;
+
+    rendas.forEach(r => {
+        const dados = parseDadosRendaExtra(r);
+        const valorInicial = parseFloat(r.valor_total) || 0;
+        const totalGasto = dados.gastos.reduce((acc, g) => acc + (parseFloat(g.valor) || 0), 0);
+        const saldoRestante = Math.max(0, valorInicial - totalGasto);
+        const excedente = totalGasto > valorInicial ? (totalGasto - valorInicial) : 0;
+
+        somaTotalRendas += valorInicial;
+        somaTotalGastos += totalGasto;
+
+        const percentualGasto = valorInicial > 0 ? Math.min(100, Math.round((totalGasto / valorInicial) * 100)) : 0;
+        const zerou = valorInicial > 0 && saldoRestante <= 0.009;
+
+        let badgeStatusHtml = '';
+        let corSaldo = '#10B981';
+        let corBarra = 'linear-gradient(90deg, #10B981, #3B82F6)';
+
+        if (excedente > 0.009) {
+            badgeStatusHtml = `<span style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5; font-size: 0.74rem; font-weight: 800; padding: 4px 10px; border-radius: 999px;">⚠️ Ultrapassou em ${formatarMoedaRendaExtra(excedente)}</span>`;
+            corSaldo = '#EF4444';
+            corBarra = 'linear-gradient(90deg, #F59E0B, #EF4444)';
+        } else if (zerou) {
+            badgeStatusHtml = `<span style="background: rgba(16, 185, 129, 0.2); border: 1px solid #10B981; color: #34D399; font-size: 0.74rem; font-weight: 800; padding: 4px 10px; border-radius: 999px;">✅ Saldo Zerado (100% Aplicado)</span>`;
+            corSaldo = '#34D399';
+            corBarra = 'linear-gradient(90deg, #10B981, #059669)';
+        } else if (totalGasto > 0) {
+            badgeStatusHtml = `<span style="background: rgba(245, 158, 11, 0.18); border: 1px solid #F59E0B; color: #FCD34D; font-size: 0.74rem; font-weight: 800; padding: 4px 10px; border-radius: 999px;">⏳ Em Uso (${percentualGasto}% utilizado)</span>`;
+            corSaldo = '#38BDF8';
+            corBarra = 'linear-gradient(90deg, #3B82F6, #F59E0B)';
+        } else {
+            badgeStatusHtml = `<span style="background: rgba(59, 130, 246, 0.18); border: 1px solid #3B82F6; color: #93C5FD; font-size: 0.74rem; font-weight: 800; padding: 4px 10px; border-radius: 999px;">💎 100% Disponível</span>`;
+        }
+
+        // Monta histórico de gastos desta renda extra com abatimento progressivo
+        let saldoAcumulado = valorInicial;
+        const listaGastosHtml = dados.gastos.length === 0
+            ? `<div style="text-align: center; padding: 12px; color: #94A3B8; font-size: 0.82rem; background: rgba(15, 23, 42, 0.45); border-radius: 8px; border: 1px dashed #334155;">Nenhum gasto lançado ainda nesta renda extra. Lance abaixo conforme for gastando!</div>`
+            : dados.gastos.map((g, idx) => {
+                const vGasto = parseFloat(g.valor) || 0;
+                saldoAcumulado = Math.max(0, saldoAcumulado - vGasto);
+                const dataGastoBr = g.data ? g.data.split('-').reverse().join('/') : '';
+                return `
+                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: #0F172A; border: 1px solid #1E293B; border-left: 3.5px solid #F59E0B; border-radius: 10px;">
+                        <div style="flex: 1; min-width: 160px;">
+                            <div style="font-weight: 700; color: #F8FAFC; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
+                                <span style="color: #F59E0B; font-size: 0.78rem; font-weight: 800;">#${idx + 1}</span>
+                                <span>${g.descricao || 'Gasto'}</span>
+                                ${dataGastoBr ? `<span style="font-size: 0.72rem; color: #64748B; font-weight: 600;">(${dataGastoBr})</span>` : ''}
+                            </div>
+                            <div style="font-size: 0.75rem; color: #94A3B8; margin-top: 2px;">
+                                Saldo após este gasto: <strong style="color: #38BDF8;">${formatarMoedaRendaExtra(saldoAcumulado)}</strong>
+                            </div>
+                        </div>
+                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <span style="font-weight: 800; color: #F87171; font-size: 0.95rem;">- ${formatarMoedaRendaExtra(vGasto)}</span>
+                            <button type="button" onclick="editarGastoRendaExtra('${r.id}', '${g.id}')" title="Editar este gasto" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 5px 10px; border-radius: 7px; font-size: 0.76rem; font-weight: 700; cursor: pointer;">
+                                ✏️ Editar
+                            </button>
+                            <button type="button" onclick="excluirGastoRendaExtra('${r.id}', '${g.id}')" title="Excluir este gasto e devolver ao saldo" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 5px 9px; border-radius: 7px; font-size: 0.76rem; font-weight: 700; cursor: pointer;">
+                                🗑️ Excluir
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+        const card = document.createElement('div');
+        card.style.cssText = 'background: var(--bg-card); border: 1.5px solid var(--border-color); border-left: 5px solid #10B981; border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.28);';
+
+        card.innerHTML = `
+            <!-- Cabeçalho da Renda Extra -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
+                <div style="flex: 1; min-width: 220px;">
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
+                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">💰 ${r.descricao || 'Renda Extra'}</h3>
+                        ${badgeStatusHtml}
+                    </div>
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
+                        <span style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); color: #93C5FD; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 8px;">
+                            👤 De onde veio: <strong>${dados.origem || 'Não informado'}</strong>
+                        </span>
+                        <span style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); color: #FCD34D; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 8px;">
+                            🎯 Onde será aplicada: <strong>${dados.aplicacao || 'Uso Geral'}</strong>
+                        </span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" onclick="editarRendaExtraNoFormulario('${r.id}')" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        ✏️ Editar Renda
+                    </button>
+                    <button type="button" onclick="excluirRendaExtra('${r.id}')" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        🗑️ Excluir
+                    </button>
+                </div>
+            </div>
+
+            <!-- Painel de Valores e Saldo Diminuindo até Zerar -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; margin-bottom: 12px;">
+                <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 10px 12px;">
+                    <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 700; text-transform: uppercase;">Valor da Renda Extra</div>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: #10B981; margin-top: 2px;">${formatarMoedaRendaExtra(valorInicial)}</div>
+                </div>
+                <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 10px 12px;">
+                    <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 700; text-transform: uppercase;">Total Gasto / Abatido</div>
+                    <div style="font-size: 1.1rem; font-weight: 800; color: #F59E0B; margin-top: 2px;">- ${formatarMoedaRendaExtra(totalGasto)}</div>
+                </div>
+                <div style="background: #0F172A; border: 1.5px solid ${corSaldo}; border-radius: 10px; padding: 10px 12px;">
+                    <div style="font-size: 0.72rem; color: #CBD5E1; font-weight: 800; text-transform: uppercase;">Saldo Restante</div>
+                    <div style="font-size: 1.18rem; font-weight: 900; color: ${corSaldo}; margin-top: 2px;">${formatarMoedaRendaExtra(saldoRestante)}</div>
+                </div>
+            </div>
+
+            <!-- Barra de Progresso do Saldo -->
+            <div style="width: 100%; height: 10px; background: #0F172A; border-radius: 999px; overflow: hidden; margin-bottom: 14px; border: 1px solid #1E293B;">
+                <div style="width: ${percentualGasto}%; height: 100%; background: ${corBarra}; transition: width 0.3s ease;"></div>
+            </div>
+
+            <!-- Sub-formulário para Lançar / Editar o que vai ser gasto nesta Renda Extra -->
+            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+                <div id="lblTituloFormGasto_${r.id}" style="font-size: 0.8rem; font-weight: 800; color: #38BDF8; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
+                    <span>💸 Lançar o que vai ser gasto desta Renda Extra (Abater do Saldo):</span>
+                </div>
+                <input type="hidden" id="idGastoRendaEmEdicao_${r.id}" value="">
+                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                    <input type="text" id="inputGastoRendaDesc_${r.id}" placeholder="O que vai ser gasto? (Ex: Material, Parcela, Compra...)" style="flex: 2; min-width: 180px; padding: 10px 12px; border: 1px solid #334155; border-radius: 8px; background: #0B1120; color: white; font-size: 0.88rem;">
+                    <input type="text" inputmode="numeric" id="inputGastoRendaValor_${r.id}" class="input-gasto-renda-extra-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 120px; padding: 10px 12px; border: 1px solid #F59E0B; border-radius: 8px; background: #0B1120; color: #FCD34D; font-weight: 800; font-size: 0.9rem;">
+                    <button type="button" id="btnSalvarGastoRenda_${r.id}" onclick="salvarGastoRendaExtra('${r.id}')" style="background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 800; font-size: 0.85rem; cursor: pointer; white-space: nowrap;">
+                        + Abater Gasto
+                    </button>
+                    <button type="button" id="btnExcluirGastoRenda_${r.id}" onclick="excluirGastoRendaExtraEmEdicao('${r.id}')" style="display: none; background: rgba(239, 68, 68, 0.18); border: 1px solid #EF4444; color: #FCA5A5; padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer;">
+                        🗑️ Excluir
+                    </button>
+                    <button type="button" id="btnCancelarGastoRenda_${r.id}" onclick="cancelarEdicaoGastoRendaExtra('${r.id}')" style="background: #1E293B; border: 1px solid #475569; color: #CBD5E1; padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer;">
+                        ✕ Cancelar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Lista de Gastos Abatidos -->
+            <div style="display: flex; flex-direction: column; gap: 8px;">
+                <div style="font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.4px;">
+                    Histórico de Gastos / Aplicações (${dados.gastos.length})
+                </div>
+                ${listaGastosHtml}
+            </div>
+        `;
+
+        container.appendChild(card);
+    });
+
+    // Atualiza Resumo Consolidado
+    if (resumoBox) {
+        resumoBox.style.display = 'grid';
+        const saldoTotalGeral = Math.max(0, somaTotalRendas - somaTotalGastos);
+        const elTot = document.getElementById('valResumoRendaExtraTotal');
+        const elGas = document.getElementById('valResumoRendaExtraGasto');
+        const elSal = document.getElementById('valResumoRendaExtraSaldo');
+        if (elTot) elTot.innerText = formatarMoedaRendaExtra(somaTotalRendas);
+        if (elGas) elGas.innerText = formatarMoedaRendaExtra(somaTotalGastos);
+        if (elSal) elSal.innerText = formatarMoedaRendaExtra(saldoTotalGeral);
+    }
+
+    // Aplica máscara monetária nos campos dinâmicos de gasto de cada Renda Extra
+    document.querySelectorAll('.input-gasto-renda-extra-mask').forEach(el => {
+        aplicarMascaraMoedaEmElemento(el);
+    });
+}
+window.carregarPlanejamentoRendaExtra = carregarPlanejamentoRendaExtra;
+
+// Salvar Renda Extra (Nova ou Edição)
+async function salvarRendaExtraFormulario() {
+    const descEl = document.getElementById('inputRendaExtraDesc');
+    const valorEl = document.getElementById('inputRendaExtraValor');
+    const origemEl = document.getElementById('inputRendaExtraOrigem');
+    const aplicacaoEl = document.getElementById('inputRendaExtraAplicacao');
+    const idInput = document.getElementById('idRendaExtraEmEdicao');
+
+    const desc = descEl ? descEl.value.trim() : '';
+    const valor = valorEl ? desformatarMoedaInput(valorEl.value) : 0;
+    const origem = origemEl ? origemEl.value.trim() : '';
+    const aplicacao = aplicacaoEl ? aplicacaoEl.value.trim() : '';
+    const idEdicao = idInput ? idInput.value.trim() : '';
+
+    if (!desc || isNaN(valor) || valor <= 0) {
+        alert('Por favor, informe do que é a Renda Extra e o valor em R$.');
+        return;
+    }
+
+    const timestamp = Date.now();
+    const currentUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+    const currentUserId = currentUser ? currentUser.id : (localStorage.getItem('financas_current_user_id') || null);
+
+    if (idEdicao) {
+        let item = await dbLocal.movimentacoes.get(idEdicao);
+        if (!item && !isNaN(idEdicao)) item = await dbLocal.movimentacoes.get(Number(idEdicao));
+        if (!item) {
+            const all = await dbLocal.movimentacoes.toArray();
+            item = all.find(m => String(m.id) === String(idEdicao));
+        }
+        const targetId = item ? item.id : idEdicao;
+        const dadosAtuais = parseDadosRendaExtra(item);
+        dadosAtuais.origem = origem;
+        dadosAtuais.aplicacao = aplicacao;
+
+        const totalGasto = dadosAtuais.gastos.reduce((acc, g) => acc + (parseFloat(g.valor) || 0), 0);
+        const novoStatus = totalGasto >= valor ? 'Pago' : 'Pendente';
+
+        await dbLocal.movimentacoes.update(targetId, {
+            descricao: desc,
+            valor_total: valor,
+            valor_realizado: totalGasto,
+            status: novoStatus,
+            midia_url: serializarDadosRendaExtra(dadosAtuais),
+            midia_tipo: 'renda_extra_json',
+            user_id: currentUserId || (item ? item.user_id : null),
+            sync_status: 'pending_update',
+            updated_at: timestamp
+        });
+
+        showToast('Planejamento de Renda Extra atualizado com sucesso!');
+    } else {
+        const dadosIniciais = {
+            origem: origem,
+            aplicacao: aplicacao,
+            gastos: []
+        };
+
+        const novaRendaExtra = {
+            id: String(generateUUID()),
+            descricao: desc,
+            valor_total: valor,
+            valor_realizado: 0,
+            data_lancamento: new Date().toISOString().split('T')[0],
+            tipo_gasto: 'Planejamento Renda Extra',
+            status: 'Pendente',
+            conta_id: '1',
+            parcelado: 'Não',
+            total_parcelas: 1,
+            parcela_atual: 1,
+            id_grupo: '',
+            link_url: '',
+            midia_url: serializarDadosRendaExtra(dadosIniciais),
+            midia_tipo: 'renda_extra_json',
+            user_id: currentUserId,
+            deleted: 0,
+            sync_status: 'pending_insert',
+            updated_at: timestamp
+        };
+
+        await dbLocal.movimentacoes.put(novaRendaExtra);
+        showToast('Renda Extra cadastrada! Agora você pode lançar os gastos para abater do saldo.');
+    }
+
+    cancelarEdicaoRendaExtra();
+    await carregarPlanejamentoRendaExtra();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+}
+window.salvarRendaExtraFormulario = salvarRendaExtraFormulario;
+
+// Carregar Renda Extra no Formulário do Topo para Edição
+async function editarRendaExtraNoFormulario(id) {
+    if (!id) return;
+    let item = await dbLocal.movimentacoes.get(id);
+    if (!item && !isNaN(id)) item = await dbLocal.movimentacoes.get(Number(id));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+    }
+    if (!item) {
+        showToast('Renda Extra não encontrada.');
+        return;
+    }
+
+    const dados = parseDadosRendaExtra(item);
+
+    const idInput = document.getElementById('idRendaExtraEmEdicao');
+    if (idInput) idInput.value = item.id;
+
+    const descEl = document.getElementById('inputRendaExtraDesc');
+    if (descEl) descEl.value = item.descricao || '';
+
+    const valorEl = document.getElementById('inputRendaExtraValor');
+    if (valorEl) setarValorMoedaInput(valorEl, item.valor_total || 0);
+
+    const origemEl = document.getElementById('inputRendaExtraOrigem');
+    if (origemEl) origemEl.value = dados.origem || '';
+
+    const aplicacaoEl = document.getElementById('inputRendaExtraAplicacao');
+    if (aplicacaoEl) aplicacaoEl.value = dados.aplicacao || '';
+
+    const btnSalvar = document.getElementById('btnSalvarRendaExtra');
+    if (btnSalvar) btnSalvar.innerHTML = '💾 Salvar Alterações';
+
+    const btnExcluir = document.getElementById('btnExcluirRendaExtraForm');
+    if (btnExcluir) btnExcluir.style.display = 'flex';
+
+    if (descEl) {
+        descEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => descEl.focus(), 250);
+    }
+
+    showToast('Renda Extra carregada para edição no topo.');
+}
+window.editarRendaExtraNoFormulario = editarRendaExtraNoFormulario;
+
+// Cancelar Edição / Limpar Formulário de Renda Extra
+function cancelarEdicaoRendaExtra() {
+    const idInput = document.getElementById('idRendaExtraEmEdicao');
+    if (idInput) idInput.value = '';
+
+    ['inputRendaExtraDesc', 'inputRendaExtraValor', 'inputRendaExtraOrigem', 'inputRendaExtraAplicacao'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+
+    const btnSalvar = document.getElementById('btnSalvarRendaExtra');
+    if (btnSalvar) btnSalvar.innerHTML = '💾 Salvar Renda Extra';
+
+    const btnExcluir = document.getElementById('btnExcluirRendaExtraForm');
+    if (btnExcluir) btnExcluir.style.display = 'none';
+}
+window.cancelarEdicaoRendaExtra = cancelarEdicaoRendaExtra;
+
+// Excluir Renda Extra que está em edição no formulário
+async function excluirRendaExtraEmEdicao() {
+    const idInput = document.getElementById('idRendaExtraEmEdicao');
+    const id = idInput ? idInput.value : '';
+    if (!id) return;
+    await excluirRendaExtra(id);
+}
+window.excluirRendaExtraEmEdicao = excluirRendaExtraEmEdicao;
+
+// Excluir Renda Extra
+async function excluirRendaExtra(id) {
+    if (!id) return;
+    if (!confirm('Tem certeza que deseja excluir este Planejamento de Renda Extra e seus gastos?')) return;
+
+    let item = await dbLocal.movimentacoes.get(id);
+    let targetId = id;
+    if (!item && !isNaN(id)) {
+        item = await dbLocal.movimentacoes.get(Number(id));
+        if (item) targetId = Number(id);
+    }
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(id));
+        if (item) targetId = item.id;
+    }
+
+    const timestamp = Date.now();
+    if (item) {
+        await dbLocal.movimentacoes.update(targetId, {
+            deleted: 1,
+            sync_status: 'pending_update',
+            updated_at: timestamp
+        });
+    } else {
+        await dbLocal.movimentacoes.delete(targetId);
+    }
+
+    const idInput = document.getElementById('idRendaExtraEmEdicao');
+    if (idInput && String(idInput.value) === String(id)) {
+        cancelarEdicaoRendaExtra();
+    }
+
+    showToast('Renda Extra excluída com sucesso!');
+    await carregarPlanejamentoRendaExtra();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+}
+window.excluirRendaExtra = excluirRendaExtra;
+
+// Salvar (ou Atualizar) um Gasto / Abatimento dentro de uma Renda Extra
+async function salvarGastoRendaExtra(rendaId) {
+    if (!rendaId) return;
+    const descEl = document.getElementById(`inputGastoRendaDesc_${rendaId}`);
+    const valorEl = document.getElementById(`inputGastoRendaValor_${rendaId}`);
+    const idGastoEl = document.getElementById(`idGastoRendaEmEdicao_${rendaId}`);
+
+    const desc = descEl ? descEl.value.trim() : '';
+    const valor = valorEl ? desformatarMoedaInput(valorEl.value) : 0;
+    const gastoIdEdicao = idGastoEl ? idGastoEl.value.trim() : '';
+
+    if (!desc || isNaN(valor) || valor <= 0) {
+        alert('Informe o que vai ser gasto e o valor em R$ para abater da Renda Extra.');
+        return;
+    }
+
+    let item = await dbLocal.movimentacoes.get(rendaId);
+    if (!item && !isNaN(rendaId)) item = await dbLocal.movimentacoes.get(Number(rendaId));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(rendaId));
+    }
+    if (!item) {
+        showToast('Renda Extra não encontrada.');
+        return;
+    }
+
+    const dados = parseDadosRendaExtra(item);
+
+    if (gastoIdEdicao) {
+        const idx = dados.gastos.findIndex(g => String(g.id) === String(gastoIdEdicao));
+        if (idx !== -1) {
+            dados.gastos[idx].descricao = desc;
+            dados.gastos[idx].valor = valor;
+        }
+    } else {
+        dados.gastos.push({
+            id: 'g_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+            descricao: desc,
+            valor: valor,
+            data: new Date().toISOString().split('T')[0]
+        });
+    }
+
+    const totalGasto = dados.gastos.reduce((acc, g) => acc + (parseFloat(g.valor) || 0), 0);
+    const valorRenda = parseFloat(item.valor_total) || 0;
+    const novoStatus = totalGasto >= valorRenda ? 'Pago' : 'Pendente';
+    const timestamp = Date.now();
+
+    await dbLocal.movimentacoes.update(item.id, {
+        valor_realizado: totalGasto,
+        status: novoStatus,
+        midia_url: serializarDadosRendaExtra(dados),
+        midia_tipo: 'renda_extra_json',
+        sync_status: 'pending_update',
+        updated_at: timestamp
+    });
+
+    const saldoRestante = Math.max(0, valorRenda - totalGasto);
+    if (saldoRestante <= 0.009) {
+        showToast('✅ Gasto registrado! O saldo desta Renda Extra chegou a R$ 0,00 (Zerado)!');
+    } else {
+        showToast(gastoIdEdicao ? 'Gasto atualizado! Saldo recalculado.' : 'Gasto abatido do saldo da Renda Extra!');
+    }
+
+    await carregarPlanejamentoRendaExtra();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+}
+window.salvarGastoRendaExtra = salvarGastoRendaExtra;
+
+// Carregar um Gasto da Renda Extra para Edição
+async function editarGastoRendaExtra(rendaId, gastoId) {
+    if (!rendaId || !gastoId) return;
+    let item = await dbLocal.movimentacoes.get(rendaId);
+    if (!item && !isNaN(rendaId)) item = await dbLocal.movimentacoes.get(Number(rendaId));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(rendaId));
+    }
+    if (!item) return;
+
+    const dados = parseDadosRendaExtra(item);
+    const gasto = dados.gastos.find(g => String(g.id) === String(gastoId));
+    if (!gasto) return;
+
+    const idGastoEl = document.getElementById(`idGastoRendaEmEdicao_${rendaId}`);
+    const descEl = document.getElementById(`inputGastoRendaDesc_${rendaId}`);
+    const valorEl = document.getElementById(`inputGastoRendaValor_${rendaId}`);
+    const btnSalvar = document.getElementById(`btnSalvarGastoRenda_${rendaId}`);
+    const btnExcluir = document.getElementById(`btnExcluirGastoRenda_${rendaId}`);
+    const lblTitulo = document.getElementById(`lblTituloFormGasto_${rendaId}`);
+
+    if (idGastoEl) idGastoEl.value = gasto.id;
+    if (descEl) {
+        descEl.value = gasto.descricao || '';
+        descEl.focus();
+    }
+    if (valorEl) setarValorMoedaInput(valorEl, gasto.valor || 0);
+    if (btnSalvar) btnSalvar.innerHTML = '💾 Salvar Gasto';
+    if (btnExcluir) btnExcluir.style.display = 'inline-flex';
+    if (lblTitulo) lblTitulo.innerHTML = `<span style="color: #FCD34D;">✏️ Editando gasto: "${gasto.descricao}"</span>`;
+}
+window.editarGastoRendaExtra = editarGastoRendaExtra;
+
+// Cancelar Edição / Limpar campos de Gasto da Renda Extra
+function cancelarEdicaoGastoRendaExtra(rendaId) {
+    const idGastoEl = document.getElementById(`idGastoRendaEmEdicao_${rendaId}`);
+    const descEl = document.getElementById(`inputGastoRendaDesc_${rendaId}`);
+    const valorEl = document.getElementById(`inputGastoRendaValor_${rendaId}`);
+    const btnSalvar = document.getElementById(`btnSalvarGastoRenda_${rendaId}`);
+    const btnExcluir = document.getElementById(`btnExcluirGastoRenda_${rendaId}`);
+    const lblTitulo = document.getElementById(`lblTituloFormGasto_${rendaId}`);
+
+    if (idGastoEl) idGastoEl.value = '';
+    if (descEl) descEl.value = '';
+    if (valorEl) valorEl.value = '';
+    if (btnSalvar) btnSalvar.innerHTML = '+ Abater Gasto';
+    if (btnExcluir) btnExcluir.style.display = 'none';
+    if (lblTitulo) lblTitulo.innerHTML = `<span>💸 Lançar o que vai ser gasto desta Renda Extra (Abater do Saldo):</span>`;
+}
+window.cancelarEdicaoGastoRendaExtra = cancelarEdicaoGastoRendaExtra;
+
+// Excluir Gasto em Edição na Renda Extra
+async function excluirGastoRendaExtraEmEdicao(rendaId) {
+    const idGastoEl = document.getElementById(`idGastoRendaEmEdicao_${rendaId}`);
+    const gastoId = idGastoEl ? idGastoEl.value : '';
+    if (!gastoId) return;
+    await excluirGastoRendaExtra(rendaId, gastoId);
+}
+window.excluirGastoRendaExtraEmEdicao = excluirGastoRendaExtraEmEdicao;
+
+// Excluir um Gasto específico da Renda Extra (devolvendo o valor ao saldo restante)
+async function excluirGastoRendaExtra(rendaId, gastoId) {
+    if (!rendaId || !gastoId) return;
+    if (!confirm('Deseja excluir este gasto e devolver o valor ao saldo disponível da Renda Extra?')) return;
+
+    let item = await dbLocal.movimentacoes.get(rendaId);
+    if (!item && !isNaN(rendaId)) item = await dbLocal.movimentacoes.get(Number(rendaId));
+    if (!item) {
+        const all = await dbLocal.movimentacoes.toArray();
+        item = all.find(m => String(m.id) === String(rendaId));
+    }
+    if (!item) return;
+
+    const dados = parseDadosRendaExtra(item);
+    dados.gastos = dados.gastos.filter(g => String(g.id) !== String(gastoId));
+
+    const totalGasto = dados.gastos.reduce((acc, g) => acc + (parseFloat(g.valor) || 0), 0);
+    const valorRenda = parseFloat(item.valor_total) || 0;
+    const novoStatus = totalGasto >= valorRenda ? 'Pago' : 'Pendente';
+    const timestamp = Date.now();
+
+    await dbLocal.movimentacoes.update(item.id, {
+        valor_realizado: totalGasto,
+        status: novoStatus,
+        midia_url: serializarDadosRendaExtra(dados),
+        midia_tipo: 'renda_extra_json',
+        sync_status: 'pending_update',
+        updated_at: timestamp
+    });
+
+    showToast('Gasto excluído! O valor voltou para o saldo da Renda Extra.');
+    await carregarPlanejamentoRendaExtra();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+}
+window.excluirGastoRendaExtra = excluirGastoRendaExtra;
 
 // Salvar Conta a Pagar no Formulário (Novo ou Edição)
 async function salvarContaFormulario() {

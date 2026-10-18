@@ -501,6 +501,7 @@ function obterItensDeAnoEMes(movsAtivas, targetYear, targetMonth) {
     movsAtivas.forEach(m => {
         if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
         if (m.tipo_gasto === 'Conta a Pagar') return;
+        if (m.tipo_gasto === 'Planejamento Renda Extra') return;
         if (!m.data_lancamento) return;
 
         const [year, month, day] = m.data_lancamento.split('-');
@@ -525,6 +526,7 @@ function obterItensDeAnoEMes(movsAtivas, targetYear, targetMonth) {
     movsAtivas.forEach(m => {
         if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
         if (m.tipo_gasto === 'Conta a Pagar') return;
+        if (m.tipo_gasto === 'Planejamento Renda Extra') return;
         if (!m.data_lancamento) return;
         if (m.parcelado !== 'Sim' || !m.id_grupo) return;
         if (gruposFisicosNoMes.has(m.id_grupo)) return;

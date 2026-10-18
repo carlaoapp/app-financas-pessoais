@@ -25,6 +25,7 @@ let pendingSyncRetry = false;
 function atualizarUIAposSync() {
     if (typeof carregarPlanejamento === 'function') carregarPlanejamento();
     if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
+    if (typeof carregarPlanejamentoRendaExtra === 'function') carregarPlanejamentoRendaExtra();
     if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
     if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
     if (typeof renderPowerBIDashboard === 'function') {
