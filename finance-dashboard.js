@@ -1485,6 +1485,10 @@ function switchFinanceTab(tabName) {
         }
     }
 
+    if (typeof syncFinanceWithServer === 'function') {
+        syncFinanceWithServer();
+    }
+
     // Rola para o topo suavemente
     window.scrollTo({ top: 0, behavior: 'smooth' });
 }
@@ -2289,6 +2293,8 @@ async function salvarDesejoFormulario() {
 
     const timestamp = Date.now();
     const midiasSerializadas = serializarMidiasDesejo(midiasDesejoTemp);
+    const currentUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+    const currentUserId = currentUser ? currentUser.id : (localStorage.getItem('financas_current_user_id') || null);
 
     if (idEdicao) {
         // Atualizar desejo existente
@@ -2302,6 +2308,7 @@ async function salvarDesejoFormulario() {
             link_url: linkUrl,
             midia_url: midiasSerializadas.midia_url,
             midia_tipo: midiasSerializadas.midia_tipo,
+            user_id: currentUserId || (item ? item.user_id : null),
             sync_status: 'pending_update',
             updated_at: timestamp
         });
@@ -2310,7 +2317,7 @@ async function salvarDesejoFormulario() {
     } else {
         // Criar novo desejo
         const novoLancamento = {
-            id: generateUUID(),
+            id: String(generateUUID()),
             descricao: desc,
             valor_total: valor,
             valor_realizado: 0,
@@ -2325,6 +2332,7 @@ async function salvarDesejoFormulario() {
             link_url: linkUrl,
             midia_url: midiasSerializadas.midia_url,
             midia_tipo: midiasSerializadas.midia_tipo,
+            user_id: currentUserId,
             deleted: 0,
             sync_status: 'pending_insert',
             updated_at: timestamp
@@ -2335,7 +2343,7 @@ async function salvarDesejoFormulario() {
     }
 
     cancelarEdicaoDesejo();
-    carregarListaDesejos();
+    await carregarListaDesejos();
     if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
 }
 window.salvarDesejoFormulario = salvarDesejoFormulario;
