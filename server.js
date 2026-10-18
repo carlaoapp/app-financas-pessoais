@@ -43,8 +43,8 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '150mb' }));
+app.use(express.urlencoded({ limit: '150mb', extended: true }));
 
 // Previne cache em navegadores, PWA e CDN Cloudflare para garantir que atualizacoes cheguem instantaneamente
 app.use((req, res, next) => {
@@ -88,7 +88,7 @@ app.get('/api/version', (req, res) => {
             return res.json(data);
         }
     } catch (e) {}
-    res.json({ version: '1.5.7', updatedAt: Date.now() });
+    res.json({ version: '1.6.1', updatedAt: Date.now() });
 });
 
 const crypto = require('crypto');
@@ -356,23 +356,14 @@ app.get('/api/auth/me', (req, res) => {
     res.json({ loggedIn: true });
 });
 
-// Sync PULL: busca registros atualizados apos lastSync (filtrado por usuario com suporte a legado)
+// Sync PULL: busca registros atualizados apos lastSync + manifesto completo do servidor para reconciliacao entre celular e computador
 app.get('/api/sync/pull', (req, res) => {
     const lastSync = parseInt(req.query.lastSync, 10) || 0;
-    const userId = req.query.userId || req.headers['x-user-id'] || null;
 
-    let queryOrigens, queryContas, queryMovs, params;
-    if (userId) {
-        queryOrigens = 'SELECT * FROM origens_renda WHERE (user_id = ? OR user_id IS NULL) AND updated_at > ?';
-        queryContas = 'SELECT * FROM contas_bancarias WHERE (user_id = ? OR user_id IS NULL) AND updated_at > ?';
-        queryMovs = 'SELECT * FROM movimentacoes WHERE (user_id = ? OR user_id IS NULL) AND updated_at > ?';
-        params = [userId, lastSync];
-    } else {
-        queryOrigens = 'SELECT * FROM origens_renda WHERE updated_at > ?';
-        queryContas = 'SELECT * FROM contas_bancarias WHERE updated_at > ?';
-        queryMovs = 'SELECT * FROM movimentacoes WHERE updated_at > ?';
-        params = [lastSync];
-    }
+    const queryOrigens = 'SELECT * FROM origens_renda WHERE updated_at > ?';
+    const queryContas = 'SELECT * FROM contas_bancarias WHERE updated_at > ?';
+    const queryMovs = 'SELECT * FROM movimentacoes WHERE updated_at > ?';
+    const params = [lastSync];
 
     db.all(queryOrigens, params, (err, origens) => {
         if (err) return res.status(500).json({ error: err.message });
@@ -380,17 +371,31 @@ app.get('/api/sync/pull', (req, res) => {
             if (err) return res.status(500).json({ error: err.message });
             db.all(queryMovs, params, (err, movs) => {
                 if (err) return res.status(500).json({ error: err.message });
-                res.json({
-                    origens_renda: origens || [],
-                    contas_bancarias: contas || [],
-                    movimentacoes: movs || []
+
+                // Manifesto leve (sem midia_url pesada) para reconciliacao automatica bidirecional (Celular <-> Computador)
+                db.all('SELECT id, updated_at, deleted FROM origens_renda', [], (errM1, manOrigens) => {
+                    db.all('SELECT id, updated_at, deleted FROM contas_bancarias', [], (errM2, manContas) => {
+                        db.all('SELECT id, updated_at, deleted FROM movimentacoes', [], (errM3, manMovs) => {
+                            res.json({
+                                origens_renda: origens || [],
+                                contas_bancarias: contas || [],
+                                movimentacoes: movs || [],
+                                server_manifest: {
+                                    origens_renda: (!errM1 && manOrigens) ? manOrigens : [],
+                                    contas_bancarias: (!errM2 && manContas) ? manContas : [],
+                                    movimentacoes: (!errM3 && manMovs) ? manMovs : []
+                                },
+                                server_timestamp: Date.now()
+                            });
+                        });
+                    });
                 });
             });
         });
     });
 });
 
-// Sync PUSH: insere ou atualiza em lote no SQLite com user_id preservado
+// Sync PUSH: insere ou atualiza em lote no SQLite aguardando conclusao real da gravacao
 app.post('/api/sync/push', (req, res) => {
     const { origens_renda = [], contas_bancarias = [], movimentacoes = [], userId = null } = req.body;
     const headerUserId = req.headers['x-user-id'] || userId;
@@ -410,7 +415,8 @@ app.post('/api/sync/push', (req, res) => {
                     deleted = excluded.deleted
             `);
             origens_renda.forEach(r => {
-                stmtOrigem.run([r.id, r.descricao, r.tipo_receita, r.user_id || headerUserId || null, serverTimestamp, r.deleted || 0]);
+                const ts = Math.max(Number(r.updated_at) || 0, serverTimestamp);
+                stmtOrigem.run([String(r.id), r.descricao, r.tipo_receita, r.user_id || headerUserId || null, ts, r.deleted ? 1 : 0]);
             });
             stmtOrigem.finalize();
         }
@@ -431,12 +437,13 @@ app.post('/api/sync/push', (req, res) => {
                     deleted = excluded.deleted
             `);
             contas_bancarias.forEach(c => {
-                stmtConta.run([c.id, c.nome_conta, c.tipo_conta, c.limite_cartao, c.dia_fechamento, c.dia_vencimento, c.user_id || headerUserId || null, serverTimestamp, c.deleted || 0]);
+                const ts = Math.max(Number(c.updated_at) || 0, serverTimestamp);
+                stmtConta.run([String(c.id), c.nome_conta, c.tipo_conta, c.limite_cartao, c.dia_fechamento, c.dia_vencimento, c.user_id || headerUserId || null, ts, c.deleted ? 1 : 0]);
             });
             stmtConta.finalize();
         }
 
-        // Movimentacoes
+        // Movimentacoes (incluindo Lista de Desejos, Contas a Pagar e Lancamentos)
         if (movimentacoes.length > 0) {
             const stmtMov = db.prepare(`
                 INSERT INTO movimentacoes (id, descricao, valor_total, valor_realizado, data_lancamento, tipo_gasto, status, conta_id, parcelado, total_parcelas, parcela_atual, id_grupo, link_url, midia_url, midia_tipo, user_id, updated_at, deleted)
@@ -461,8 +468,9 @@ app.post('/api/sync/push', (req, res) => {
                     deleted = excluded.deleted
             `);
             movimentacoes.forEach(m => {
+                const ts = Math.max(Number(m.updated_at) || 0, serverTimestamp);
                 stmtMov.run([
-                    m.id,
+                    String(m.id),
                     m.descricao,
                     m.valor_total,
                     m.valor_realizado || 0,
@@ -478,15 +486,22 @@ app.post('/api/sync/push', (req, res) => {
                     m.midia_url || null,
                     m.midia_tipo || null,
                     m.user_id || headerUserId || null,
-                    serverTimestamp,
-                    m.deleted || 0
+                    ts,
+                    m.deleted ? 1 : 0
                 ]);
             });
             stmtMov.finalize();
         }
-    });
 
-    res.json({ success: true, timestamp: serverTimestamp });
+        // Garante que todas as queries anteriores na fila do serialize finalizaram antes de responder
+        db.get('SELECT 1', [], (err) => {
+            if (err) {
+                console.error('[SYNC PUSH ERROR]', err);
+                return res.status(500).json({ success: false, error: err.message });
+            }
+            res.json({ success: true, timestamp: serverTimestamp });
+        });
+    });
 });
 
 // Endpoint direto para listar todas movimentacoes ativas
