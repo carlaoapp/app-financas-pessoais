@@ -2621,105 +2621,119 @@ async function carregarPlanejamentoRendaExtra() {
                 saldoAcumulado = Math.max(0, saldoAcumulado - vGasto);
                 const dataGastoBr = g.data ? g.data.split('-').reverse().join('/') : '';
                 return `
-                    <div style="display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; background: #0F172A; border: 1px solid #1E293B; border-left: 3.5px solid #F59E0B; border-radius: 10px;">
-                        <div style="flex: 1; min-width: 160px;">
-                            <div style="font-weight: 700; color: #F8FAFC; font-size: 0.9rem; display: flex; align-items: center; gap: 6px;">
-                                <span style="color: #F59E0B; font-size: 0.78rem; font-weight: 800;">#${idx + 1}</span>
-                                <span>${g.descricao || 'Gasto'}</span>
-                                ${dataGastoBr ? `<span style="font-size: 0.72rem; color: #64748B; font-weight: 600;">(${dataGastoBr})</span>` : ''}
+                    <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px 12px; background: #0F172A; border: 1px solid #1E293B; border-left: 3.5px solid #F59E0B; border-radius: 10px;">
+                        <!-- Linha 1: Descrição e Data à esquerda, Valor à direita -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+                            <div style="font-weight: 700; color: #F8FAFC; font-size: 0.88rem; display: flex; align-items: center; gap: 6px; min-width: 0;">
+                                <span style="color: #F59E0B; font-size: 0.78rem; font-weight: 800; flex-shrink: 0;">#${idx + 1}</span>
+                                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${g.descricao || 'Gasto'}</span>
+                                ${dataGastoBr ? `<span style="font-size: 0.72rem; color: #64748B; font-weight: 600; flex-shrink: 0;">(${dataGastoBr})</span>` : ''}
                             </div>
-                            <div style="font-size: 0.75rem; color: #94A3B8; margin-top: 2px;">
-                                Saldo após este gasto: <strong style="color: #38BDF8;">${formatarMoedaRendaExtra(saldoAcumulado)}</strong>
+                            <div style="font-weight: 800; color: #F87171; font-size: 0.95rem; white-space: nowrap; flex-shrink: 0;">
+                                - ${formatarMoedaRendaExtra(vGasto)}
                             </div>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <span style="font-weight: 800; color: #F87171; font-size: 0.95rem;">- ${formatarMoedaRendaExtra(vGasto)}</span>
-                            <button type="button" onclick="editarGastoRendaExtra('${r.id}', '${g.id}')" title="Editar este gasto" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 5px 10px; border-radius: 7px; font-size: 0.76rem; font-weight: 700; cursor: pointer;">
-                                ✏️ Editar
-                            </button>
-                            <button type="button" onclick="excluirGastoRendaExtra('${r.id}', '${g.id}')" title="Excluir este gasto e devolver ao saldo" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 5px 9px; border-radius: 7px; font-size: 0.76rem; font-weight: 700; cursor: pointer;">
-                                🗑️ Excluir
-                            </button>
+                        <!-- Linha 2: Saldo restante à esquerda, Botões de Ação à direita -->
+                        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; border-top: 1px dashed rgba(255,255,255,0.06); padding-top: 6px;">
+                            <div style="font-size: 0.74rem; color: #94A3B8; white-space: nowrap;">
+                                Saldo após este gasto: <strong style="color: #38BDF8;">${formatarMoedaRendaExtra(saldoAcumulado)}</strong>
+                            </div>
+                            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                <button type="button" onclick="editarGastoRendaExtra('${r.id}', '${g.id}')" title="Editar este gasto" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 4px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    ✏️ Editar
+                                </button>
+                                <button type="button" onclick="excluirGastoRendaExtra('${r.id}', '${g.id}')" title="Excluir este gasto e devolver ao saldo" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 4px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                                    🗑️ Excluir
+                                </button>
+                            </div>
                         </div>
                     </div>
                 `;
             }).join('');
 
         const card = document.createElement('div');
-        card.style.cssText = 'background: var(--bg-card); border: 1.5px solid var(--border-color); border-left: 5px solid #10B981; border-radius: 16px; padding: 18px; margin-bottom: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.28);';
+        card.style.cssText = 'background: var(--bg-card); border: 1.5px solid var(--border-color); border-left: 5px solid #10B981; border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 6px 20px rgba(0,0,0,0.28);';
 
         card.innerHTML = `
-            <!-- Cabeçalho da Renda Extra -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; flex-wrap: wrap; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--border-color);">
-                <div style="flex: 1; min-width: 220px;">
-                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 6px;">
-                        <h3 style="margin: 0; font-size: 1.15rem; font-weight: 800; color: var(--text-primary);">💰 ${r.descricao || 'Renda Extra'}</h3>
-                        ${badgeStatusHtml}
-                    </div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px;">
-                        <span style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); color: #93C5FD; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 8px;">
-                            👤 De onde veio: <strong>${dados.origem || 'Não informado'}</strong>
-                        </span>
-                        <span style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); color: #FCD34D; font-size: 0.78rem; font-weight: 700; padding: 4px 10px; border-radius: 8px;">
-                            🎯 Onde será aplicada: <strong>${dados.aplicacao || 'Uso Geral'}</strong>
-                        </span>
-                    </div>
+            <!-- Cabeçalho da Renda Extra: Título e Ações na mesma linha -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 8px;">
+                <div style="display: flex; align-items: center; gap: 6px; min-width: 0;">
+                    <h3 style="margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">💰 ${r.descricao || 'Renda Extra'}</h3>
                 </div>
-                <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
-                    <button type="button" onclick="editarRendaExtraNoFormulario('${r.id}')" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-                        ✏️ Editar Renda
+                <div style="display: flex; gap: 6px; align-items: center; flex-shrink: 0;">
+                    <button type="button" onclick="editarRendaExtraNoFormulario('${r.id}')" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 5px 10px; border-radius: 8px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
+                        ✏️ Editar
                     </button>
-                    <button type="button" onclick="excluirRendaExtra('${r.id}')" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 7px 12px; border-radius: 8px; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <button type="button" onclick="excluirRendaExtra('${r.id}')" style="background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 5px 9px; border-radius: 8px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;">
                         🗑️ Excluir
                     </button>
                 </div>
             </div>
 
-            <!-- Painel de Valores e Saldo Diminuindo até Zerar -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 10px; margin-bottom: 12px;">
-                <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 10px 12px;">
-                    <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 700; text-transform: uppercase;">Valor da Renda Extra</div>
-                    <div style="font-size: 1.1rem; font-weight: 800; color: #10B981; margin-top: 2px;">${formatarMoedaRendaExtra(valorInicial)}</div>
+            <!-- Badge de Status e Origem / Destino Alinhados -->
+            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
+                <div>${badgeStatusHtml}</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+                    <span style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); color: #93C5FD; font-size: 0.74rem; font-weight: 700; padding: 5px 8px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        👤 De onde veio: <strong>${dados.origem || 'Não inf.'}</strong>
+                    </span>
+                    <span style="background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); color: #FCD34D; font-size: 0.74rem; font-weight: 700; padding: 5px 8px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                        🎯 Onde aplicar: <strong>${dados.aplicacao || 'Uso Geral'}</strong>
+                    </span>
                 </div>
-                <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 10px 12px;">
-                    <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 700; text-transform: uppercase;">Total Gasto / Abatido</div>
-                    <div style="font-size: 1.1rem; font-weight: 800; color: #F59E0B; margin-top: 2px;">- ${formatarMoedaRendaExtra(totalGasto)}</div>
+            </div>
+
+            <!-- Painel de Valores: 3 Colunas na Mesma Linha -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px;">
+                <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0;">
+                    <div style="font-size: 0.65rem; color: #94A3B8; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Renda Extra</div>
+                    <div style="font-size: 0.95rem; font-weight: 800; color: #10B981; margin-top: 2px; white-space: nowrap;">${formatarMoedaRendaExtra(valorInicial)}</div>
                 </div>
-                <div style="background: #0F172A; border: 1.5px solid ${corSaldo}; border-radius: 10px; padding: 10px 12px;">
-                    <div style="font-size: 0.72rem; color: #CBD5E1; font-weight: 800; text-transform: uppercase;">Saldo Restante</div>
-                    <div style="font-size: 1.18rem; font-weight: 900; color: ${corSaldo}; margin-top: 2px;">${formatarMoedaRendaExtra(saldoRestante)}</div>
+                <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0;">
+                    <div style="font-size: 0.65rem; color: #94A3B8; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Total Gasto</div>
+                    <div style="font-size: 0.95rem; font-weight: 800; color: #F59E0B; margin-top: 2px; white-space: nowrap;">- ${formatarMoedaRendaExtra(totalGasto)}</div>
+                </div>
+                <div style="background: #0F172A; border: 1.5px solid ${corSaldo}; border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0;">
+                    <div style="font-size: 0.65rem; color: #CBD5E1; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Saldo Restante</div>
+                    <div style="font-size: 1rem; font-weight: 900; color: ${corSaldo}; margin-top: 2px; white-space: nowrap;">${formatarMoedaRendaExtra(saldoRestante)}</div>
                 </div>
             </div>
 
             <!-- Barra de Progresso do Saldo -->
-            <div style="width: 100%; height: 10px; background: #0F172A; border-radius: 999px; overflow: hidden; margin-bottom: 14px; border: 1px solid #1E293B;">
+            <div style="width: 100%; height: 8px; background: #0F172A; border-radius: 999px; overflow: hidden; margin-bottom: 12px; border: 1px solid #1E293B;">
                 <div style="width: ${percentualGasto}%; height: 100%; background: ${corBarra}; transition: width 0.3s ease;"></div>
             </div>
 
             <!-- Sub-formulário para Lançar / Editar o que vai ser gasto nesta Renda Extra -->
             <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
-                <div id="lblTituloFormGasto_${r.id}" style="font-size: 0.8rem; font-weight: 800; color: #38BDF8; margin-bottom: 8px; display: flex; align-items: center; justify-content: space-between;">
-                    <span>💸 Lançar o que vai ser gasto desta Renda Extra (Abater do Saldo):</span>
+                <div id="lblTituloFormGasto_${r.id}" style="font-size: 0.78rem; font-weight: 800; color: #38BDF8; margin-bottom: 8px;">
+                    <span>💸 Lançar gasto desta Renda Extra (Abater do Saldo):</span>
                 </div>
                 <input type="hidden" id="idGastoRendaEmEdicao_${r.id}" value="">
-                <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                    <input type="text" id="inputGastoRendaDesc_${r.id}" placeholder="O que vai ser gasto? (Ex: Material, Parcela, Compra...)" style="flex: 2; min-width: 180px; padding: 10px 12px; border: 1px solid #334155; border-radius: 8px; background: #0B1120; color: white; font-size: 0.88rem;">
-                    <input type="text" inputmode="numeric" id="inputGastoRendaValor_${r.id}" class="input-gasto-renda-extra-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 120px; padding: 10px 12px; border: 1px solid #F59E0B; border-radius: 8px; background: #0B1120; color: #FCD34D; font-weight: 800; font-size: 0.9rem;">
-                    <button type="button" id="btnSalvarGastoRenda_${r.id}" onclick="salvarGastoRendaExtra('${r.id}')" style="background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; border: none; padding: 10px 16px; border-radius: 8px; font-weight: 800; font-size: 0.85rem; cursor: pointer; white-space: nowrap;">
+                
+                <!-- Inputs em Linha Única -->
+                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 8px; margin-bottom: 8px;">
+                    <input type="text" id="inputGastoRendaDesc_${r.id}" placeholder="O que vai ser gasto? (Ex: Material...)" style="width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #334155; border-radius: 8px; background: #0B1120; color: white; font-size: 0.85rem;">
+                    <input type="text" inputmode="numeric" id="inputGastoRendaValor_${r.id}" class="input-gasto-renda-extra-mask" placeholder="R$ 0,00" style="width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #F59E0B; border-radius: 8px; background: #0B1120; color: #FCD34D; font-weight: 800; font-size: 0.88rem;">
+                </div>
+
+                <!-- Botões Alinhados Ocupando 100% da Linha -->
+                <div style="display: flex; gap: 8px; width: 100%;">
+                    <button type="button" id="btnSalvarGastoRenda_${r.id}" onclick="salvarGastoRendaExtra('${r.id}')" style="flex: 2; background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; border: none; padding: 10px 12px; border-radius: 8px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
                         + Abater Gasto
                     </button>
-                    <button type="button" id="btnExcluirGastoRenda_${r.id}" onclick="excluirGastoRendaExtraEmEdicao('${r.id}')" style="display: none; background: rgba(239, 68, 68, 0.18); border: 1px solid #EF4444; color: #FCA5A5; padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer;">
+                    <button type="button" id="btnExcluirGastoRenda_${r.id}" onclick="excluirGastoRendaExtraEmEdicao('${r.id}')" style="display: none; flex: 1; background: rgba(239, 68, 68, 0.18); border: 1px solid #EF4444; color: #FCA5A5; padding: 10px 10px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
                         🗑️ Excluir
                     </button>
-                    <button type="button" id="btnCancelarGastoRenda_${r.id}" onclick="cancelarEdicaoGastoRendaExtra('${r.id}')" style="background: #1E293B; border: 1px solid #475569; color: #CBD5E1; padding: 10px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer;">
-                        ✕ Cancelar
+                    <button type="button" id="btnCancelarGastoRenda_${r.id}" onclick="cancelarEdicaoGastoRendaExtra('${r.id}')" style="flex: 1; background: #1E293B; border: 1px solid #475569; color: #CBD5E1; padding: 10px 10px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
+                        ✕ Limpar
                     </button>
                 </div>
             </div>
 
             <!-- Lista de Gastos Abatidos -->
             <div style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.4px;">
+                <div style="font-size: 0.74rem; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.4px;">
                     Histórico de Gastos / Aplicações (${dados.gastos.length})
                 </div>
                 ${listaGastosHtml}

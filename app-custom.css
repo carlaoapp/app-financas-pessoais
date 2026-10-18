@@ -595,10 +595,12 @@ body {
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid var(--border-color);
-    padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px)) 8px;
+    padding: 6px 6px calc(6px + env(safe-area-inset-bottom, 0px)) 6px;
     z-index: 90;
-    justify-content: space-around;
+    justify-content: space-between;
     align-items: center;
+    gap: 2px;
+    box-sizing: border-box;
 }
 
 .mobile-nav-item {
@@ -609,18 +611,30 @@ body {
     background: transparent;
     border: none;
     color: var(--text-muted);
-    font-size: 0.74rem;
+    font-size: 0.65rem;
     font-weight: 700;
-    padding: 6px 4px;
-    border-radius: 12px;
+    line-height: 1.15;
+    letter-spacing: -0.2px;
+    padding: 5px 3px;
+    border-radius: 10px;
     cursor: pointer;
     transition: all 0.2s;
-    flex: 1;
+    flex: 0 1 auto;
     min-width: 0;
+    white-space: nowrap;
+    text-align: center;
+}
+
+.mobile-nav-item span {
+    white-space: nowrap;
+    display: block;
 }
 
 .mobile-nav-item svg {
+    width: 19px;
+    height: 19px;
     margin-bottom: 3px;
+    flex-shrink: 0;
     transition: transform 0.2s ease, stroke 0.2s ease;
 }
 
@@ -628,7 +642,7 @@ body {
     color: #60A5FA;
 }
 .mobile-nav-item.active svg {
-    transform: scale(1.15);
+    transform: scale(1.12);
     stroke: #3B82F6;
 }
 
