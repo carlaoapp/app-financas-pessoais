@@ -1257,202 +1257,211 @@ window.fecharModalConfirmarExclusao = fecharModalConfirmarExclusao;
 window.executarConfirmacaoExclusao = executarConfirmacaoExclusao;
 
 async function salvarLancamento(event) {
-    event.preventDefault();
-    
-    const idAtual = document.getElementById('inputIdMovimentacao').value;
-    const tipoGasto = document.getElementById('inputTipoGasto').value;
-    const selCat = document.getElementById('selectCategoriaPredefinida');
-    const inpDesc = document.getElementById('inputDescricao');
-    const descricao = (selCat && selCat.value ? selCat.value : (inpDesc ? inpDesc.value : '')).trim();
-
-    if (!descricao) {
-        alert("Por favor, selecione ou informe a Descrição / Tipo de Movimentação!");
-        if (selCat) selCat.focus();
-        return;
-    }
-
-    const valorOrcado = desformatarMoedaInput(document.getElementById('inputValor').value);
-    const valorRealizado = desformatarMoedaInput(document.getElementById('inputValorRealizado').value);
-
-    if (valorOrcado <= 0) {
-        alert("Por favor, digite um valor orçado maior que zero!");
-        document.getElementById('inputValor').focus();
-        return;
-    }
-    const data = document.getElementById('inputData').value;
-    const status = document.getElementById('inputStatus').value;
-    const isParcelado = document.getElementById('inputParcelado').checked;
-    const totalParcelas = isParcelado ? parseInt(document.getElementById('inputTotalParcelas').value) : 1;
-    
-    // Validação de Data: Obrigatória apenas se não for da Gaveta ou Lista de Desejos PENDENTE
-    if (!data && tipoGasto !== 'Conta a Pagar' && tipoGasto !== 'Lista de Desejos') {
-        alert("Por favor, informe a Data do lançamento para que ele apareça no Painel!");
-        return;
+    if (event && typeof event.preventDefault === 'function') {
+        event.preventDefault();
     }
     
-    const timestamp = Date.now();
+    try {
+        const idAtual = document.getElementById('inputIdMovimentacao').value;
+        const tipoGasto = document.getElementById('inputTipoGasto').value;
+        const selCat = document.getElementById('selectCategoriaPredefinida');
+        const inpDesc = document.getElementById('inputDescricao');
+        const descricao = (selCat && selCat.value ? selCat.value : (inpDesc ? inpDesc.value : '')).trim();
 
-    // Campos extras se for Lista de Desejos
-    let linkDesejo = '';
-    let midiaUrlDesejo = '';
-    let midiaTipoDesejo = '';
-    if (tipoGasto === 'Lista de Desejos') {
-        const inputLink = document.getElementById('modalInputLinkUrl');
-        if (inputLink) linkDesejo = inputLink.value.trim();
-        if (typeof serializarMidiasDesejo === 'function' && Array.isArray(midiasModalDesejoTemp)) {
-            const ser = serializarMidiasDesejo(midiasModalDesejoTemp);
-            midiaUrlDesejo = ser.midia_url;
-            midiaTipoDesejo = ser.midia_tipo;
+        if (!descricao) {
+            alert("Por favor, selecione ou informe a Descrição / Tipo de Movimentação!");
+            if (selCat) selCat.focus();
+            return;
         }
-    }
 
-    if (idAtual) {
-        // UPDATE (Edição)
-        const updateData = {
-            descricao: descricao,
-            valor_total: valorOrcado,
-            valor_realizado: valorRealizado,
-            data_lancamento: data,
-            tipo_gasto: tipoGasto,
-            status: status,
-            sync_status: 'pending_update',
-            updated_at: timestamp
-        };
-        if (tipoGasto === 'Lista de Desejos') {
-            updateData.link_url = linkDesejo;
-            updateData.midia_url = midiaUrlDesejo;
-            updateData.midia_tipo = midiaTipoDesejo;
-        } else if (window.midiaComprovanteTemp) {
-            updateData.midia_url = window.midiaComprovanteTemp;
-            updateData.midia_tipo = 'foto';
-        } else {
-            updateData.midia_url = '';
-            updateData.midia_tipo = '';
+        const valorOrcado = desformatarMoedaInput(document.getElementById('inputValor').value);
+        const valorRealizado = desformatarMoedaInput(document.getElementById('inputValorRealizado').value);
+
+        if (valorOrcado <= 0) {
+            alert("Por favor, digite um valor orçado maior que zero!");
+            document.getElementById('inputValor').focus();
+            return;
         }
-        await dbLocal.movimentacoes.update(idAtual, updateData);
-        console.log('Lançamento atualizado localmente:', idAtual);
-        showToast('Lançamento atualizado!');
-    } else {
-        // INSERT (Novo)
-        const recorrencia = document.getElementById('inputRecorrencia') ? document.getElementById('inputRecorrencia').value : 'Unica';
-        const dataFimStr = document.getElementById('inputDataFim') ? document.getElementById('inputDataFim').value : '';
+        const data = document.getElementById('inputData').value;
+        const status = document.getElementById('inputStatus').value || 'Pendente';
+        const isParcelado = document.getElementById('inputParcelado').checked;
+        const totalParcelas = isParcelado ? (parseInt(document.getElementById('inputTotalParcelas').value) || 1) : 1;
         
-        let qtdCriar = 1;
-        if (isParcelado) {
-            qtdCriar = totalParcelas;
-        } else if (recorrencia === 'Continua') {
-            qtdCriar = 60; // 5 anos
-        } else if (recorrencia === 'DataFinal' && dataFimStr) {
-            const dataBaseObj = new Date(data + "T12:00:00");
-            const [anoFim, mesFim] = dataFimStr.split('-');
-            const dataFimObj = new Date(anoFim, parseInt(mesFim) - 1, dataBaseObj.getDate() || 1, 12, 0, 0);
-            let diffMeses = (dataFimObj.getFullYear() - dataBaseObj.getFullYear()) * 12 + (dataFimObj.getMonth() - dataBaseObj.getMonth());
-            qtdCriar = diffMeses >= 0 ? diffMeses + 1 : 1;
+        // Validação de Data: Obrigatória apenas se não for da Gaveta ou Lista de Desejos PENDENTE
+        if (!data && tipoGasto !== 'Conta a Pagar' && tipoGasto !== 'Lista de Desejos') {
+            alert("Por favor, informe a Data do lançamento para que ele apareça no Painel!");
+            return;
+        }
+        
+        const timestamp = Date.now();
+
+        // Campos extras se for Lista de Desejos
+        let linkDesejo = '';
+        let midiaUrlDesejo = '';
+        let midiaTipoDesejo = '';
+        if (tipoGasto === 'Lista de Desejos') {
+            const inputLink = document.getElementById('modalInputLinkUrl');
+            if (inputLink) linkDesejo = inputLink.value.trim();
+            if (typeof serializarMidiasDesejo === 'function' && Array.isArray(midiasModalDesejoTemp)) {
+                const ser = serializarMidiasDesejo(midiasModalDesejoTemp);
+                midiaUrlDesejo = ser.midia_url;
+                midiaTipoDesejo = ser.midia_tipo;
+            }
         }
 
-        const idGrupo = (isParcelado || qtdCriar > 1) ? 'GRP-' + generateUUID().split('-')[0].toUpperCase() : '';
-        const baseDate = data ? new Date(data + "T12:00:00") : null;
-
-        const valorFinalPorParcela = isParcelado ? (valorOrcado / totalParcelas) : valorOrcado;
-        const valorRealizadoPorParcela = isParcelado ? (valorRealizado / totalParcelas) : valorRealizado;
-
-        const midiaSalvarUrl = (tipoGasto === 'Lista de Desejos') ? midiaUrlDesejo : (window.midiaComprovanteTemp || '');
-        const midiaSalvarTipo = (tipoGasto === 'Lista de Desejos') ? midiaTipoDesejo : (window.midiaComprovanteTemp ? 'foto' : '');
-
-        for (let i = 0; i < qtdCriar; i++) {
-            let nextDateStr = '';
-            if (baseDate) {
-                let nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, baseDate.getDate(), 12, 0, 0);
-                nextDateStr = nextDate.toISOString().split('T')[0];
-            }
-            
-            let desc = descricao;
-            if (isParcelado) desc = `${descricao} (${i + 1}/${totalParcelas})`;
-            
-            const l_valor_realizado = i === 0 ? valorRealizadoPorParcela : 0;
-            const authUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
-            const currentUserId = authUser ? authUser.id : (localStorage.getItem('financas_current_user_id') || null);
-
-            const novoLancamento = {
-                id: generateUUID(),
-                descricao: desc,
-                valor_total: valorFinalPorParcela,
-                valor_realizado: l_valor_realizado,
-                data_lancamento: nextDateStr,
+        if (idAtual) {
+            // UPDATE (Edição)
+            const updateData = {
+                descricao: descricao,
+                valor_total: valorOrcado,
+                valor_realizado: valorRealizado,
+                data_lancamento: data,
                 tipo_gasto: tipoGasto,
-                status: l_status,
-                conta_id: '1',
-                parcelado: isParcelado ? 'Sim' : 'Não',
-                total_parcelas: isParcelado ? totalParcelas : 1,
-                parcela_atual: isParcelado ? (i + 1) : 1,
-                id_grupo: idGrupo,
-                link_url: linkDesejo,
-                midia_url: midiaSalvarUrl,
-                midia_tipo: midiaSalvarTipo,
-                user_id: currentUserId,
-                deleted: 0,
-                sync_status: 'pending_insert',
+                status: status,
+                sync_status: 'pending_update',
                 updated_at: timestamp
             };
-            await dbLocal.movimentacoes.put(novoLancamento);
-        }
-        console.log(`Foram salvos ${qtdCriar} lançamentos localmente.`);
-        showToast(qtdCriar > 1 ? `Foram adicionados ${qtdCriar} lançamentos com sucesso!` : 'Lançamento adicionado com sucesso!');
-    }
-
-    // Se este lançamento veio de dar andamento a um Sonho/Desejo, marcar o desejo original como Conquistado
-    const modalEl = document.getElementById('modalLancamento');
-    const origemDesejoId = modalEl ? modalEl.dataset.origemDesejoId : null;
-    if (origemDesejoId) {
-        try {
-            let desejoOriginal = await dbLocal.movimentacoes.get(origemDesejoId);
-            if (!desejoOriginal && !isNaN(origemDesejoId)) desejoOriginal = await dbLocal.movimentacoes.get(Number(origemDesejoId));
-            if (desejoOriginal) {
-                await dbLocal.movimentacoes.update(desejoOriginal.id, {
-                    status: 'Pago',
-                    sync_status: 'pending_update',
-                    updated_at: timestamp
-                });
-                console.log('Desejo de origem marcado como conquistado no orçamento:', desejoOriginal.id);
+            if (tipoGasto === 'Lista de Desejos') {
+                updateData.link_url = linkDesejo;
+                updateData.midia_url = midiaUrlDesejo;
+                updateData.midia_tipo = midiaTipoDesejo;
+            } else if (window.midiaComprovanteTemp) {
+                updateData.midia_url = window.midiaComprovanteTemp;
+                updateData.midia_tipo = 'foto';
+            } else {
+                updateData.midia_url = '';
+                updateData.midia_tipo = '';
             }
-        } catch(e) {
-            console.warn('Erro ao atualizar status do desejo de origem:', e);
-        }
-    }
-
-    // Se este lançamento veio de programar uma Conta a Pagar (Gaveta), marcar a conta como Programada/Paga
-    const origemContaId = modalEl ? modalEl.dataset.origemContaId : null;
-    if (origemContaId) {
-        try {
-            let contaOriginal = await dbLocal.movimentacoes.get(origemContaId);
-            if (!contaOriginal && !isNaN(origemContaId)) contaOriginal = await dbLocal.movimentacoes.get(Number(origemContaId));
-            if (contaOriginal) {
-                await dbLocal.movimentacoes.update(contaOriginal.id, {
-                    status: 'Pago',
-                    sync_status: 'pending_update',
-                    updated_at: timestamp
-                });
-                console.log('Conta da gaveta marcada como programada no orçamento:', contaOriginal.id);
+            await dbLocal.movimentacoes.update(idAtual, updateData);
+            console.log('Lançamento atualizado localmente:', idAtual);
+            showToast('Lançamento atualizado!');
+        } else {
+            // INSERT (Novo)
+            const recorrencia = document.getElementById('inputRecorrencia') ? document.getElementById('inputRecorrencia').value : 'Unica';
+            const dataFimStr = document.getElementById('inputDataFim') ? document.getElementById('inputDataFim').value : '';
+            
+            let qtdCriar = 1;
+            if (isParcelado) {
+                qtdCriar = totalParcelas;
+            } else if (recorrencia === 'Continua') {
+                qtdCriar = 60; // 5 anos
+            } else if (recorrencia === 'DataFinal' && dataFimStr) {
+                const dataBaseObj = new Date(data + "T12:00:00");
+                const [anoFim, mesFim] = dataFimStr.split('-');
+                const dataFimObj = new Date(anoFim, parseInt(mesFim) - 1, dataBaseObj.getDate() || 1, 12, 0, 0);
+                let diffMeses = (dataFimObj.getFullYear() - dataBaseObj.getFullYear()) * 12 + (dataFimObj.getMonth() - dataBaseObj.getMonth());
+                qtdCriar = diffMeses >= 0 ? diffMeses + 1 : 1;
             }
-        } catch(e) {
-            console.warn('Erro ao atualizar status da conta de origem:', e);
+
+            const idGrupo = (isParcelado || qtdCriar > 1) ? 'GRP-' + generateUUID().split('-')[0].toUpperCase() : '';
+            const baseDate = data ? new Date(data + "T12:00:00") : null;
+
+            const valorFinalPorParcela = isParcelado ? (valorOrcado / totalParcelas) : valorOrcado;
+            const valorRealizadoPorParcela = isParcelado ? (valorRealizado / totalParcelas) : valorRealizado;
+
+            const midiaSalvarUrl = (tipoGasto === 'Lista de Desejos') ? midiaUrlDesejo : (window.midiaComprovanteTemp || '');
+            const midiaSalvarTipo = (tipoGasto === 'Lista de Desejos') ? midiaTipoDesejo : (window.midiaComprovanteTemp ? 'foto' : '');
+
+            for (let i = 0; i < qtdCriar; i++) {
+                let nextDateStr = '';
+                if (baseDate) {
+                    let nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, baseDate.getDate(), 12, 0, 0);
+                    nextDateStr = nextDate.toISOString().split('T')[0];
+                }
+                
+                let desc = descricao;
+                if (isParcelado) desc = `${descricao} (${i + 1}/${totalParcelas})`;
+                
+                const l_valor_realizado = i === 0 ? valorRealizadoPorParcela : 0;
+                const l_status = (isParcelado && status === 'Pago') ? (i === 0 ? 'Pago' : 'Pendente') : status;
+                const authUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+                const currentUserId = authUser ? authUser.id : (localStorage.getItem('financas_current_user_id') || null);
+
+                const novoLancamento = {
+                    id: generateUUID(),
+                    descricao: desc,
+                    valor_total: valorFinalPorParcela,
+                    valor_realizado: l_valor_realizado,
+                    data_lancamento: nextDateStr,
+                    tipo_gasto: tipoGasto,
+                    status: l_status,
+                    conta_id: '1',
+                    parcelado: isParcelado ? 'Sim' : 'Não',
+                    total_parcelas: isParcelado ? totalParcelas : 1,
+                    parcela_atual: isParcelado ? (i + 1) : 1,
+                    id_grupo: idGrupo,
+                    link_url: linkDesejo,
+                    midia_url: midiaSalvarUrl,
+                    midia_tipo: midiaSalvarTipo,
+                    user_id: currentUserId,
+                    deleted: 0,
+                    sync_status: 'pending_insert',
+                    updated_at: timestamp
+                };
+                await dbLocal.movimentacoes.put(novoLancamento);
+            }
+            console.log(`Foram salvos ${qtdCriar} lançamentos localmente.`);
+            showToast(qtdCriar > 1 ? `Foram adicionados ${qtdCriar} lançamentos com sucesso!` : 'Lançamento adicionado com sucesso!');
         }
-    }
-    
-    fecharModalLancamento();
-    carregarPlanejamento();
-    if(typeof carregarContasAPagar === 'function') carregarContasAPagar();
-    if(typeof carregarListaDesejos === 'function') carregarListaDesejos();
-    if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
-    
-    if (tipoGasto === 'Lista de Desejos') {
-        switchFinanceTab('Desejos');
-    } else if (tipoGasto === 'Conta a Pagar') {
-        switchFinanceTab('APagar');
-    } else {
-        switchFinanceTab('Lancamentos');
+
+        // Se este lançamento veio de dar andamento a um Sonho/Desejo, marcar o desejo original como Conquistado
+        const modalEl = document.getElementById('modalLancamento');
+        const origemDesejoId = modalEl ? modalEl.dataset.origemDesejoId : null;
+        if (origemDesejoId) {
+            try {
+                let desejoOriginal = await dbLocal.movimentacoes.get(origemDesejoId);
+                if (!desejoOriginal && !isNaN(origemDesejoId)) desejoOriginal = await dbLocal.movimentacoes.get(Number(origemDesejoId));
+                if (desejoOriginal) {
+                    await dbLocal.movimentacoes.update(desejoOriginal.id, {
+                        status: 'Pago',
+                        sync_status: 'pending_update',
+                        updated_at: timestamp
+                    });
+                    console.log('Desejo de origem marcado como conquistado no orçamento:', desejoOriginal.id);
+                }
+            } catch(e) {
+                console.warn('Erro ao atualizar status do desejo de origem:', e);
+            }
+        }
+
+        // Se este lançamento veio de programar uma Conta a Pagar (Gaveta), marcar a conta como Programada/Paga
+        const origemContaId = modalEl ? modalEl.dataset.origemContaId : null;
+        if (origemContaId) {
+            try {
+                let contaOriginal = await dbLocal.movimentacoes.get(origemContaId);
+                if (!contaOriginal && !isNaN(origemContaId)) contaOriginal = await dbLocal.movimentacoes.get(Number(origemContaId));
+                if (contaOriginal) {
+                    await dbLocal.movimentacoes.update(contaOriginal.id, {
+                        status: 'Pago',
+                        sync_status: 'pending_update',
+                        updated_at: timestamp
+                    });
+                    console.log('Conta da gaveta marcada como programada no orçamento:', contaOriginal.id);
+                }
+            } catch(e) {
+                console.warn('Erro ao atualizar status da conta de origem:', e);
+            }
+        }
+        
+        fecharModalLancamento();
+        carregarPlanejamento();
+        if(typeof carregarContasAPagar === 'function') carregarContasAPagar();
+        if(typeof carregarListaDesejos === 'function') carregarListaDesejos();
+        if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+        
+        if (tipoGasto === 'Lista de Desejos') {
+            switchFinanceTab('Desejos');
+        } else if (tipoGasto === 'Conta a Pagar') {
+            switchFinanceTab('APagar');
+        } else {
+            switchFinanceTab('Lancamentos');
+        }
+    } catch (err) {
+        console.error('Erro crítico ao salvar lançamento:', err);
+        alert('Erro ao salvar lançamento: ' + err.message);
     }
 }
+window.salvarLancamento = salvarLancamento;
 
 async function excluirLancamentoAtual() {
     const idAtual = document.getElementById('inputIdMovimentacao').value;
