@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.7.1">
+    <meta name="app-build-version" content="1.7.2">
     <script>
-        window.APP_BUILD_VERSION = '1.7.1';
+        window.APP_BUILD_VERSION = '1.7.2';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -1126,8 +1126,13 @@
                 </div>
                 
                 <div class="form-group" style="margin-bottom: 14px;">
-                    <label>Tipo de Movimentação</label>
-                    <select id="inputTipoGasto" required onchange="if(typeof atualizarTextoStatus === 'function') atualizarTextoStatus()">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="margin-bottom: 0;">Tipo de Movimentação</label>
+                        <button type="button" onclick="abrirModalGerenciarTiposGasto()" style="background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #60A5FA; padding: 3px 9px; border-radius: 7px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px; transition: all 0.2s;" title="Cadastrar, editar ou excluir tipos de movimentação">
+                            <span>⚙️</span> Cadastrar / Gerenciar
+                        </button>
+                    </div>
+                    <select id="inputTipoGasto" required onchange="if(typeof atualizarTextoStatus === 'function') atualizarTextoStatus()" style="width: 100%; background: #1E293B; border: 1.5px solid #3B82F6; color: #FFFFFF; font-weight: 600; padding: 11px 14px; border-radius: 10px; font-size: 0.95rem;">
                         <option value="Despesa Variável">Despesa Variável</option>
                         <option value="Despesa Fixa">Despesa Fixa</option>
                         <option value="Conta a Pagar">Conta a Pagar (Gaveta)</option>
@@ -1326,36 +1331,91 @@
             </div>
 
             <!-- Formulário de Cadastro / Edição -->
-            <div style="background: #0F172A; border: 1.5px solid #1E293B; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
-                <label id="lblFormGerenciarCategoria" style="font-size: 0.78rem; font-weight: 700; color: #60A5FA; display: block; margin-bottom: 6px;">
-                    ➕ Cadastrar Novo Tipo:
+            <div style="background: #0F172A; border: 1.5px solid #1E293B; border-radius: 12px; padding: 14px; margin-bottom: 14px;">
+                <label id="lblFormGerenciarCategoria" style="font-size: 0.82rem; font-weight: 700; color: #60A5FA; display: block; margin-bottom: 8px;">
+                    ➕ Cadastrar Nova Descrição / Categoria:
                 </label>
-                <div style="display: flex; gap: 8px;">
-                    <input type="text" id="inputNovaCategoria" placeholder="Ex: Internet, Mercado, Academia..." style="flex: 1; padding: 9px 12px; background: #1E293B; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 0.88rem;" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); salvarNovaOuEditadaCategoria(); }">
-                    <button type="button" id="btnSalvarCategoria" onclick="salvarNovaOuEditadaCategoria()" style="background: #2563EB; border: none; color: white; font-weight: 700; font-size: 0.82rem; padding: 9px 14px; border-radius: 8px; cursor: pointer; white-space: nowrap;">
-                        + Inserir
-                    </button>
-                    <button type="button" id="btnCancelarEdicaoCategoria" onclick="cancelarEdicaoCategoria()" style="display: none; background: #334155; border: none; color: #CBD5E1; font-weight: 700; font-size: 0.82rem; padding: 9px 10px; border-radius: 8px; cursor: pointer;">
-                        Cancelar
-                    </button>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <input type="text" id="inputNovaCategoria" placeholder="Ex: Internet, Mercado, Academia..." style="width: 100%; box-sizing: border-box; padding: 11px 14px; background: #1E293B; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 0.95rem;" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); salvarNovaOuEditadaCategoria(); }">
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" id="btnSalvarCategoria" onclick="salvarNovaOuEditadaCategoria()" style="flex: 1; min-height: 40px; background: #2563EB; border: none; color: white; font-weight: 700; font-size: 0.88rem; padding: 10px 14px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <span>➕</span> Inserir Novo Item
+                        </button>
+                        <button type="button" id="btnCancelarEdicaoCategoria" onclick="cancelarEdicaoCategoria()" style="display: none; min-height: 40px; background: #334155; border: none; color: #CBD5E1; font-weight: 700; font-size: 0.85rem; padding: 10px 16px; border-radius: 8px; cursor: pointer;">
+                            Cancelar
+                        </button>
+                    </div>
                 </div>
             </div>
 
             <!-- Lista Rolável de Categorias Cadastradas -->
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                <span style="font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Tipos Cadastrados (<span id="countCategorias">0</span>)</span>
-                <button type="button" onclick="restaurarCategoriasPadrao()" style="background: transparent; border: none; color: #38BDF8; font-size: 0.72rem; cursor: pointer; text-decoration: underline;">
+                <span style="font-size: 0.78rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Tipos Cadastrados (<span id="countCategorias">0</span>)</span>
+                <button type="button" onclick="restaurarCategoriasPadrao()" style="background: transparent; border: none; color: #38BDF8; font-size: 0.74rem; cursor: pointer; text-decoration: underline;">
                     Restaurar Padrões
                 </button>
             </div>
 
-            <div id="listaCategoriasGerenciar" style="flex: 1; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 6px; max-height: 280px;">
+            <div id="listaCategoriasGerenciar" style="flex: 1; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 8px; max-height: 320px;">
                 <!-- Itens carregados dinamicamente via JS -->
             </div>
 
             <!-- Botão de Concluir / Fechar -->
             <div style="margin-top: 14px; border-top: 1px solid #1E293B; padding-top: 12px;">
-                <button type="button" onclick="fecharModalGerenciarCategorias()" style="width: 100%; padding: 11px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; border-radius: 10px; color: white; font-weight: 800; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37,99,235,0.35);">
+                <button type="button" onclick="fecharModalGerenciarCategorias()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; border-radius: 10px; color: white; font-weight: 800; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37,99,235,0.35);">
+                    ✓ Concluir e Voltar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE GERENCIAMENTO DE TIPOS DE MOVIMENTAÇÃO (CADASTRAR, EDITAR, EXCLUIR) -->
+    <div id="modalGerenciarTiposGasto" class="modal-overlay" onclick="if(event.target === this) fecharModalGerenciarTiposGasto()" style="display: none; z-index: 999999;">
+        <div class="modal-content" style="max-width: 480px; width: 95%; display: flex; flex-direction: column; max-height: 90vh; box-shadow: 0 25px 60px rgba(0,0,0,0.9); padding: 18px;">
+            <div class="modal-header" style="border-bottom: 1px solid #1E293B; padding-bottom: 12px; margin-bottom: 14px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.3rem;">⚙️</span>
+                    <div>
+                        <h3 style="margin: 0; font-size: 1.05rem; color: #FFFFFF;">Gerenciar Tipos de Movimentação</h3>
+                        <p style="margin: 2px 0 0 0; font-size: 0.74rem; color: #94A3B8;">Cadastre, edite ou exclua (Despesa Variável, Fixa, Receita...)</p>
+                    </div>
+                </div>
+                <button class="close-btn" onclick="fecharModalGerenciarTiposGasto()" title="Fechar">✕</button>
+            </div>
+
+            <!-- Formulário de Cadastro / Edição -->
+            <div style="background: #0F172A; border: 1.5px solid #1E293B; border-radius: 12px; padding: 14px; margin-bottom: 14px;">
+                <label id="lblFormGerenciarTipoGasto" style="font-size: 0.82rem; font-weight: 700; color: #60A5FA; display: block; margin-bottom: 8px;">
+                    ➕ Cadastrar Novo Tipo de Movimentação:
+                </label>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <input type="text" id="inputNovoTipoGasto" placeholder="Ex: Doações, Freela, Impostos..." style="width: 100%; box-sizing: border-box; padding: 11px 14px; background: #1E293B; border: 1px solid #334155; border-radius: 8px; color: white; font-size: 0.95rem;" onkeydown="if(event.key === 'Enter'){ event.preventDefault(); salvarNovoOuEditadoTipoGasto(); }">
+                    <div style="display: flex; gap: 8px;">
+                        <button type="button" id="btnSalvarTipoGasto" onclick="salvarNovoOuEditadoTipoGasto()" style="flex: 1; min-height: 40px; background: #2563EB; border: none; color: white; font-weight: 700; font-size: 0.88rem; padding: 10px 14px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <span>➕</span> Inserir Novo Tipo
+                        </button>
+                        <button type="button" id="btnCancelarEdicaoTipoGasto" onclick="cancelarEdicaoTipoGasto()" style="display: none; min-height: 40px; background: #334155; border: none; color: #CBD5E1; font-weight: 700; font-size: 0.85rem; padding: 10px 16px; border-radius: 8px; cursor: pointer;">
+                            Cancelar
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lista Rolável de Tipos Cadastrados -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <span style="font-size: 0.78rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Tipos Cadastrados (<span id="countTiposGasto">0</span>)</span>
+                <button type="button" onclick="restaurarTiposGastoPadrao()" style="background: transparent; border: none; color: #38BDF8; font-size: 0.74rem; cursor: pointer; text-decoration: underline;">
+                    Restaurar Padrões
+                </button>
+            </div>
+
+            <div id="listaTiposGastoGerenciar" style="flex: 1; overflow-y: auto; padding-right: 4px; display: flex; flex-direction: column; gap: 8px; max-height: 320px;">
+                <!-- Itens carregados dinamicamente via JS -->
+            </div>
+
+            <!-- Botão de Concluir / Fechar -->
+            <div style="margin-top: 14px; border-top: 1px solid #1E293B; padding-top: 12px;">
+                <button type="button" onclick="fecharModalGerenciarTiposGasto()" style="width: 100%; padding: 12px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; border-radius: 10px; color: white; font-weight: 800; font-size: 0.95rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37,99,235,0.35);">
                     ✓ Concluir e Voltar
                 </button>
             </div>

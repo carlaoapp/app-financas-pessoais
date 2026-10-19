@@ -712,21 +712,21 @@ function renderizarListaGerenciarCategorias() {
     if (countEl) countEl.innerText = lista.length;
 
     if (lista.length === 0) {
-        container.innerHTML = '<div style="text-align: center; color: #64748B; padding: 20px 0; font-size: 0.85rem;">Nenhum tipo cadastrado. Clique acima para cadastrar ou restaurar os padrões.</div>';
+        container.innerHTML = '<div style="text-align: center; color: #64748B; padding: 20px 0; font-size: 0.85rem;">Nenhuma descrição cadastrada. Clique acima para cadastrar ou restaurar os padrões.</div>';
         return;
     }
 
     container.innerHTML = lista.map((cat, idx) => `
-        <div style="display: flex; justify-content: space-between; align-items: center; background: #141F36; border: 1px solid #1E293B; border-radius: 8px; padding: 8px 12px; gap: 8px;">
-            <span style="font-size: 0.88rem; font-weight: 700; color: #E2E8F0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1;">
+        <div style="display: flex; flex-direction: column; background: #141F36; border: 1.5px solid #233554; border-radius: 12px; padding: 12px 14px; gap: 10px;">
+            <div style="font-size: 0.95rem; font-weight: 700; color: #F1F5F9; word-break: break-word; line-height: 1.35;">
                 ${cat}
-            </span>
-            <div style="display: flex; gap: 6px; flex-shrink: 0;">
-                <button type="button" onclick="iniciarEdicaoCategoria(${idx})" style="background: rgba(59, 130, 246, 0.2); border: 1px solid #3B82F6; color: #93C5FD; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;" title="Editar nome">
-                    ✏️ Editar
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
+                <button type="button" onclick="iniciarEdicaoCategoria(${idx})" style="flex: 1; max-width: 140px; min-height: 38px; background: rgba(59, 130, 246, 0.2); border: 1.5px solid #3B82F6; color: #93C5FD; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Editar nome">
+                    <span>✏️</span> Editar
                 </button>
-                <button type="button" onclick="excluirCategoriaCustomizada(${idx})" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5; padding: 4px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;" title="Excluir este tipo">
-                    🗑️ Excluir
+                <button type="button" onclick="excluirCategoriaCustomizada(${idx})" style="flex: 1; max-width: 140px; min-height: 38px; background: rgba(239, 68, 68, 0.2); border: 1.5px solid #EF4444; color: #FCA5A5; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Excluir este item">
+                    <span>🗑️</span> Excluir
                 </button>
             </div>
         </div>
@@ -738,7 +738,7 @@ function salvarNovaOuEditadaCategoria() {
     if (!inputNova) return;
     const nome = inputNova.value.trim();
     if (!nome) {
-        showToast('Digite o nome do tipo (ex: Internet, Luz...).');
+        showToast('Digite a descrição/categoria (ex: Internet, Luz...).');
         inputNova.focus();
         return;
     }
@@ -749,11 +749,11 @@ function salvarNovaOuEditadaCategoria() {
         lista[indiceCategoriaEmEdicao] = nome;
         salvarCategoriasCustomizadas(lista);
         cancelarEdicaoCategoria();
-        showToast(`Tipo "${nome}" atualizado com sucesso!`);
+        showToast(`"${nome}" atualizada com sucesso!`);
     } else {
         const jaExiste = lista.some(item => item.toLowerCase() === nome.toLowerCase());
         if (jaExiste) {
-            showToast(`O tipo "${nome}" já está cadastrado.`);
+            showToast(`"${nome}" já está cadastrada.`);
             inputNova.focus();
             return;
         }
@@ -761,7 +761,7 @@ function salvarNovaOuEditadaCategoria() {
         salvarCategoriasCustomizadas(lista);
         inputNova.value = '';
         inputNova.focus();
-        showToast(`Tipo "${nome}" cadastrado com sucesso!`);
+        showToast(`"${nome}" cadastrada com sucesso!`);
     }
 }
 
@@ -779,8 +779,8 @@ function iniciarEdicaoCategoria(idx) {
         inputNova.value = lista[idx];
         inputNova.focus();
     }
-    if (lbl) lbl.innerHTML = `✏️ Alterar Tipo: <span style="color: #FCD34D;">${lista[idx]}</span>`;
-    if (btnSalvar) btnSalvar.innerHTML = 'Salvar';
+    if (lbl) lbl.innerHTML = `✏️ Editando: <span style="color: #FCD34D;">${lista[idx]}</span>`;
+    if (btnSalvar) btnSalvar.innerHTML = '<span>💾</span> Salvar Alteração';
     if (btnCanc) btnCanc.style.display = 'block';
 }
 
@@ -792,8 +792,8 @@ function cancelarEdicaoCategoria() {
     const btnCanc = document.getElementById('btnCancelarEdicaoCategoria');
 
     if (inputNova) inputNova.value = '';
-    if (lbl) lbl.innerHTML = '➕ Cadastrar Novo Tipo:';
-    if (btnSalvar) btnSalvar.innerHTML = '+ Inserir';
+    if (lbl) lbl.innerHTML = '➕ Cadastrar Nova Descrição / Categoria:';
+    if (btnSalvar) btnSalvar.innerHTML = '<span>➕</span> Inserir Novo Item';
     if (btnCanc) btnCanc.style.display = 'none';
 }
 
@@ -807,14 +807,14 @@ function excluirCategoriaCustomizada(idx) {
     lista.splice(idx, 1);
     salvarCategoriasCustomizadas(lista);
     if (indiceCategoriaEmEdicao === idx) cancelarEdicaoCategoria();
-    showToast(`Tipo "${nome}" removido!`);
+    showToast(`"${nome}" removida!`);
 }
 
 function restaurarCategoriasPadrao() {
-    if (!confirm('Deseja restaurar a lista original de tipos padrão do sistema?')) return;
+    if (!confirm('Deseja restaurar a lista original de descrições padrão do sistema?')) return;
     salvarCategoriasCustomizadas([...CATEGORIAS_PADRAO_SISTEMA]);
     cancelarEdicaoCategoria();
-    showToast('Lista de tipos padrão restaurada!');
+    showToast('Lista de descrições padrão restaurada!');
 }
 
 window.abrirModalGerenciarCategorias = abrirModalGerenciarCategorias;
@@ -826,6 +826,213 @@ window.cancelarEdicaoCategoria = cancelarEdicaoCategoria;
 window.excluirCategoriaCustomizada = excluirCategoriaCustomizada;
 window.restaurarCategoriasPadrao = restaurarCategoriasPadrao;
 window.renderizarSelectCategorias = renderizarSelectCategorias;
+
+// ==================================================================
+// GERENCIADOR DE TIPOS DE MOVIMENTAÇÃO (CUSTOMIZÁVEIS PELO USUÁRIO)
+// ==================================================================
+const TIPOS_GASTO_PADRAO_SISTEMA = [
+    "Despesa Variável",
+    "Despesa Fixa",
+    "Conta a Pagar (Gaveta)",
+    "Receita",
+    "Investimento",
+    "Reserva de Emergência (Guardar)",
+    "Resgate de Reserva (Usar)",
+    "Cartão de Crédito",
+    "Empréstimo",
+    "Lista de Desejos"
+];
+
+let indiceTipoGastoEmEdicao = -1;
+
+function obterTiposGastoCustomizados() {
+    try {
+        const salvas = localStorage.getItem('finance_tipos_gasto_custom');
+        if (salvas) {
+            const parsed = JSON.parse(salvas);
+            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+        }
+    } catch (e) {
+        console.error('Erro ao ler tipos de movimentação do localStorage:', e);
+    }
+    try {
+        localStorage.setItem('finance_tipos_gasto_custom', JSON.stringify(TIPOS_GASTO_PADRAO_SISTEMA));
+    } catch (e) {}
+    return [...TIPOS_GASTO_PADRAO_SISTEMA];
+}
+
+function salvarTiposGastoCustomizados(lista) {
+    try {
+        localStorage.setItem('finance_tipos_gasto_custom', JSON.stringify(lista));
+    } catch (e) {
+        console.error('Erro ao salvar tipos de movimentação:', e);
+    }
+    renderizarSelectTiposGasto();
+    renderizarListaGerenciarTiposGasto();
+}
+
+function renderizarSelectTiposGasto() {
+    const sel = document.getElementById('inputTipoGasto');
+    if (!sel) return;
+    const lista = obterTiposGastoCustomizados();
+    const valAtual = sel.value;
+    sel.innerHTML = lista.map(tipo => `<option value="${tipo}">${tipo}</option>`).join('');
+    if (valAtual && lista.includes(valAtual)) {
+        sel.value = valAtual;
+    } else if (lista.length > 0) {
+        sel.value = lista[0];
+    }
+}
+
+function abrirModalGerenciarTiposGasto() {
+    indiceTipoGastoEmEdicao = -1;
+    const inputNovo = document.getElementById('inputNovoTipoGasto');
+    const lbl = document.getElementById('lblFormGerenciarTipoGasto');
+    const btnSalvar = document.getElementById('btnSalvarTipoGasto');
+    const btnCanc = document.getElementById('btnCancelarEdicaoTipoGasto');
+    
+    if (inputNovo) inputNovo.value = '';
+    if (lbl) lbl.innerHTML = '➕ Cadastrar Novo Tipo de Movimentação:';
+    if (btnSalvar) btnSalvar.innerHTML = '<span>➕</span> Inserir Novo Tipo';
+    if (btnCanc) btnCanc.style.display = 'none';
+
+    renderizarListaGerenciarTiposGasto();
+
+    const m = document.getElementById('modalGerenciarTiposGasto');
+    if (m) {
+        m.style.display = 'flex';
+        if (inputNovo) setTimeout(() => inputNovo.focus(), 100);
+    }
+}
+window.abrirModalGerenciarTiposGasto = abrirModalGerenciarTiposGasto;
+
+function fecharModalGerenciarTiposGasto() {
+    const m = document.getElementById('modalGerenciarTiposGasto');
+    if (m) m.style.display = 'none';
+}
+window.fecharModalGerenciarTiposGasto = fecharModalGerenciarTiposGasto;
+
+function renderizarListaGerenciarTiposGasto() {
+    const container = document.getElementById('listaTiposGastoGerenciar');
+    const countEl = document.getElementById('countTiposGasto');
+    if (!container) return;
+
+    const lista = obterTiposGastoCustomizados();
+    if (countEl) countEl.innerText = lista.length;
+
+    if (lista.length === 0) {
+        container.innerHTML = '<div style="text-align: center; color: #64748B; padding: 20px 0; font-size: 0.85rem;">Nenhum tipo cadastrado. Clique acima para cadastrar ou restaurar os padrões.</div>';
+        return;
+    }
+
+    container.innerHTML = lista.map((tipo, idx) => `
+        <div style="display: flex; flex-direction: column; background: #141F36; border: 1.5px solid #233554; border-radius: 12px; padding: 12px 14px; gap: 10px;">
+            <div style="font-size: 0.95rem; font-weight: 700; color: #F1F5F9; word-break: break-word; line-height: 1.35;">
+                ${tipo}
+            </div>
+            <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
+                <button type="button" onclick="iniciarEdicaoTipoGasto(${idx})" style="flex: 1; max-width: 140px; min-height: 38px; background: rgba(59, 130, 246, 0.2); border: 1.5px solid #3B82F6; color: #93C5FD; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Editar nome">
+                    <span>✏️</span> Editar
+                </button>
+                <button type="button" onclick="excluirTipoGastoCustomizado(${idx})" style="flex: 1; max-width: 140px; min-height: 38px; background: rgba(239, 68, 68, 0.2); border: 1.5px solid #EF4444; color: #FCA5A5; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Excluir este tipo">
+                    <span>🗑️</span> Excluir
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function salvarNovoOuEditadoTipoGasto() {
+    const inputNovo = document.getElementById('inputNovoTipoGasto');
+    if (!inputNovo) return;
+    const nome = inputNovo.value.trim();
+    if (!nome) {
+        showToast('Digite o nome do tipo de movimentação.');
+        inputNovo.focus();
+        return;
+    }
+
+    let lista = obterTiposGastoCustomizados();
+
+    if (indiceTipoGastoEmEdicao >= 0 && indiceTipoGastoEmEdicao < lista.length) {
+        lista[indiceTipoGastoEmEdicao] = nome;
+        salvarTiposGastoCustomizados(lista);
+        cancelarEdicaoTipoGasto();
+        showToast(`Tipo "${nome}" atualizado com sucesso!`);
+    } else {
+        const jaExiste = lista.some(item => item.toLowerCase() === nome.toLowerCase());
+        if (jaExiste) {
+            showToast(`O tipo "${nome}" já está cadastrado.`);
+            inputNovo.focus();
+            return;
+        }
+        lista.push(nome);
+        salvarTiposGastoCustomizados(lista);
+        inputNovo.value = '';
+        inputNovo.focus();
+        showToast(`Tipo "${nome}" cadastrado com sucesso!`);
+    }
+}
+window.salvarNovoOuEditadoTipoGasto = salvarNovoOuEditadoTipoGasto;
+
+function iniciarEdicaoTipoGasto(idx) {
+    const lista = obterTiposGastoCustomizados();
+    if (idx < 0 || idx >= lista.length) return;
+    
+    indiceTipoGastoEmEdicao = idx;
+    const inputNovo = document.getElementById('inputNovoTipoGasto');
+    const lbl = document.getElementById('lblFormGerenciarTipoGasto');
+    const btnSalvar = document.getElementById('btnSalvarTipoGasto');
+    const btnCanc = document.getElementById('btnCancelarEdicaoTipoGasto');
+
+    if (inputNovo) {
+        inputNovo.value = lista[idx];
+        inputNovo.focus();
+    }
+    if (lbl) lbl.innerHTML = `✏️ Editando: <span style="color:#F8FAFC;">${lista[idx]}</span>`;
+    if (btnSalvar) btnSalvar.innerHTML = '<span>💾</span> Salvar Alteração';
+    if (btnCanc) btnCanc.style.display = 'block';
+}
+window.iniciarEdicaoTipoGasto = iniciarEdicaoTipoGasto;
+
+function cancelarEdicaoTipoGasto() {
+    indiceTipoGastoEmEdicao = -1;
+    const inputNovo = document.getElementById('inputNovoTipoGasto');
+    const lbl = document.getElementById('lblFormGerenciarTipoGasto');
+    const btnSalvar = document.getElementById('btnSalvarTipoGasto');
+    const btnCanc = document.getElementById('btnCancelarEdicaoTipoGasto');
+
+    if (inputNovo) inputNovo.value = '';
+    if (lbl) lbl.innerHTML = '➕ Cadastrar Novo Tipo de Movimentação:';
+    if (btnSalvar) btnSalvar.innerHTML = '<span>➕</span> Inserir Novo Tipo';
+    if (btnCanc) btnCanc.style.display = 'none';
+}
+window.cancelarEdicaoTipoGasto = cancelarEdicaoTipoGasto;
+
+function excluirTipoGastoCustomizado(idx) {
+    let lista = obterTiposGastoCustomizados();
+    if (idx < 0 || idx >= lista.length) return;
+    const itemNome = lista[idx];
+
+    if (!confirm(`Tem certeza de que deseja excluir o tipo "${itemNome}"?`)) return;
+
+    if (indiceTipoGastoEmEdicao === idx) {
+        cancelarEdicaoTipoGasto();
+    }
+    lista.splice(idx, 1);
+    salvarTiposGastoCustomizados(lista);
+    showToast(`Tipo "${itemNome}" excluído.`);
+}
+window.excluirTipoGastoCustomizado = excluirTipoGastoCustomizado;
+
+function restaurarTiposGastoPadrao() {
+    if (!confirm('Deseja restaurar a lista padrão de tipos de movimentação do sistema?')) return;
+    cancelarEdicaoTipoGasto();
+    salvarTiposGastoCustomizados([...TIPOS_GASTO_PADRAO_SISTEMA]);
+    showToast('Tipos de movimentação restaurados para o padrão.');
+}
+window.restaurarTiposGastoPadrao = restaurarTiposGastoPadrao;
+window.renderizarSelectTiposGasto = renderizarSelectTiposGasto;
 
 // ==================================================================
 // SISTEMA DE MÁSCARA MONETÁRIA BRASILEIRA (R$ COM PONTUAÇÃO DINÂMICA)
@@ -948,6 +1155,7 @@ function abrirModalLancamento() {
 
     document.getElementById('btnSalvar').innerText = 'Salvar Lançamento';
     renderizarSelectCategorias();
+    renderizarSelectTiposGasto();
     const selCat = document.getElementById('selectCategoriaPredefinida');
     if (selCat) selCat.value = '';
     const inpDesc = document.getElementById('inputDescricao');
@@ -989,7 +1197,17 @@ async function editarLancamento(id) {
     abrirModalLancamento(); // Prepara o modal e carrega campos
 
     document.getElementById('inputIdMovimentacao').value = item.id;
-    document.getElementById('inputTipoGasto').value = item.tipo_gasto;
+    const selTipoGasto = document.getElementById('inputTipoGasto');
+    if (selTipoGasto && item.tipo_gasto) {
+        let optExiste = Array.from(selTipoGasto.options).some(o => o.value === item.tipo_gasto);
+        if (!optExiste) {
+            const newOpt = document.createElement('option');
+            newOpt.value = item.tipo_gasto;
+            newOpt.innerText = item.tipo_gasto;
+            selTipoGasto.appendChild(newOpt);
+        }
+        selTipoGasto.value = item.tipo_gasto;
+    }
     
     const descItem = (item.descricao || '').trim();
     const selCatEdit = document.getElementById('selectCategoriaPredefinida');
@@ -3463,6 +3681,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     updateMonthLabel();
     applyFinanceZoom();
     inicializarMascarasMoeda();
+    renderizarSelectCategorias();
+    renderizarSelectTiposGasto();
     setInterval(syncFinanceWithServer, 10000);
 });
 
