@@ -1,12 +1,12 @@
 /* Reset e Variáveis */
 #finance-view {
-    --bg-color: #0F172A; /* Escuro do Cabeçalho */
-    --card-bg: #1E293B; /* Um pouco mais claro que o fundo */
-    --text-primary: #F8FAFC; /* Quase branco */
-    --text-secondary: #94A3B8; /* Cinza claro */
-    --btn-primary: #3B82F6;
-    --btn-hover: #2563EB;
-    --border-color: #334155;
+    --bg-color: var(--bg-primary, #0F172A);
+    --card-bg: var(--bg-card, #1E293B);
+    --text-primary: var(--text-primary, #F8FAFC);
+    --text-secondary: var(--text-secondary, #94A3B8);
+    --btn-primary: var(--btn-primary, #3B82F6);
+    --btn-hover: var(--btn-hover, #2563EB);
+    --border-color: var(--border-color, #334155);
 }
 
 /* Container Principal Mobile First */

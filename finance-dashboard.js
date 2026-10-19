@@ -717,15 +717,15 @@ function renderizarListaGerenciarCategorias() {
     }
 
     container.innerHTML = lista.map((cat, idx) => `
-        <div style="display: flex; flex-direction: column; background: #141F36; border: 1.5px solid #233554; border-radius: 12px; padding: 12px 14px; gap: 10px;">
-            <div style="font-size: 0.95rem; font-weight: 700; color: #F1F5F9; word-break: break-word; line-height: 1.35;">
+        <div class="item-gerenciar-card">
+            <div class="item-gerenciar-titulo">
                 ${cat}
             </div>
             <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
-                <button type="button" onclick="iniciarEdicaoCategoria(${idx})" style="flex: 1; max-width: 140px; min-height: 38px; background: rgba(59, 130, 246, 0.2); border: 1.5px solid #3B82F6; color: #93C5FD; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Editar nome">
+                <button type="button" onclick="iniciarEdicaoCategoria(${idx})" class="btn-gerenciar-item-edit" title="Editar nome">
                     <span>✏️</span> Editar
                 </button>
-                <button type="button" onclick="excluirCategoriaCustomizada(${idx})" style="flex: 1; max-width: 140px; min-height: 38px; background: rgba(239, 68, 68, 0.2); border: 1.5px solid #EF4444; color: #FCA5A5; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Excluir este item">
+                <button type="button" onclick="excluirCategoriaCustomizada(${idx})" class="btn-gerenciar-item-delete" title="Excluir este item">
                     <span>🗑️</span> Excluir
                 </button>
             </div>
@@ -926,15 +926,15 @@ function renderizarListaGerenciarTiposGasto() {
     }
 
     container.innerHTML = lista.map((tipo, idx) => `
-        <div style="display: flex; flex-direction: column; background: #141F36; border: 1.5px solid #233554; border-radius: 12px; padding: 12px 14px; gap: 10px;">
-            <div style="font-size: 0.95rem; font-weight: 700; color: #F1F5F9; word-break: break-word; line-height: 1.35;">
+        <div class="item-gerenciar-card">
+            <div class="item-gerenciar-titulo">
                 ${tipo}
             </div>
             <div style="display: flex; gap: 10px; justify-content: flex-end; align-items: center;">
-                <button type="button" onclick="iniciarEdicaoTipoGasto(${idx})" style="flex: 1; max-width: 140px; min-height: 38px; background: rgba(59, 130, 246, 0.2); border: 1.5px solid #3B82F6; color: #93C5FD; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Editar nome">
+                <button type="button" onclick="iniciarEdicaoTipoGasto(${idx})" class="btn-gerenciar-item-edit" title="Editar nome">
                     <span>✏️</span> Editar
                 </button>
-                <button type="button" onclick="excluirTipoGastoCustomizado(${idx})" style="flex: 1; max-width: 140px; min-height: 38px; background: rgba(239, 68, 68, 0.2); border: 1.5px solid #EF4444; color: #FCA5A5; padding: 8px 14px; border-radius: 8px; font-size: 0.85rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;" title="Excluir este tipo">
+                <button type="button" onclick="excluirTipoGastoCustomizado(${idx})" class="btn-gerenciar-item-delete" title="Excluir este tipo">
                     <span>🗑️</span> Excluir
                 </button>
             </div>
