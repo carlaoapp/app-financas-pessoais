@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.7.9
-const CACHE_NAME = 'financas-pessoais-v1.7.9';
+// Service Worker - APP Finanças Pessoais v1.8.0
+const CACHE_NAME = 'financas-pessoais-v1.8.0';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -10,6 +10,8 @@ const ASSETS_TO_CACHE = [
     '/jspdf.umd.min.js',
     '/jspdf.plugin.autotable.min.js',
     '/xlsx.mini.min.js',
+    '/tesseract.min.js',
+    '/finance-ocr.js',
     '/finance-dashboard.js',
     '/finance-powerbi.js',
     '/finance-db.js',
@@ -24,7 +26,7 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', event => {
-    console.log('[SW v1.7.9] Instalando e forçando ativação imediata...');
+    console.log('[SW v1.8.0] Instalando e forçando ativação imediata...');
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(async cache => {
@@ -43,13 +45,13 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-    console.log('[SW v1.7.9] Ativado. Limpando caches legados...');
+    console.log('[SW v1.8.0] Ativado. Limpando caches legados...');
     event.waitUntil(
         caches.keys().then(keys => {
             return Promise.all(
                 keys.map(key => {
                     if (key !== CACHE_NAME) {
-                        console.log('[SW v1.7.9] Removendo cache obsoleto:', key);
+                        console.log('[SW v1.8.0] Removendo cache obsoleto:', key);
                         return caches.delete(key);
                     }
                 })
@@ -84,29 +86,35 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // 2. Navegação / HTML: Tenta rede primeiro para novidades imediatas; fallback offline instantâneo
+    // 2. Navegação / HTML: CACHE-FIRST ULTRA RÁPIDO (Abertura instantânea da tela em 0ms)
     if (event.request.mode === 'navigate' || url.endsWith('/index.html') || url.endsWith('/')) {
         event.respondWith(
             (async () => {
                 const cache = await caches.open(CACHE_NAME);
+                const cachedPage = await cache.match('/index.html') || await cache.match('/') || await cache.match(event.request);
 
-                // Tenta buscar o HTML fresco na rede
+                // Se já tem no cache local, entrega INSTANTANEAMENTE (0ms)
+                if (cachedPage) {
+                    // Revalida silenciosamente em segundo plano para o próximo acesso
+                    fetch(event.request).then(async netRes => {
+                        if (netRes && netRes.status === 200) {
+                            await cache.put('/index.html', netRes.clone());
+                            await cache.put('/', netRes.clone());
+                        }
+                    }).catch(() => {});
+                    return cachedPage;
+                }
+
+                // Primeiro acesso sem cache: busca na rede
                 try {
-                    const netRes = await fetch(event.request, { cache: 'no-cache' });
+                    const netRes = await fetch(event.request);
                     if (netRes && netRes.status === 200) {
                         await cache.put(event.request, netRes.clone());
                         await cache.put('/index.html', netRes.clone());
                         await cache.put('/', netRes.clone());
                         return netRes;
                     }
-                } catch (netErr) {
-                    // Offline ou falha temporária de rede: usa cache
-                }
-
-                const cachedPage = await cache.match('/index.html') || await cache.match('/') || await cache.match(event.request);
-                if (cachedPage) {
-                    return cachedPage;
-                }
+                } catch (netErr) {}
 
                 return new Response('<!DOCTYPE html><html><body style="background:#0F172A;color:#fff;text-align:center;padding:40px;font-family:sans-serif;"><h2>Sem conexão com a internet</h2><p>Conecte-se para o primeiro acesso ao aplicativo.</p><button onclick="window.location.reload()" style="background:#2563EB;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:700;">Tentar Novamente</button></body></html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
             })()
@@ -115,32 +123,36 @@ self.addEventListener('fetch', event => {
     }
 
 
-    // 3. Recursos estáticos (JS, CSS, Imagens, Fontes): CACHE-FIRST ULTRA RÁPIDO
+    // 3. Recursos estáticos (JS, CSS, Imagens, Fontes): CACHE-FIRST ULTRA RÁPIDO (0ms)
     // Responde em 0ms do cache local e revalida silenciosamente em background
     event.respondWith(
         (async () => {
             const cache = await caches.open(CACHE_NAME);
-            const cachedResponse = await cache.match(event.request);
+            let cachedResponse = await cache.match(event.request);
+            if (!cachedResponse) {
+                cachedResponse = await cache.match(event.request, { ignoreSearch: true });
+            }
 
-            const backgroundFetch = fetch(event.request)
-                .then(async netRes => {
+            if (cachedResponse) {
+                // Atualiza cache em background silenciosamente
+                fetch(event.request).then(async netRes => {
                     if (netRes && netRes.status === 200) {
                         await cache.put(event.request, netRes.clone());
                     }
-                    return netRes;
-                })
-                .catch(() => null);
-
-            if (cachedResponse) {
+                }).catch(() => {});
                 return cachedResponse;
             }
 
+            // Se não tiver no cache (primeiro acesso)
             try {
-                const res = await backgroundFetch;
-                if (res) return res;
-            } catch (e) {}
-
-            return cachedResponse || new Response('', { status: 404 });
+                const netRes = await fetch(event.request);
+                if (netRes && netRes.status === 200) {
+                    await cache.put(event.request, netRes.clone());
+                }
+                return netRes;
+            } catch (e) {
+                return new Response('', { status: 404 });
+            }
         })()
     );
 });
