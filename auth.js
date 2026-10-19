@@ -20,7 +20,7 @@ function saveAuthSession(token, user, remember = true) {
 }
 
 function logout() {
-    if (window.electronAPI) {
+    if (window.electronAPI || window.desktopAPI) {
         // No Novo Projeto Desktop fica direto no sistema sem tela de login
         return;
     }
@@ -203,7 +203,7 @@ window.addEventListener('DOMContentLoaded', () => {
     localStorage.removeItem('financas_auth_offline_mode');
     
     // NOVO PROJETO DESKTOP: Roda direto na máquina da pessoa, sem tela de entrada/cadastro
-    if (window.electronAPI) {
+    if (window.electronAPI || window.desktopAPI) {
         let user = getAuthUser();
         if (!user) {
             user = { id: 'usuario_local', name: 'Usuário Local', email: 'desktop@local.app' };
