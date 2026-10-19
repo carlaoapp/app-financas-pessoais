@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.7.7">
+    <meta name="app-build-version" content="1.7.9">
     <script>
-        window.APP_BUILD_VERSION = '1.7.7';
+        window.APP_BUILD_VERSION = '1.7.9';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -779,6 +779,37 @@
                             <span id="txtBtnToggleFormRendaExtra">➕ Nova Renda Extra</span>
                             <span id="icoBtnToggleFormRendaExtra" style="font-size: 0.75rem;">▼</span>
                         </button>
+                        <script>
+                            function toggleFormularioRendaExtra(forcarAberto) {
+                                var container = document.getElementById('containerFormRendaExtra');
+                                var txtEl = document.getElementById('txtBtnToggleFormRendaExtra');
+                                var icoEl = document.getElementById('icoBtnToggleFormRendaExtra');
+                                var btn = document.getElementById('btnToggleFormRendaExtra');
+                                if (!container) return;
+                                var estaOculto = container.style.display === 'none' || window.getComputedStyle(container).display === 'none';
+                                var abrir = forcarAberto !== undefined ? Boolean(forcarAberto) : estaOculto;
+                                if (abrir) {
+                                    container.style.display = 'block';
+                                    if (txtEl) txtEl.innerText = '✕ Ocultar Cadastro';
+                                    if (icoEl) icoEl.innerText = '▲';
+                                    if (btn) {
+                                        btn.style.background = 'rgba(239, 68, 68, 0.15)';
+                                        btn.style.borderColor = '#EF4444';
+                                        btn.style.color = '#FCA5A5';
+                                    }
+                                } else {
+                                    container.style.display = 'none';
+                                    if (txtEl) txtEl.innerText = '➕ Nova Renda Extra';
+                                    if (icoEl) icoEl.innerText = '▼';
+                                    if (btn) {
+                                        btn.style.background = 'rgba(16, 185, 129, 0.15)';
+                                        btn.style.borderColor = '#10B981';
+                                        btn.style.color = '#34D399';
+                                    }
+                                }
+                            }
+                            window.toggleFormularioRendaExtra = toggleFormularioRendaExtra;
+                        </script>
                     </div>
 
                     <!-- Container do Formulário de Cadastro / Edição da Renda Extra (Oculto por Padrão) -->
@@ -1291,7 +1322,7 @@
             </div>
             <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
             <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 6px;">Modo Conectado</p>
-            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.7.7</div>
+            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.7.9</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="btnAtualizarDesktopZip" onclick="atualizarDesktopPorZip()" style="display: none; padding: 12px; background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1.5px solid #10B981; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -1749,13 +1780,13 @@
     <script src="jspdf.plugin.autotable.min.js"></script>
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
-    <script src="finance-ocr.js?v=1.7.7"></script>
-    <script src="finance-db.js?v=1.7.7"></script>
-    <script src="finance-sync.js?v=1.7.7"></script>
-    <script src="finance-powerbi.js?v=1.7.7"></script>
-    <script src="finance-dashboard.js?v=1.7.7"></script>
-    <script src="auth.js?v=1.7.7"></script>
-    <script src="auto-update.js?v=1.7.7"></script>
+    <script src="finance-ocr.js?v=1.7.9"></script>
+    <script src="finance-db.js?v=1.7.9"></script>
+    <script src="finance-sync.js?v=1.7.9"></script>
+    <script src="finance-powerbi.js?v=1.7.9"></script>
+    <script src="finance-dashboard.js?v=1.7.9"></script>
+    <script src="auth.js?v=1.7.9"></script>
+    <script src="auto-update.js?v=1.7.9"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

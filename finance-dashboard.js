@@ -2832,7 +2832,8 @@ function toggleFormularioRendaExtra(forcarAberto) {
     const btn = document.getElementById('btnToggleFormRendaExtra');
     if (!container) return;
 
-    const abrir = forcarAberto !== undefined ? Boolean(forcarAberto) : (container.style.display === 'none' || !container.style.display);
+    const estaOculto = container.style.display === 'none' || window.getComputedStyle(container).display === 'none';
+    const abrir = forcarAberto !== undefined ? Boolean(forcarAberto) : estaOculto;
     if (abrir) {
         container.style.display = 'block';
         if (txtEl) txtEl.innerText = '✕ Ocultar Cadastro';
@@ -2858,32 +2859,32 @@ window.toggleFormularioRendaExtra = toggleFormularioRendaExtra;
 function toggleDetalhesRendaExtra(id) {
     if (!window.rendasExtrasExpandidas) window.rendasExtrasExpandidas = new Set();
     const sid = String(id);
-    const estaAberto = window.rendasExtrasExpandidas.has(sid);
-
     const elDetalhes = document.getElementById(`detalhesRendaExtra_${sid}`);
     const elBtn = document.getElementById(`btnToggleDetalhes_${sid}`);
-    const elLbl = document.getElementById(`lblToggleDetalhes_${sid}`);
+    const elTxt = document.getElementById(`txtBtnToggleDetalhes_${sid}`) || document.getElementById(`lblToggleDetalhes_${sid}`);
     const elIco = document.getElementById(`icoToggleDetalhes_${sid}`);
+
+    const estaAberto = elDetalhes ? (elDetalhes.style.display !== 'none') : window.rendasExtrasExpandidas.has(sid);
 
     if (estaAberto) {
         window.rendasExtrasExpandidas.delete(sid);
         if (elDetalhes) elDetalhes.style.display = 'none';
-        if (elLbl) elLbl.innerText = 'Ver Detalhes';
+        if (elTxt) elTxt.innerText = '🔍 Ver Gastos e Detalhes';
         if (elIco) elIco.innerText = '▼';
         if (elBtn) {
-            elBtn.style.background = 'rgba(255, 255, 255, 0.06)';
-            elBtn.style.borderColor = 'var(--border-color)';
-            elBtn.style.color = 'var(--text-primary)';
+            elBtn.style.background = 'rgba(16, 185, 129, 0.15)';
+            elBtn.style.borderColor = '#10B981';
+            elBtn.style.color = '#34D399';
         }
     } else {
         window.rendasExtrasExpandidas.add(sid);
         if (elDetalhes) elDetalhes.style.display = 'block';
-        if (elLbl) elLbl.innerText = 'Ocultar Detalhes';
+        if (elTxt) elTxt.innerText = '✕ Ocultar Gastos e Detalhes';
         if (elIco) elIco.innerText = '▲';
         if (elBtn) {
-            elBtn.style.background = 'rgba(16, 185, 129, 0.18)';
-            elBtn.style.borderColor = '#10B981';
-            elBtn.style.color = '#34D399';
+            elBtn.style.background = 'rgba(239, 68, 68, 0.15)';
+            elBtn.style.borderColor = '#EF4444';
+            elBtn.style.color = '#FCA5A5';
         }
     }
 }
@@ -3006,17 +3007,22 @@ async function carregarPlanejamentoRendaExtra() {
                 </div>
             </div>
 
-            <!-- Linha com Badge de Status e Botão Filtro/Sanfona de Detalhes -->
-            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px;">
-                <div style="min-width: 0;">${badgeStatusHtml}</div>
-                <button type="button" id="btnToggleDetalhes_${r.id}" onclick="toggleDetalhesRendaExtra('${r.id}')" style="background: ${estaAberto ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255, 255, 255, 0.06)'}; border: 1px solid ${estaAberto ? '#10B981' : 'var(--border-color)'}; color: ${estaAberto ? '#34D399' : 'var(--text-primary)'}; padding: 6px 12px; border-radius: 8px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0; transition: all 0.2s ease;">
-                    <span id="lblToggleDetalhes_${r.id}">${estaAberto ? 'Ocultar Detalhes' : 'Ver Detalhes'}</span>
-                    <span id="icoToggleDetalhes_${r.id}" style="font-size: 0.72rem;">${estaAberto ? '▲' : '▼'}</span>
+            <!-- Linha com Badge de Status (Saldo Zerado 100% Aplicado / Em Uso / Disponível) -->
+            <div style="margin-bottom: 8px;">
+                <div style="display: inline-block;">${badgeStatusHtml}</div>
+            </div>
+
+            <!-- Botão Filtro posicionado ABAIXO da escrita de Saldo Zerado / Status -->
+            <div style="margin-bottom: 10px;">
+                <button type="button" id="btnToggleDetalhes_${r.id}" onclick="toggleDetalhesRendaExtra('${r.id}')" style="background: ${estaAberto ? 'rgba(239, 68, 68, 0.15)' : 'rgba(16, 185, 129, 0.15)'}; border: 1.5px solid ${estaAberto ? '#EF4444' : '#10B981'}; color: ${estaAberto ? '#FCA5A5' : '#34D399'}; padding: 8px 14px; border-radius: 9px; font-size: 0.82rem; font-weight: 800; cursor: pointer; display: inline-flex; align-items: center; gap: 7px; transition: all 0.2s ease;">
+                    <span id="icoToggleDetalhes_${r.id}" style="font-size: 0.76rem;">${estaAberto ? '▲' : '▼'}</span>
+                    <span id="txtBtnToggleDetalhes_${r.id}">${estaAberto ? '✕ Ocultar Gastos e Detalhes' : '🔍 Ver Gastos e Detalhes'}</span>
+                    <span style="font-size: 0.72rem; opacity: 0.85; margin-left: 2px;">(${dados.gastos.length} ${dados.gastos.length === 1 ? 'gasto' : 'gastos'})</span>
                 </button>
             </div>
 
             <!-- Informações e Gastos abaixo da escrita que abrem/fecham ao clicar no filtro -->
-            <div id="detalhesRendaExtra_${r.id}" style="display: ${estaAberto ? 'block' : 'none'}; border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 8px;">
+            <div id="detalhesRendaExtra_${r.id}" style="display: ${estaAberto ? 'block' : 'none'}; border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 4px;">
                 <!-- Origem / Destino -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
                     <span style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); color: #93C5FD; font-size: 0.74rem; font-weight: 700; padding: 5px 8px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
