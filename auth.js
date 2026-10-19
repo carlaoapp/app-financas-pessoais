@@ -20,6 +20,10 @@ function saveAuthSession(token, user, remember = true) {
 }
 
 function logout() {
+    if (window.electronAPI) {
+        // No Novo Projeto Desktop fica direto no sistema sem tela de login
+        return;
+    }
     localStorage.removeItem(AUTH_TOKEN_KEY);
     localStorage.removeItem(AUTH_USER_KEY);
     sessionStorage.removeItem(AUTH_TOKEN_KEY);
@@ -198,6 +202,18 @@ window.addEventListener('DOMContentLoaded', () => {
     // Remove qualquer resquício antigo de modo offline
     localStorage.removeItem('financas_auth_offline_mode');
     
+    // NOVO PROJETO DESKTOP: Roda direto na máquina da pessoa, sem tela de entrada/cadastro
+    if (window.electronAPI) {
+        let user = getAuthUser();
+        if (!user) {
+            user = { id: 'usuario_local', name: 'Usuário Local', email: 'desktop@local.app' };
+            saveAuthSession('token_desktop_local', user, true);
+        }
+        hideAuthScreen();
+        return;
+    }
+
+    // SISTEMA NA REDE (WEB / CELULAR): Permanece exatamente com a tela de entrada / cadastro
     const user = getAuthUser();
     if (user) {
         hideAuthScreen();

@@ -1799,6 +1799,28 @@ async function carregarContasAPagar() {
         `;
         container.appendChild(div);
     });
+
+    // Card Totalizador no rodapé das Contas a Pagar (Gaveta) conforme solicitado
+    const somaTotalGaveta = contasAPagar.reduce((acc, c) => acc + (parseFloat(c.valor_total) || 0), 0);
+    const totalFormatado = window.privacyMode ? '•••••' : 'R$ ' + somaTotalGaveta.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+    const totalCard = document.createElement('div');
+    totalCard.className = 'conta-card-total-gaveta';
+    totalCard.style.cssText = 'background: var(--card-3d-bg, var(--bg-card)); border: 1.5px solid var(--border-color); border-left: 5px solid #F59E0B; border-radius: 12px; padding: 14px 18px; margin-top: 14px; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; box-shadow: 0 4px 16px rgba(245, 158, 11, 0.16);';
+
+    totalCard.innerHTML = `
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <span style="font-size: 1.3rem;">📂</span>
+            <div>
+                <h4 style="margin: 0; font-size: 1.05rem; color: #F59E0B; font-weight: 800;">Contas a pagar (Gaveta)</h4>
+                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">Total somado (${contasAPagar.length} ${contasAPagar.length === 1 ? 'conta' : 'contas'})</div>
+            </div>
+        </div>
+        <div style="font-size: 1.25rem; font-weight: 900; color: #F59E0B; white-space: nowrap;">
+            ${totalFormatado}
+        </div>
+    `;
+    container.appendChild(totalCard);
 }
 
 // ==================================================================
@@ -3065,13 +3087,6 @@ async function carregarPlanejamentoRendaExtra() {
 
         container.appendChild(card);
     });
-
-    // Aplica máscara monetária nos campos dinâmicos de gasto de cada Renda Extra
-    document.querySelectorAll('.input-gasto-renda-extra-mask').forEach(el => {
-        aplicarMascaraMoedaEmElemento(el);
-    });
-}
-window.carregarPlanejamentoRendaExtra = carregarPlanejamentoRendaExtra;
 
     // Aplica máscara monetária nos campos dinâmicos de gasto de cada Renda Extra
     document.querySelectorAll('.input-gasto-renda-extra-mask').forEach(el => {
