@@ -1002,9 +1002,9 @@ body {
     margin-bottom: 14px !important;
 }
 
-.modal-content .form-group label {
+.modal-content .form-group label:not(.checkbox-label) {
     display: block !important;
-    font-size: 0.82rem !important;
+    font-size: 0.8rem !important;
     font-weight: 700 !important;
     color: var(--text-secondary) !important;
     margin-bottom: 6px !important;
@@ -1012,19 +1012,24 @@ body {
     letter-spacing: 0.5px !important;
 }
 
-.modal-content .form-group input,
+.modal-content .form-group input:not([type="checkbox"]):not([type="radio"]),
 .modal-content .form-group select {
     width: 100% !important;
-    padding: 12px 14px !important;
+    height: 44px !important;
+    padding: 0 12px !important;
     border: 1.5px solid var(--border-color) !important;
     border-radius: 10px !important;
-    font-size: 0.95rem !important;
+    font-size: 0.92rem !important;
     font-weight: 600 !important;
     color: var(--text-primary) !important;
     background-color: var(--bg-secondary) !important;
     outline: none !important;
     box-sizing: border-box !important;
     transition: all 0.2s !important;
+}
+
+.modal-content .form-group select {
+    padding-right: 28px !important;
 }
 
 .modal-content .form-group input:focus,
@@ -1034,9 +1039,33 @@ body {
     background-color: var(--bg-card-hover) !important;
 }
 
+.modal-content .form-group input[type="checkbox"] {
+    width: 20px !important;
+    height: 20px !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    cursor: pointer !important;
+    accent-color: #2563EB !important;
+    display: inline-block !important;
+    vertical-align: middle !important;
+}
+
+.modal-content .form-group label.checkbox-label {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    margin: 0 !important;
+    font-size: 0.82rem !important;
+    font-weight: 700 !important;
+    color: var(--text-primary) !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    cursor: pointer !important;
+}
+
 .modal-content .form-group-row {
     display: flex !important;
-    gap: 12px !important;
+    gap: 10px !important;
     margin-bottom: 14px !important;
 }
 
