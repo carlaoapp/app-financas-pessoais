@@ -5,7 +5,7 @@ function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
-    return '1.6.3';
+    return '1.7.5';
 }
 
 function isNewerVersion(serverVer, currentVer) {
@@ -26,26 +26,25 @@ function isNewerVersion(serverVer, currentVer) {
 
 let isUpdateBannerVisible = false;
 
+// Atualiza a badge no cabeçalho mantendo-a SEMPRE discreta e com apenas a última versão
 function atualizarBadgeVersao(versao, temNovaVersao = false, novaVersao = '') {
     const badge = document.getElementById('badgeVersaoApp');
     const lbl = document.getElementById('lblVersaoApp');
     const dot = document.getElementById('dotStatusVersao');
 
+    // Sempre mostra versão única e limpa (ex: v1.7.5), sem duplicidade
+    const versaoExibir = (temNovaVersao && novaVersao) ? novaVersao : versao;
     if (lbl) {
-        if (temNovaVersao && novaVersao) {
-            lbl.innerText = `v${versao} ⚡ v${novaVersao}`;
-        } else {
-            lbl.innerText = `v${versao}`;
-        }
+        lbl.innerText = `v${versaoExibir}`;
     }
 
     if (badge) {
         if (temNovaVersao) {
             badge.classList.add('has-update');
-            badge.title = `⚡ Nova versão v${novaVersao} disponível! Clique para baixar e atualizar agora.`;
+            badge.title = `Nova versão v${novaVersao} disponível. Toque para atualizar.`;
         } else {
             badge.classList.remove('has-update');
-            badge.title = `Versão v${versao} ativa. Clique para verificar atualizações ou forçar recarga.`;
+            badge.title = `Versão v${versao} ativa. Toque para verificar atualizações.`;
         }
     }
 }
@@ -62,6 +61,12 @@ async function checkAppVersion(isManual = false) {
         if (isManual && typeof showToast === 'function') {
             showToast('Sem conexão com a internet para checar atualizações.');
         }
+        return;
+    }
+
+    // Trava anti-loop: se acabou de atualizar há menos de 12 segundos, aguarda estabilizar
+    const lastApplied = parseInt(sessionStorage.getItem('update_applied_at') || '0', 10);
+    if (!isManual && (Date.now() - lastApplied < 12000)) {
         return;
     }
 
@@ -93,9 +98,9 @@ async function checkAppVersion(isManual = false) {
         console.log(`[Auto-Update] Versão Renderizada: v${currentVersion} | Versão Servidor: v${serverVersion}`);
 
         if (isNewerVersion(serverVersion, currentVersion)) {
-            // Sinaliza na badge do cabeçalho
+            // Sinaliza na badge do cabeçalho de forma discreta
             atualizarBadgeVersao(currentVersion, true, serverVersion);
-            // Exibe o banner chamativo para baixar a atualização (se não foi dispensado nesta sessão ou se for checagem manual)
+            // Exibe o banner apenas se não foi dispensado
             if (isManual || !sessionStorage.getItem('banner_dismissed_' + serverVersion)) {
                 showUpdateBanner(serverVersion, currentVersion);
             }
@@ -187,6 +192,7 @@ function showUpdateBanner(newVersion, currentVersion) {
 
 // Aplicação atômica e limpa da atualização, sem necessidade de desinstalação
 async function applyAppUpdate(newVersion) {
+    sessionStorage.setItem('update_applied_at', String(Date.now()));
     if (newVersion) {
         sessionStorage.setItem('updating_to_' + newVersion, 'true');
         sessionStorage.setItem('just_updated', newVersion);
@@ -197,22 +203,24 @@ async function applyAppUpdate(newVersion) {
     if (banner) {
         banner.innerHTML = `
             <div style="text-align: center; padding: 14px; font-size: 0.95rem; color: #34D399; font-weight: 800; display: flex; align-items: center; justify-content: center; gap: 8px;">
-                <span>⚡</span> <span>Baixando v${newVersion || ''} e limpando caches obsoletos... Recarregando!</span>
+                <span>⚡</span> <span>Atualizando para v${newVersion || 'mais recente'}... Concluindo!</span>
             </div>
         `;
     }
 
-    // 1. Notifica todos os Service Workers para limpar caches e dar skipWaiting
+    // 1. Desregistra Service Workers antigos para garantir download limpo dos arquivos novos
     if ('serviceWorker' in navigator) {
         try {
             const regs = await navigator.serviceWorker.getRegistrations();
             for (let reg of regs) {
-                if (reg.active) reg.active.postMessage({ action: 'clearAllCaches' });
-                if (reg.waiting) reg.waiting.postMessage({ action: 'skipWaiting' });
-                await reg.update();
+                try {
+                    if (reg.active) reg.active.postMessage({ action: 'clearAllCaches' });
+                    if (reg.waiting) reg.waiting.postMessage({ action: 'skipWaiting' });
+                    await reg.unregister();
+                } catch (eSW) {}
             }
         } catch (e) {
-            console.warn('[Auto-Update] Erro ao enviar mensagens aos SWs:', e);
+            console.warn('[Auto-Update] Erro ao desregistrar SWs:', e);
         }
     }
 
@@ -229,8 +237,8 @@ async function applyAppUpdate(newVersion) {
 
     // 3. Força recarga imediata com bypass estrito de cache
     setTimeout(() => {
-        window.location.replace(window.location.origin + window.location.pathname + '?reload=' + Date.now());
-    }, 400);
+        window.location.href = window.location.origin + window.location.pathname + '?v=' + Date.now();
+    }, 350);
 }
 
 // Função pública para forçar atualização e limpeza a qualquer momento

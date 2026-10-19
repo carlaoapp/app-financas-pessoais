@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.6.3
-const CACHE_NAME = 'financas-pessoais-v1.6.3';
+// Service Worker - APP Finanças Pessoais v1.7.5
+const CACHE_NAME = 'financas-pessoais-v1.7.5';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -24,7 +24,7 @@ const ASSETS_TO_CACHE = [
 ];
 
 self.addEventListener('install', event => {
-    console.log('[SW v1.6.3] Instalando e forçando ativação imediata...');
+    console.log('[SW v1.7.5] Instalando e forçando ativação imediata...');
     self.skipWaiting();
     event.waitUntil(
         caches.open(CACHE_NAME).then(async cache => {
@@ -43,13 +43,13 @@ self.addEventListener('install', event => {
 });
 
 self.addEventListener('activate', event => {
-    console.log('[SW v1.6.3] Ativado. Limpando caches legados...');
+    console.log('[SW v1.7.5] Ativado. Limpando caches legados...');
     event.waitUntil(
         caches.keys().then(keys => {
             return Promise.all(
                 keys.map(key => {
                     if (key !== CACHE_NAME) {
-                        console.log('[SW v1.6.3] Removendo cache obsoleto:', key);
+                        console.log('[SW v1.7.5] Removendo cache obsoleto:', key);
                         return caches.delete(key);
                     }
                 })
@@ -84,46 +84,31 @@ self.addEventListener('fetch', event => {
         return;
     }
 
-    // 2. Navegação / HTML: CACHE-FIRST COM AVISO DE ATUALIZAÇÃO
-    // Abre instantaneamente (0ms) e permite que o auto-update detecte e exiba o aviso para o usuário
+    // 2. Navegação / HTML: Tenta rede primeiro para novidades imediatas; fallback offline instantâneo
     if (event.request.mode === 'navigate' || url.endsWith('/index.html') || url.endsWith('/')) {
         event.respondWith(
             (async () => {
                 const cache = await caches.open(CACHE_NAME);
-                const isExplicitReload = url.includes('reload=') || url.includes('update=');
 
-                // Se for recarga explícita disparada pelo botão "Atualizar Agora", busca direto na rede
-                if (isExplicitReload) {
-                    try {
-                        const netRes = await fetch(event.request, { cache: 'no-store' });
-                        if (netRes && netRes.status === 200) {
-                            await cache.put(event.request, netRes.clone());
-                            await cache.put('/index.html', netRes.clone());
-                            await cache.put('/', netRes.clone());
-                        }
-                        return netRes;
-                    } catch (e) {}
-                }
-
-                const cachedPage = await cache.match('/index.html') || await cache.match('/') || await cache.match(event.request);
-
-                // Se já temos a página em cache, serve na hora (0ms) sem travar tela
-                if (cachedPage) {
-                    return cachedPage;
-                }
-
-                // Primeiro acesso sem cache: busca na rede
+                // Tenta buscar o HTML fresco na rede
                 try {
                     const netRes = await fetch(event.request, { cache: 'no-cache' });
                     if (netRes && netRes.status === 200) {
                         await cache.put(event.request, netRes.clone());
                         await cache.put('/index.html', netRes.clone());
                         await cache.put('/', netRes.clone());
+                        return netRes;
                     }
-                    return netRes;
-                } catch (e) {
-                    return cachedPage || new Response('<!DOCTYPE html><html><body style="background:#0F172A;color:#fff;text-align:center;padding:40px;font-family:sans-serif;"><h2>Sem conexão com a internet</h2><p>Conecte-se para o primeiro acesso ao aplicativo.</p><button onclick="window.location.reload()" style="background:#2563EB;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:700;">Tentar Novamente</button></body></html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+                } catch (netErr) {
+                    // Offline ou falha temporária de rede: usa cache
                 }
+
+                const cachedPage = await cache.match('/index.html') || await cache.match('/') || await cache.match(event.request);
+                if (cachedPage) {
+                    return cachedPage;
+                }
+
+                return new Response('<!DOCTYPE html><html><body style="background:#0F172A;color:#fff;text-align:center;padding:40px;font-family:sans-serif;"><h2>Sem conexão com a internet</h2><p>Conecte-se para o primeiro acesso ao aplicativo.</p><button onclick="window.location.reload()" style="background:#2563EB;color:#fff;border:none;padding:12px 24px;border-radius:10px;font-weight:700;">Tentar Novamente</button></body></html>', { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
             })()
         );
         return;
