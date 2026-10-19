@@ -934,6 +934,7 @@ function abrirModalLancamento() {
     const modalInputLink = document.getElementById('modalInputLinkUrl');
     if (modalInputLink) modalInputLink.value = '';
     if (typeof removerMidiaModalDesejo === 'function') removerMidiaModalDesejo();
+    if (typeof removerComprovanteAtual === 'function') removerComprovanteAtual();
 
     // Preenche a data padrão com a data de hoje
     const inputData = document.getElementById('inputData');
@@ -1016,6 +1017,17 @@ async function editarLancamento(id) {
         if (item.midia_url && typeof carregarMidiaNoModal === 'function') {
             carregarMidiaNoModal(item.midia_url, item.midia_tipo || 'foto');
         }
+    } else if (item.midia_url) {
+        // Carregar comprovante anexado
+        window.midiaComprovanteTemp = item.midia_url;
+        const thumb = document.getElementById('thumbComprovante');
+        if (thumb) thumb.src = item.midia_url;
+        const previewBox = document.getElementById('previewComprovanteContainer');
+        if (previewBox) previewBox.style.display = 'flex';
+        const det = document.getElementById('detalhesComprovanteLido');
+        if (det) det.innerText = "Comprovante anexado à movimentação";
+    } else {
+        if (typeof removerComprovanteAtual === 'function') removerComprovanteAtual();
     }
 
     const btnExcluir = document.getElementById('btnExcluir');
@@ -1310,6 +1322,12 @@ async function salvarLancamento(event) {
             updateData.link_url = linkDesejo;
             updateData.midia_url = midiaUrlDesejo;
             updateData.midia_tipo = midiaTipoDesejo;
+        } else if (window.midiaComprovanteTemp) {
+            updateData.midia_url = window.midiaComprovanteTemp;
+            updateData.midia_tipo = 'foto';
+        } else {
+            updateData.midia_url = '';
+            updateData.midia_tipo = '';
         }
         await dbLocal.movimentacoes.update(idAtual, updateData);
         console.log('Lançamento atualizado localmente:', idAtual);
@@ -1337,6 +1355,9 @@ async function salvarLancamento(event) {
 
         const valorFinalPorParcela = isParcelado ? (valorOrcado / totalParcelas) : valorOrcado;
         const valorRealizadoPorParcela = isParcelado ? (valorRealizado / totalParcelas) : valorRealizado;
+
+        const midiaSalvarUrl = (tipoGasto === 'Lista de Desejos') ? midiaUrlDesejo : (window.midiaComprovanteTemp || '');
+        const midiaSalvarTipo = (tipoGasto === 'Lista de Desejos') ? midiaTipoDesejo : (window.midiaComprovanteTemp ? 'foto' : '');
 
         for (let i = 0; i < qtdCriar; i++) {
             let nextDateStr = '';
@@ -1366,8 +1387,8 @@ async function salvarLancamento(event) {
                 parcela_atual: isParcelado ? (i + 1) : 1,
                 id_grupo: idGrupo,
                 link_url: linkDesejo,
-                midia_url: midiaUrlDesejo,
-                midia_tipo: midiaTipoDesejo,
+                midia_url: midiaSalvarUrl,
+                midia_tipo: midiaSalvarTipo,
                 user_id: currentUserId,
                 deleted: 0,
                 sync_status: 'pending_insert',
@@ -3557,6 +3578,7 @@ function renderizarExtratoCompleto() {
         const tagStatus = item.status === 'Pago' ? '<span class="badge" style="background:rgba(16,185,129,0.2); color:#10B981; margin-left: 6px;">Pago</span>' :
                           (item.status === 'Pendente' ? '<span class="badge" style="background:rgba(245,158,11,0.2); color:#F59E0B; margin-left: 6px;">Pendente</span>' : '');
         const tagParcela = item.parcelado === 'Sim' ? `<span class="badge" style="margin-left: 6px;">Parc. ${item.parcela_atual}/${item.total_parcelas}</span>` : '';
+        const tagComprovante = item.midia_url ? `<button type="button" onclick="event.stopPropagation(); abrirModalVisualizarComprovante('${item.midia_url}')" style="background: rgba(59, 130, 246, 0.18); border: 1px solid #3B82F6; color: #93C5FD; padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-left: 6px;" title="Ver Comprovante Anexado">📷 Comprovante</button>` : '';
         
         const btnActions = item.isVirtual ? 
             `<p style="font-size:0.75rem; color:var(--text-secondary); margin-top:6px; font-weight:500;">Projeção de parcelamento. Edite no mês da 1ª parcela.</p>` :
@@ -3602,9 +3624,9 @@ function renderizarExtratoCompleto() {
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                 <div class="card-details">
-                    <h4 style="display:flex; align-items:center; gap:6px; font-size: 0.96rem; color:var(--text-primary); font-weight:700;">
+                    <h4 style="display:flex; align-items:center; gap:6px; font-size: 0.96rem; color:var(--text-primary); font-weight:700; flex-wrap: wrap;">
                         <span>${iconCat}</span>
-                        ${item.descricao} ${tagCancelado} ${tagStatus}
+                        ${item.descricao} ${tagCancelado} ${tagStatus} ${tagComprovante}
                     </h4>
                     <p style="color:var(--text-secondary); font-size:0.82rem; margin-top:3px; font-weight:500;">
                         ${dataBr} • ${item.tipo_gasto || 'Geral'} &nbsp; ${tagParcela}

@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais - Computador & Mobbi</title>
-    <meta name="app-build-version" content="1.6.3">
+    <meta name="app-build-version" content="1.7.0">
     <script>
-        window.APP_BUILD_VERSION = '1.6.3';
+        window.APP_BUILD_VERSION = '1.7.0';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -1070,6 +1070,60 @@
             </div>
             <form id="formLancamento" onsubmit="salvarLancamento(event)" style="padding-top: 16px;">
                 <input type="hidden" id="inputIdMovimentacao" value="">
+
+                <!-- PAINEL INTELIGENTE: LEITOR DE COMPROVANTES E NOTAS FISCAIS -->
+                <div id="boxLeitorComprovante" class="box-leitor-comprovante" style="margin-bottom: 16px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9)); border: 1.5px dashed #3B82F6; border-radius: 14px; padding: 12px 14px; transition: all 0.2s;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <div style="display: flex; align-items: center; gap: 7px; color: #60A5FA; font-weight: 700; font-size: 0.88rem;">
+                            <span>📷</span>
+                            <span>Leitor Automático de Comprovante / Cupom</span>
+                        </div>
+                        <span style="font-size: 0.72rem; color: #94A3B8; background: rgba(59, 130, 246, 0.15); padding: 2px 7px; border-radius: 6px;">IA & Leitura Óptica</span>
+                    </div>
+                    
+                    <!-- Botões de Ação para Leitura -->
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <!-- Botão Tirar Foto / Câmera (no celular) -->
+                        <button type="button" onclick="document.getElementById('inputComprovanteCamera').click()" style="flex: 1; min-width: 105px; background: #2563EB; color: white; border: none; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 6px rgba(37,99,235,0.3);">
+                            <span>📷</span> Câmera
+                        </button>
+                        <input type="file" id="inputComprovanteCamera" accept="image/*" capture="environment" style="display: none;" onchange="processarArquivoComprovante(this)">
+
+                        <!-- Botão Selecionar Arquivo / Galeria -->
+                        <button type="button" onclick="document.getElementById('inputComprovanteGaleria').click()" style="flex: 1; min-width: 105px; background: rgba(255,255,255,0.08); color: #E2E8F0; border: 1px solid #334155; padding: 8px 12px; border-radius: 8px; font-weight: 600; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <span>📁</span> Galeria
+                        </button>
+                        <input type="file" id="inputComprovanteGaleria" accept="image/*" style="display: none;" onchange="processarArquivoComprovante(this)">
+
+                        <!-- Botão Colar Texto do Pix / Extrato -->
+                        <button type="button" onclick="abrirPromptColarTextoComprovante()" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; color: #6EE7B7; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;">
+                            <span>📋</span> Colar Texto
+                        </button>
+                    </div>
+
+                    <!-- Indicador de Carregamento / Processamento OCR -->
+                    <div id="statusProcessamentoComprovante" style="display: none; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(59, 130, 246, 0.12); color: #93C5FD; font-size: 0.8rem; font-weight: 600;">
+                        <span>⏳</span>
+                        <span id="textoStatusProcessamento">Lendo imagem e interpretando comprovante...</span>
+                    </div>
+
+                    <!-- Container de Pré-visualização do Comprovante Anexado -->
+                    <div id="previewComprovanteContainer" style="display: none; align-items: center; justify-content: space-between; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: #0F172A; border: 1px solid #334155;">
+                        <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
+                            <img id="thumbComprovante" src="" alt="Comprovante" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #475569; cursor: pointer;" onclick="abrirModalVisualizarComprovante(this.src)" title="Clique para ver o comprovante em tamanho real">
+                            <div style="overflow: hidden;">
+                                <div style="font-size: 0.82rem; font-weight: 700; color: #10B981; display: flex; align-items: center; gap: 4px;">
+                                    <span>✓</span> Comprovante Anexado
+                                </div>
+                                <div id="detalhesComprovanteLido" style="font-size: 0.74rem; color: #94A3B8; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">Dados preenchidos automaticamente</div>
+                            </div>
+                        </div>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" onclick="abrirModalVisualizarComprovante(document.getElementById('thumbComprovante').src)" style="background: rgba(59, 130, 246, 0.2); border: 1px solid #3B82F6; color: #93C5FD; padding: 4px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">🔍 Ver</button>
+                            <button type="button" onclick="removerComprovanteAtual()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5; padding: 4px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">✕</button>
+                        </div>
+                    </div>
+                </div>
                 
                 <div class="form-group" style="margin-bottom: 14px;">
                     <label>Tipo de Movimentação</label>
@@ -1588,18 +1642,56 @@
             </div>
         </div>
     </div>
+    <!-- MODAL DE VISUALIZAÇÃO DE COMPROVANTE (TELA CHEIA) -->
+    <div id="modalVisualizarComprovante" class="modal-overlay" onclick="if(event.target === this) fecharModalVisualizarComprovante()" style="display: none; z-index: 1000000;">
+        <div class="modal-content" style="max-width: 600px; max-height: 90vh; display: flex; flex-direction: column; padding: 18px;">
+            <div class="modal-header" style="margin-bottom: 12px;">
+                <h3 style="display: flex; align-items: center; gap: 8px;"><span>📷</span> Comprovante da Movimentação</h3>
+                <button class="close-btn" onclick="fecharModalVisualizarComprovante()" title="Fechar">✕</button>
+            </div>
+            <div style="flex: 1; overflow-y: auto; text-align: center; background: #020617; border-radius: 12px; padding: 10px; border: 1px solid #1E293B;">
+                <img id="imgComprovanteGrande" src="" alt="Comprovante" style="max-width: 100%; max-height: 65vh; object-fit: contain; border-radius: 8px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px;">
+                <a id="btnBaixarComprovante" href="" download="comprovante.jpg" class="tab-pill" style="text-decoration: none; display: flex; align-items: center; gap: 6px; font-weight: 700; background: #2563EB; color: white;">
+                    <span>📥</span> Baixar Imagem
+                </a>
+                <button type="button" class="tab-pill" onclick="fecharModalVisualizarComprovante()" style="cursor: pointer;">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PARA COLAR TEXTO DE COMPROVANTE/PIX -->
+    <div id="modalColarTextoComprovante" class="modal-overlay" onclick="if(event.target === this) fecharModalColarTexto()" style="display: none; z-index: 1000000;">
+        <div class="modal-content" style="max-width: 500px; padding: 20px;">
+            <div class="modal-header" style="margin-bottom: 12px;">
+                <h3 style="display: flex; align-items: center; gap: 8px;"><span>📋</span> Colar Texto de Comprovante ou Pix</h3>
+                <button class="close-btn" onclick="fecharModalColarTexto()" title="Fechar">✕</button>
+            </div>
+            <p style="font-size: 0.84rem; color: #94A3B8; margin-top: 0; margin-bottom: 12px;">
+                Cole abaixo o texto copiado do comprovante do seu banco, SMS ou Pix (ex: Nubank, Inter, Itaú, BB):
+            </p>
+            <textarea id="txtComprovanteColado" rows="6" placeholder="Cole aqui o texto do comprovante... Exemplo:&#10;Comprovante de Pix&#10;Valor: R$ 85,50&#10;Para: Supermercado São José&#10;Data: 18/10/2026" style="width: 100%; box-sizing: border-box; background: #0F172A; border: 1.5px solid #3B82F6; border-radius: 10px; color: #F8FAFC; padding: 12px; font-family: monospace; font-size: 0.88rem; resize: vertical;"></textarea>
+            <div style="display: flex; gap: 10px; margin-top: 14px;">
+                <button type="button" class="close-btn" style="flex: 1; padding: 10px; border-radius: 8px; background: #334155; color: white; border: none; cursor: pointer;" onclick="fecharModalColarTexto()">Cancelar</button>
+                <button type="button" class="primary-button" style="flex: 2; padding: 10px; border-radius: 8px; background: #10B981; color: white; border: none; font-weight: bold; cursor: pointer;" onclick="processarTextoComprovanteColado()">Interpretar e Preencher</button>
+            </div>
+        </div>
+    </div>
 </div> <!-- FIM DO #view-app -->
 
     <!-- SCRIPTS DA APLICAÇÃO -->
     <script src="jspdf.umd.min.js"></script>
     <script src="jspdf.plugin.autotable.min.js"></script>
     <script src="xlsx.mini.min.js"></script>
-    <script src="finance-db.js?v=1.6.3"></script>
-    <script src="finance-sync.js?v=1.6.3"></script>
-    <script src="finance-powerbi.js?v=1.6.3"></script>
-    <script src="finance-dashboard.js?v=1.6.3"></script>
-    <script src="auth.js?v=1.6.3"></script>
-    <script src="auto-update.js?v=1.6.3"></script>
+    <script src="tesseract.min.js"></script>
+    <script src="finance-ocr.js?v=1.7.0"></script>
+    <script src="finance-db.js?v=1.7.0"></script>
+    <script src="finance-sync.js?v=1.7.0"></script>
+    <script src="finance-powerbi.js?v=1.7.0"></script>
+    <script src="finance-dashboard.js?v=1.7.0"></script>
+    <script src="auth.js?v=1.7.0"></script>
+    <script src="auto-update.js?v=1.7.0"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
