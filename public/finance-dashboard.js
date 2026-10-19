@@ -2800,10 +2800,80 @@ function formatarMoedaRendaExtra(val) {
     return 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+// Controle de expansão dos cards e formulário de Renda Extra
+window.rendasExtrasExpandidas = window.rendasExtrasExpandidas || new Set();
+
+function toggleFormularioRendaExtra(forcarAberto) {
+    const container = document.getElementById('containerFormRendaExtra');
+    const txtEl = document.getElementById('txtBtnToggleFormRendaExtra');
+    const icoEl = document.getElementById('icoBtnToggleFormRendaExtra');
+    const btn = document.getElementById('btnToggleFormRendaExtra');
+    if (!container) return;
+
+    const abrir = forcarAberto !== undefined ? Boolean(forcarAberto) : (container.style.display === 'none' || !container.style.display);
+    if (abrir) {
+        container.style.display = 'block';
+        if (txtEl) txtEl.innerText = '✕ Ocultar Cadastro';
+        if (icoEl) icoEl.innerText = '▲';
+        if (btn) {
+            btn.style.background = 'rgba(239, 68, 68, 0.15)';
+            btn.style.borderColor = '#EF4444';
+            btn.style.color = '#FCA5A5';
+        }
+    } else {
+        container.style.display = 'none';
+        if (txtEl) txtEl.innerText = '➕ Nova Renda Extra';
+        if (icoEl) icoEl.innerText = '▼';
+        if (btn) {
+            btn.style.background = 'rgba(16, 185, 129, 0.15)';
+            btn.style.borderColor = '#10B981';
+            btn.style.color = '#34D399';
+        }
+    }
+}
+window.toggleFormularioRendaExtra = toggleFormularioRendaExtra;
+
+function toggleDetalhesRendaExtra(id) {
+    if (!window.rendasExtrasExpandidas) window.rendasExtrasExpandidas = new Set();
+    const sid = String(id);
+    const estaAberto = window.rendasExtrasExpandidas.has(sid);
+
+    const elDetalhes = document.getElementById(`detalhesRendaExtra_${sid}`);
+    const elBtn = document.getElementById(`btnToggleDetalhes_${sid}`);
+    const elLbl = document.getElementById(`lblToggleDetalhes_${sid}`);
+    const elIco = document.getElementById(`icoToggleDetalhes_${sid}`);
+
+    if (estaAberto) {
+        window.rendasExtrasExpandidas.delete(sid);
+        if (elDetalhes) elDetalhes.style.display = 'none';
+        if (elLbl) elLbl.innerText = 'Ver Detalhes';
+        if (elIco) elIco.innerText = '▼';
+        if (elBtn) {
+            elBtn.style.background = 'rgba(255, 255, 255, 0.06)';
+            elBtn.style.borderColor = 'var(--border-color)';
+            elBtn.style.color = 'var(--text-primary)';
+        }
+    } else {
+        window.rendasExtrasExpandidas.add(sid);
+        if (elDetalhes) elDetalhes.style.display = 'block';
+        if (elLbl) elLbl.innerText = 'Ocultar Detalhes';
+        if (elIco) elIco.innerText = '▲';
+        if (elBtn) {
+            elBtn.style.background = 'rgba(16, 185, 129, 0.18)';
+            elBtn.style.borderColor = '#10B981';
+            elBtn.style.color = '#34D399';
+        }
+    }
+}
+window.toggleDetalhesRendaExtra = toggleDetalhesRendaExtra;
+
 async function carregarPlanejamentoRendaExtra() {
     const container = document.getElementById('listaRendasExtrasContainer');
     const resumoBox = document.getElementById('resumoGeralRendaExtra');
     if (!container) return;
+
+    // Conforme solicitado, os 3 cards com totais gerais permanecem ocultos
+    if (resumoBox) resumoBox.style.display = 'none';
 
     const movs = await dbLocal.movimentacoes.toArray();
     const rendas = movs
@@ -2813,19 +2883,15 @@ async function carregarPlanejamentoRendaExtra() {
     container.innerHTML = '';
 
     if (rendas.length === 0) {
-        if (resumoBox) resumoBox.style.display = 'none';
         container.innerHTML = `
             <div style="text-align: center; padding: 36px 20px; background: var(--bg-card); border: 1.5px dashed var(--border-color); border-radius: 16px;">
                 <div style="font-size: 2.5rem; margin-bottom: 8px;">💰</div>
                 <div style="font-size: 1.05rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px;">Nenhuma Renda Extra planejada ainda</div>
-                <div style="font-size: 0.85rem; color: var(--text-secondary);">Cadastre acima o valor da sua renda extra, de onde veio e onde será aplicada para controlar os gastos até zerar!</div>
+                <div style="font-size: 0.85rem; color: var(--text-secondary);">Clique em <strong>➕ Nova Renda Extra</strong> acima para cadastrar o valor da sua renda extra, de onde veio e onde será aplicada para controlar os gastos até zerar!</div>
             </div>
         `;
         return;
     }
-
-    let somaTotalRendas = 0;
-    let somaTotalGastos = 0;
 
     rendas.forEach(r => {
         const dados = parseDadosRendaExtra(r);
@@ -2833,9 +2899,6 @@ async function carregarPlanejamentoRendaExtra() {
         const totalGasto = dados.gastos.reduce((acc, g) => acc + (parseFloat(g.valor) || 0), 0);
         const saldoRestante = Math.max(0, valorInicial - totalGasto);
         const excedente = totalGasto > valorInicial ? (totalGasto - valorInicial) : 0;
-
-        somaTotalRendas += valorInicial;
-        somaTotalGastos += totalGasto;
 
         const percentualGasto = valorInicial > 0 ? Math.min(100, Math.round((totalGasto / valorInicial) * 100)) : 0;
         const zerou = valorInicial > 0 && saldoRestante <= 0.009;
@@ -2859,6 +2922,9 @@ async function carregarPlanejamentoRendaExtra() {
         } else {
             badgeStatusHtml = `<span style="background: rgba(59, 130, 246, 0.18); border: 1px solid #3B82F6; color: #93C5FD; font-size: 0.74rem; font-weight: 800; padding: 4px 10px; border-radius: 999px;">💎 100% Disponível</span>`;
         }
+
+        // Verifica se este card está expandido pelo usuário
+        const estaAberto = Boolean(window.rendasExtrasExpandidas && window.rendasExtrasExpandidas.has(String(r.id)));
 
         // Monta histórico de gastos desta renda extra com abatimento progressivo
         let saldoAcumulado = valorInicial;
@@ -2918,10 +2984,19 @@ async function carregarPlanejamentoRendaExtra() {
                 </div>
             </div>
 
-            <!-- Badge de Status e Origem / Destino Alinhados -->
-            <div style="display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">
-                <div>${badgeStatusHtml}</div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px;">
+            <!-- Linha com Badge de Status e Botão Filtro/Sanfona de Detalhes -->
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; margin-bottom: 6px;">
+                <div style="min-width: 0;">${badgeStatusHtml}</div>
+                <button type="button" id="btnToggleDetalhes_${r.id}" onclick="toggleDetalhesRendaExtra('${r.id}')" style="background: ${estaAberto ? 'rgba(16, 185, 129, 0.18)' : 'rgba(255, 255, 255, 0.06)'}; border: 1px solid ${estaAberto ? '#10B981' : 'var(--border-color)'}; color: ${estaAberto ? '#34D399' : 'var(--text-primary)'}; padding: 6px 12px; border-radius: 8px; font-size: 0.76rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; flex-shrink: 0; transition: all 0.2s ease;">
+                    <span id="lblToggleDetalhes_${r.id}">${estaAberto ? 'Ocultar Detalhes' : 'Ver Detalhes'}</span>
+                    <span id="icoToggleDetalhes_${r.id}" style="font-size: 0.72rem;">${estaAberto ? '▲' : '▼'}</span>
+                </button>
+            </div>
+
+            <!-- Informações e Gastos abaixo da escrita que abrem/fecham ao clicar no filtro -->
+            <div id="detalhesRendaExtra_${r.id}" style="display: ${estaAberto ? 'block' : 'none'}; border-top: 1px dashed var(--border-color); padding-top: 12px; margin-top: 8px;">
+                <!-- Origem / Destino -->
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 12px;">
                     <span style="background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); color: #93C5FD; font-size: 0.74rem; font-weight: 700; padding: 5px 8px; border-radius: 8px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                         👤 De onde veio: <strong>${dados.origem || 'Não inf.'}</strong>
                     </span>
@@ -2929,79 +3004,74 @@ async function carregarPlanejamentoRendaExtra() {
                         🎯 Onde aplicar: <strong>${dados.aplicacao || 'Uso Geral'}</strong>
                     </span>
                 </div>
-            </div>
 
-            <!-- Painel de Valores: 3 Colunas na Mesma Linha -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px;">
-                <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0;">
-                    <div style="font-size: 0.65rem; color: #94A3B8; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Renda Extra</div>
-                    <div style="font-size: 0.95rem; font-weight: 800; color: #10B981; margin-top: 2px; white-space: nowrap;">${formatarMoedaRendaExtra(valorInicial)}</div>
-                </div>
-                <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0;">
-                    <div style="font-size: 0.65rem; color: #94A3B8; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Total Gasto</div>
-                    <div style="font-size: 0.95rem; font-weight: 800; color: #F59E0B; margin-top: 2px; white-space: nowrap;">- ${formatarMoedaRendaExtra(totalGasto)}</div>
-                </div>
-                <div style="background: #0F172A; border: 1.5px solid ${corSaldo}; border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0;">
-                    <div style="font-size: 0.65rem; color: #CBD5E1; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Saldo Restante</div>
-                    <div style="font-size: 1rem; font-weight: 900; color: ${corSaldo}; margin-top: 2px; white-space: nowrap;">${formatarMoedaRendaExtra(saldoRestante)}</div>
-                </div>
-            </div>
-
-            <!-- Barra de Progresso do Saldo -->
-            <div style="width: 100%; height: 8px; background: #0F172A; border-radius: 999px; overflow: hidden; margin-bottom: 12px; border: 1px solid #1E293B;">
-                <div style="width: ${percentualGasto}%; height: 100%; background: ${corBarra}; transition: width 0.3s ease;"></div>
-            </div>
-
-            <!-- Sub-formulário para Lançar / Editar o que vai ser gasto nesta Renda Extra -->
-            <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
-                <div id="lblTituloFormGasto_${r.id}" style="font-size: 0.78rem; font-weight: 800; color: #38BDF8; margin-bottom: 8px;">
-                    <span>💸 Lançar gasto desta Renda Extra (Abater do Saldo):</span>
-                </div>
-                <input type="hidden" id="idGastoRendaEmEdicao_${r.id}" value="">
-                
-                <!-- Inputs em Linha Única -->
-                <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 8px; margin-bottom: 8px;">
-                    <input type="text" id="inputGastoRendaDesc_${r.id}" placeholder="O que vai ser gasto? (Ex: Material...)" style="width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #334155; border-radius: 8px; background: #0B1120; color: white; font-size: 0.85rem;">
-                    <input type="text" inputmode="numeric" id="inputGastoRendaValor_${r.id}" class="input-gasto-renda-extra-mask" placeholder="R$ 0,00" style="width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #F59E0B; border-radius: 8px; background: #0B1120; color: #FCD34D; font-weight: 800; font-size: 0.88rem;">
+                <!-- Painel de Valores: 3 Colunas na Mesma Linha -->
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px;">
+                    <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0;">
+                        <div style="font-size: 0.65rem; color: #94A3B8; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Renda Extra</div>
+                        <div style="font-size: 0.95rem; font-weight: 800; color: #10B981; margin-top: 2px; white-space: nowrap;">${formatarMoedaRendaExtra(valorInicial)}</div>
+                    </div>
+                    <div style="background: #0F172A; border: 1px solid #1E293B; border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0;">
+                        <div style="font-size: 0.65rem; color: #94A3B8; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Total Gasto</div>
+                        <div style="font-size: 0.95rem; font-weight: 800; color: #F59E0B; margin-top: 2px; white-space: nowrap;">- ${formatarMoedaRendaExtra(totalGasto)}</div>
+                    </div>
+                    <div style="background: #0F172A; border: 1.5px solid ${corSaldo}; border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0;">
+                        <div style="font-size: 0.65rem; color: #CBD5E1; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Saldo Restante</div>
+                        <div style="font-size: 1rem; font-weight: 900; color: ${corSaldo}; margin-top: 2px; white-space: nowrap;">${formatarMoedaRendaExtra(saldoRestante)}</div>
+                    </div>
                 </div>
 
-                <!-- Botões Alinhados Ocupando 100% da Linha -->
-                <div style="display: flex; gap: 8px; width: 100%;">
-                    <button type="button" id="btnSalvarGastoRenda_${r.id}" onclick="salvarGastoRendaExtra('${r.id}')" style="flex: 2; background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; border: none; padding: 10px 12px; border-radius: 8px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
-                        + Abater Gasto
-                    </button>
-                    <button type="button" id="btnExcluirGastoRenda_${r.id}" onclick="excluirGastoRendaExtraEmEdicao('${r.id}')" style="display: none; flex: 1; background: rgba(239, 68, 68, 0.18); border: 1px solid #EF4444; color: #FCA5A5; padding: 10px 10px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
-                        🗑️ Excluir
-                    </button>
-                    <button type="button" id="btnCancelarGastoRenda_${r.id}" onclick="cancelarEdicaoGastoRendaExtra('${r.id}')" style="flex: 1; background: #1E293B; border: 1px solid #475569; color: #CBD5E1; padding: 10px 10px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
-                        ✕ Limpar
-                    </button>
+                <!-- Barra de Progresso do Saldo -->
+                <div style="width: 100%; height: 8px; background: #0F172A; border-radius: 999px; overflow: hidden; margin-bottom: 12px; border: 1px solid #1E293B;">
+                    <div style="width: ${percentualGasto}%; height: 100%; background: ${corBarra}; transition: width 0.3s ease;"></div>
                 </div>
-            </div>
 
-            <!-- Lista de Gastos Abatidos -->
-            <div style="display: flex; flex-direction: column; gap: 8px;">
-                <div style="font-size: 0.74rem; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.4px;">
-                    Histórico de Gastos / Aplicações (${dados.gastos.length})
+                <!-- Sub-formulário para Lançar / Editar o que vai ser gasto nesta Renda Extra -->
+                <div style="background: rgba(15, 23, 42, 0.75); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 12px;">
+                    <div id="lblTituloFormGasto_${r.id}" style="font-size: 0.78rem; font-weight: 800; color: #38BDF8; margin-bottom: 8px;">
+                        <span>💸 Lançar gasto desta Renda Extra (Abater do Saldo):</span>
+                    </div>
+                    <input type="hidden" id="idGastoRendaEmEdicao_${r.id}" value="">
+                    
+                    <!-- Inputs em Linha Única -->
+                    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 8px; margin-bottom: 8px;">
+                        <input type="text" id="inputGastoRendaDesc_${r.id}" placeholder="O que vai ser gasto? (Ex: Material...)" style="width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #334155; border-radius: 8px; background: #0B1120; color: white; font-size: 0.85rem;">
+                        <input type="text" inputmode="numeric" id="inputGastoRendaValor_${r.id}" class="input-gasto-renda-extra-mask" placeholder="R$ 0,00" style="width: 100%; box-sizing: border-box; padding: 9px 10px; border: 1px solid #F59E0B; border-radius: 8px; background: #0B1120; color: #FCD34D; font-weight: 800; font-size: 0.88rem;">
+                    </div>
+
+                    <!-- Botões Alinhados Ocupando 100% da Linha -->
+                    <div style="display: flex; gap: 8px; width: 100%;">
+                        <button type="button" id="btnSalvarGastoRenda_${r.id}" onclick="salvarGastoRendaExtra('${r.id}')" style="flex: 2; background: linear-gradient(135deg, #3B82F6, #2563EB); color: white; border: none; padding: 10px 12px; border-radius: 8px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
+                            + Abater Gasto
+                        </button>
+                        <button type="button" id="btnExcluirGastoRenda_${r.id}" onclick="excluirGastoRendaExtraEmEdicao('${r.id}')" style="display: none; flex: 1; background: rgba(239, 68, 68, 0.18); border: 1px solid #EF4444; color: #FCA5A5; padding: 10px 10px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
+                            🗑️ Excluir
+                        </button>
+                        <button type="button" id="btnCancelarGastoRenda_${r.id}" onclick="cancelarEdicaoGastoRendaExtra('${r.id}')" style="flex: 1; background: #1E293B; border: 1px solid #475569; color: #CBD5E1; padding: 10px 10px; border-radius: 8px; font-weight: 700; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap;">
+                            ✕ Limpar
+                        </button>
+                    </div>
                 </div>
-                ${listaGastosHtml}
+
+                <!-- Lista de Gastos Abatidos -->
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <div style="font-size: 0.74rem; font-weight: 800; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.4px;">
+                        Histórico de Gastos / Aplicações (${dados.gastos.length})
+                    </div>
+                    ${listaGastosHtml}
+                </div>
             </div>
         `;
 
         container.appendChild(card);
     });
 
-    // Atualiza Resumo Consolidado
-    if (resumoBox) {
-        resumoBox.style.display = 'grid';
-        const saldoTotalGeral = Math.max(0, somaTotalRendas - somaTotalGastos);
-        const elTot = document.getElementById('valResumoRendaExtraTotal');
-        const elGas = document.getElementById('valResumoRendaExtraGasto');
-        const elSal = document.getElementById('valResumoRendaExtraSaldo');
-        if (elTot) elTot.innerText = formatarMoedaRendaExtra(somaTotalRendas);
-        if (elGas) elGas.innerText = formatarMoedaRendaExtra(somaTotalGastos);
-        if (elSal) elSal.innerText = formatarMoedaRendaExtra(saldoTotalGeral);
-    }
+    // Aplica máscara monetária nos campos dinâmicos de gasto de cada Renda Extra
+    document.querySelectorAll('.input-gasto-renda-extra-mask').forEach(el => {
+        aplicarMascaraMoedaEmElemento(el);
+    });
+}
+window.carregarPlanejamentoRendaExtra = carregarPlanejamentoRendaExtra;
 
     // Aplica máscara monetária nos campos dinâmicos de gasto de cada Renda Extra
     document.querySelectorAll('.input-gasto-renda-extra-mask').forEach(el => {
@@ -3103,6 +3173,7 @@ window.salvarRendaExtraFormulario = salvarRendaExtraFormulario;
 // Carregar Renda Extra no Formulário do Topo para Edição
 async function editarRendaExtraNoFormulario(id) {
     if (!id) return;
+    toggleFormularioRendaExtra(true);
     let item = await dbLocal.movimentacoes.get(id);
     if (!item && !isNaN(id)) item = await dbLocal.movimentacoes.get(Number(id));
     if (!item) {
@@ -3277,6 +3348,9 @@ async function salvarGastoRendaExtra(rendaId) {
         showToast(gastoIdEdicao ? 'Gasto atualizado! Saldo recalculado.' : 'Gasto abatido do saldo da Renda Extra!');
     }
 
+    if (!window.rendasExtrasExpandidas) window.rendasExtrasExpandidas = new Set();
+    window.rendasExtrasExpandidas.add(String(rendaId));
+
     await carregarPlanejamentoRendaExtra();
     if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
 }
@@ -3285,6 +3359,8 @@ window.salvarGastoRendaExtra = salvarGastoRendaExtra;
 // Carregar um Gasto da Renda Extra para Edição
 async function editarGastoRendaExtra(rendaId, gastoId) {
     if (!rendaId || !gastoId) return;
+    if (!window.rendasExtrasExpandidas) window.rendasExtrasExpandidas = new Set();
+    window.rendasExtrasExpandidas.add(String(rendaId));
     let item = await dbLocal.movimentacoes.get(rendaId);
     if (!item && !isNaN(rendaId)) item = await dbLocal.movimentacoes.get(Number(rendaId));
     if (!item) {
@@ -3372,6 +3448,9 @@ async function excluirGastoRendaExtra(rendaId, gastoId) {
         sync_status: 'pending_update',
         updated_at: timestamp
     });
+
+    if (!window.rendasExtrasExpandidas) window.rendasExtrasExpandidas = new Set();
+    window.rendasExtrasExpandidas.add(String(rendaId));
 
     showToast('Gasto excluído! O valor voltou para o saldo da Renda Extra.');
     await carregarPlanejamentoRendaExtra();

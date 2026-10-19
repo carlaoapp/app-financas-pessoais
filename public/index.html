@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.7.5">
+    <meta name="app-build-version" content="1.7.6">
     <script>
-        window.APP_BUILD_VERSION = '1.7.5';
+        window.APP_BUILD_VERSION = '1.7.6';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -229,14 +229,14 @@
             <!-- LINHA 1 (ACIMA): LOGO, NOME DO APP E VERSÃO DO SISTEMA DISCRETA -->
             <div class="brand-header-row">
                 <div class="brand-section">
-                    <img src="icon-192.png?v=1.7.5" alt="Finanças" class="brand-logo-img">
+                    <img src="icon-192.png?v=1.7.6" alt="Finanças" class="brand-logo-img">
                     <h1 class="brand-title">Finanças Pessoais</h1>
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.7.5" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.7.6" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.7.5</span>
+                    <span id="lblVersaoApp" class="version-text">v1.7.6</span>
                 </div>
             </div>
 
@@ -767,72 +767,66 @@
             <!-- ABA 4.5: PLANEJAMENTO DE RENDAS EXTRAS -->
             <div id="tabRendaExtra" class="tab-content" style="display: none;">
                 <div style="background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                    <div style="margin-bottom: 10px;">
+                    <div style="margin-bottom: 12px;">
                         <h2 style="font-size: 1.15rem; color: #10B981; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
                             💰 Planejamento de Rendas Extras
                         </h2>
-                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 3px 0 0 0; line-height: 1.35;">
+                        <p style="font-size: 0.8rem; color: var(--text-secondary); margin: 3px 0 10px 0; line-height: 1.35;">
                             Cadastre a renda extra, de onde veio, onde será aplicada e abata os gastos até zerar o saldo
                         </p>
+                        <!-- Filtro/Botão para abrir ou fechar o que está abaixo da escrita -->
+                        <button id="btnToggleFormRendaExtra" type="button" onclick="toggleFormularioRendaExtra()" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; color: #34D399; padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;">
+                            <span id="txtBtnToggleFormRendaExtra">➕ Nova Renda Extra</span>
+                            <span id="icoBtnToggleFormRendaExtra" style="font-size: 0.75rem;">▼</span>
+                        </button>
                     </div>
 
-                    <!-- Formulário de Cadastro / Edição da Renda Extra Alinhado -->
-                    <input type="hidden" id="idRendaExtraEmEdicao" value="">
-                    <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-                        <!-- Linha 1: Identificação da Renda Extra + Valor em R$ na mesma linha -->
-                        <div style="display: grid; grid-template-columns: 1.45fr 1fr; gap: 8px; align-items: end;">
-                            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-                                <label style="font-size: 0.75rem; font-weight: 700; color: #34D399; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📋 Do que é a Renda Extra?</label>
-                                <input type="text" id="inputRendaExtraDesc" placeholder="Ex: 13º Salário, Bônus, Venda..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.9rem;">
+                    <!-- Container do Formulário de Cadastro / Edição da Renda Extra (Oculto por Padrão) -->
+                    <div id="containerFormRendaExtra" style="display: none; border-top: 1px dashed var(--border-color); padding-top: 14px; margin-top: 8px;">
+                        <input type="hidden" id="idRendaExtraEmEdicao" value="">
+                        <div style="display: flex; flex-direction: column; gap: 10px;">
+                            <!-- Linha 1: Identificação da Renda Extra + Valor em R$ na mesma linha -->
+                            <div style="display: grid; grid-template-columns: 1.45fr 1fr; gap: 8px; align-items: end;">
+                                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: #34D399; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📋 Do que é a Renda Extra?</label>
+                                    <input type="text" id="inputRendaExtraDesc" placeholder="Ex: 13º Salário, Bônus, Venda..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.9rem;">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: #10B981; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">💵 Valor (R$)</label>
+                                    <input type="text" inputmode="numeric" id="inputRendaExtraValor" class="input-money-mask" placeholder="R$ 0,00" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #10B981; border-radius: 10px; background: #0F172A; color: #34D399; font-size: 0.95rem; font-weight: 800;">
+                                </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-                                <label style="font-size: 0.75rem; font-weight: 700; color: #10B981; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">💵 Valor (R$)</label>
-                                <input type="text" inputmode="numeric" id="inputRendaExtraValor" class="input-money-mask" placeholder="R$ 0,00" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #10B981; border-radius: 10px; background: #0F172A; color: #34D399; font-size: 0.95rem; font-weight: 800;">
-                            </div>
-                        </div>
 
-                        <!-- Linha 2: De onde veio + Onde será aplicada na mesma linha -->
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end;">
-                            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-                                <label style="font-size: 0.75rem; font-weight: 700; color: #60A5FA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">👤 De onde veio?</label>
-                                <input type="text" id="inputRendaExtraOrigem" placeholder="Ex: Carlos, Empresa, Cliente..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.88rem;">
+                            <!-- Linha 2: De onde veio + Onde será aplicada na mesma linha -->
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end;">
+                                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: #60A5FA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">👤 De onde veio?</label>
+                                    <input type="text" id="inputRendaExtraOrigem" placeholder="Ex: Carlos, Empresa, Cliente..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.88rem;">
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
+                                    <label style="font-size: 0.75rem; font-weight: 700; color: #F59E0B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎯 Onde será aplicada?</label>
+                                    <input type="text" id="inputRendaExtraAplicacao" placeholder="Ex: Reforma casa, Viagem..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.88rem;">
+                                </div>
                             </div>
-                            <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
-                                <label style="font-size: 0.75rem; font-weight: 700; color: #F59E0B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎯 Onde será aplicada?</label>
-                                <input type="text" id="inputRendaExtraAplicacao" placeholder="Ex: Reforma casa, Viagem..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.88rem;">
-                            </div>
-                        </div>
 
-                        <!-- Linha 3: Botões de Ação do Formulário Alinhados na Mesma Linha -->
-                        <div id="acoesRendaExtraFormContainer" style="display: flex; gap: 8px; margin-top: 2px; width: 100%;">
-                            <button id="btnSalvarRendaExtra" type="button" onclick="salvarRendaExtraFormulario()" style="flex: 2; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 11px 16px; border-radius: 10px; font-weight: 800; font-size: 0.92rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);">
-                                💾 Salvar Renda Extra
-                            </button>
-                            <button id="btnExcluirRendaExtraForm" type="button" onclick="excluirRendaExtraEmEdicao()" style="display: none; flex: 1; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 11px 12px; border-radius: 10px; font-weight: 700; font-size: 0.86rem; cursor: pointer; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
-                                🗑️ Excluir
-                            </button>
-                            <button id="btnCancelarRendaExtraForm" type="button" onclick="cancelarEdicaoRendaExtra()" style="flex: 1; background: #1E293B; border: 1px solid #475569; color: #CBD5E1; padding: 11px 12px; border-radius: 10px; font-weight: 700; font-size: 0.86rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
-                                ✕ Limpar
-                            </button>
+                            <!-- Linha 3: Botões de Ação do Formulário Alinhados na Mesma Linha -->
+                            <div id="acoesRendaExtraFormContainer" style="display: flex; gap: 8px; margin-top: 2px; width: 100%;">
+                                <button id="btnSalvarRendaExtra" type="button" onclick="salvarRendaExtraFormulario()" style="flex: 2; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 11px 16px; border-radius: 10px; font-weight: 800; font-size: 0.92rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; white-space: nowrap; box-shadow: 0 4px 15px rgba(16, 185, 129, 0.35);">
+                                    💾 Salvar Renda Extra
+                                </button>
+                                <button id="btnExcluirRendaExtraForm" type="button" onclick="excluirRendaExtraEmEdicao()" style="display: none; flex: 1; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 11px 12px; border-radius: 10px; font-weight: 700; font-size: 0.86rem; cursor: pointer; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
+                                    🗑️ Excluir
+                                </button>
+                                <button id="btnCancelarRendaExtraForm" type="button" onclick="cancelarEdicaoRendaExtra()" style="flex: 1; background: #1E293B; border: 1px solid #475569; color: #CBD5E1; padding: 11px 12px; border-radius: 10px; font-weight: 700; font-size: 0.86rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
+                                    ✕ Limpar
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <!-- Resumo Consolidado das Rendas Extras (3 Colunas na Mesma Linha) -->
-                <div id="resumoGeralRendaExtra" style="display: none; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px;">
-                    <div style="background: var(--bg-card); border: 1px solid rgba(16, 185, 129, 0.35); border-left: 3.5px solid #10B981; border-radius: 12px; padding: 10px 10px; min-width: 0;">
-                        <div style="font-size: 0.66rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Total Rendas</div>
-                        <div id="valResumoRendaExtraTotal" style="font-size: 0.98rem; font-weight: 800; color: #10B981; margin-top: 3px; white-space: nowrap;">R$ 0,00</div>
-                    </div>
-                    <div style="background: var(--bg-card); border: 1px solid rgba(245, 158, 11, 0.35); border-left: 3.5px solid #F59E0B; border-radius: 12px; padding: 10px 10px; min-width: 0;">
-                        <div style="font-size: 0.66rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Total Gasto</div>
-                        <div id="valResumoRendaExtraGasto" style="font-size: 0.98rem; font-weight: 800; color: #F59E0B; margin-top: 3px; white-space: nowrap;">R$ 0,00</div>
-                    </div>
-                    <div style="background: var(--bg-card); border: 1px solid rgba(59, 130, 246, 0.35); border-left: 3.5px solid #3B82F6; border-radius: 12px; padding: 10px 10px; min-width: 0;">
-                        <div style="font-size: 0.66rem; font-weight: 800; color: var(--text-secondary); text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Saldo Restante</div>
-                        <div id="valResumoRendaExtraSaldo" style="font-size: 0.98rem; font-weight: 800; color: #60A5FA; margin-top: 3px; white-space: nowrap;">R$ 0,00</div>
-                    </div>
-                </div>
+                <!-- Resumo Consolidado Oculto Conforme Solicitado -->
+                <div id="resumoGeralRendaExtra" style="display: none !important;"></div>
 
                 <!-- Lista de Rendas Extras e Seus Gastos / Abatimentos -->
                 <div class="card-list" id="listaRendasExtrasContainer">
@@ -1297,7 +1291,7 @@
             </div>
             <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
             <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 6px;">Modo Conectado</p>
-            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.7.5</div>
+            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.7.6</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="btnAtualizarDesktopZip" onclick="atualizarDesktopPorZip()" style="display: none; padding: 12px; background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1.5px solid #10B981; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -1755,13 +1749,13 @@
     <script src="jspdf.plugin.autotable.min.js"></script>
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
-    <script src="finance-ocr.js?v=1.7.5"></script>
-    <script src="finance-db.js?v=1.7.5"></script>
-    <script src="finance-sync.js?v=1.7.5"></script>
-    <script src="finance-powerbi.js?v=1.7.5"></script>
-    <script src="finance-dashboard.js?v=1.7.5"></script>
-    <script src="auth.js?v=1.7.5"></script>
-    <script src="auto-update.js?v=1.7.5"></script>
+    <script src="finance-ocr.js?v=1.7.6"></script>
+    <script src="finance-db.js?v=1.7.6"></script>
+    <script src="finance-sync.js?v=1.7.6"></script>
+    <script src="finance-powerbi.js?v=1.7.6"></script>
+    <script src="finance-dashboard.js?v=1.7.6"></script>
+    <script src="auth.js?v=1.7.6"></script>
+    <script src="auto-update.js?v=1.7.6"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
