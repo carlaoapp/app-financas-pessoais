@@ -562,6 +562,52 @@ function obterItensDeAnoEMes(movsAtivas, targetYear, targetMonth) {
     return itens;
 }
 
+// Funções utilitárias para detecção precisa e flexível de Reserva de Emergência
+function isTipoReservaEmergencia(m) {
+    if (!m) return false;
+    const tipo = String(m.tipo_gasto || '').trim();
+    const desc = String(m.descricao || '').trim();
+    const cat = String(m.categoria || '').trim();
+    
+    if (tipo.toLowerCase().includes('resgate') || desc.toLowerCase().includes('resgate') || cat.toLowerCase().includes('resgate')) {
+        return false;
+    }
+    
+    if (tipo === 'Reserva de Emergência' || tipo === 'Reserva de Emergência (Guardar)' || tipo === 'Reserva de Emergencia' || tipo === 'Reserva') {
+        return true;
+    }
+    
+    const descLower = desc.toLowerCase();
+    const catLower = cat.toLowerCase();
+    if (descLower === 'reserva de emergência' || descLower === 'reserva de emergencia' || descLower === 'reserva emergência' || descLower === 'reserva emergencia' ||
+        catLower === 'reserva de emergência' || catLower === 'reserva de emergencia' ||
+        descLower.startsWith('reserva de emergência') || descLower.startsWith('reserva de emergencia')) {
+        if (tipo !== 'Receita') {
+            return true;
+        }
+    }
+    
+    return false;
+}
+window.isTipoReservaEmergencia = isTipoReservaEmergencia;
+
+function isTipoResgateReserva(m) {
+    if (!m) return false;
+    const tipo = String(m.tipo_gasto || '').trim();
+    const desc = String(m.descricao || '').trim();
+    const cat = String(m.categoria || '').trim();
+    
+    return (
+        tipo === 'Resgate de Reserva' ||
+        tipo === 'Resgate de Reserva (Usar)' ||
+        tipo.toLowerCase().includes('resgate de reserva') ||
+        desc.toLowerCase().includes('resgate de reserva') ||
+        cat.toLowerCase().includes('resgate de reserva') ||
+        desc.toLowerCase().includes('resgate da reserva')
+    );
+}
+window.isTipoResgateReserva = isTipoResgateReserva;
+
 async function renderPowerBIDashboard() {
     if (typeof echarts === 'undefined') return;
 
@@ -596,9 +642,9 @@ async function renderPowerBIDashboard() {
             const vt = parseFloat(m.valor_total) || 0;
             const val = vr > 0 ? vr : vt;
 
-            if (m.tipo_gasto === 'Reserva de Emergência') {
+            if (isTipoReservaEmergencia(m)) {
                 reservaAcumuladaTotal += val;
-            } else if (m.tipo_gasto === 'Resgate de Reserva') {
+            } else if (isTipoResgateReserva(m)) {
                 reservaAcumuladaTotal -= val;
             }
         });
@@ -623,12 +669,12 @@ async function renderPowerBIDashboard() {
 
             const descName = m.descricao ? m.descricao.split(' (')[0].trim() : 'Outros';
 
-            if (m.tipo_gasto === 'Receita' || m.tipo_gasto === 'Resgate de Reserva') {
+            if (m.tipo_gasto === 'Receita' || isTipoResgateReserva(m)) {
                 totalReceitasMes += vEfetivo;
                 receitasPorCat[descName] = (receitasPorCat[descName] || 0) + vEfetivo;
             } else if (m.tipo_gasto === 'Investimento') {
                 totalInvestimentosMes += vEfetivo;
-            } else if (m.tipo_gasto === 'Reserva de Emergência') {
+            } else if (isTipoReservaEmergencia(m)) {
                 totalReservaMes += vEfetivo;
             } else {
                 totalDespesasMes += vEfetivo;
@@ -857,12 +903,11 @@ async function renderPowerBIDashboard() {
 
         // --- Gráfico 4: Medidor / Termômetro da Reserva de Emergência ---
         const despesaMediaMensal = qtdMesesTotal > 0 ? (totalDespesasMes / qtdMesesTotal) : totalDespesasMes;
-        const metaReservaRecomendada = despesaMediaMensal > 0 ? (despesaMediaMensal * 3) : 5000;
+        const metaReservaRecomendada = Math.max(despesaMediaMensal * 3, 3000);
         let percentualReserva = 0;
         if (metaReservaRecomendada > 0) {
-            percentualReserva = (reservaAcumuladaTotal / metaReservaRecomendada) * 100;
+            percentualReserva = Math.min(100, Math.max(0, (reservaAcumuladaTotal / metaReservaRecomendada) * 100));
         }
-        if (percentualReserva > 100) percentualReserva = 100;
 
         const gaugeOption = {
             backgroundColor: 'transparent',
@@ -901,15 +946,20 @@ async function renderPowerBIDashboard() {
                     offsetCenter: [0, '-5%'],
                     valueAnimation: true,
                     formatter: function (value) {
-                        return window.privacyMode ? '•••%' : value.toFixed(0) + '% da meta';
+                        return window.privacyMode ? '•••%' : Number(value).toFixed(0) + '% da meta';
                     },
                     color: chartTextColor,
                     fontWeight: 'bold'
                 },
-                data: [{ value: percentualReserva.toFixed(1), name: 'Segurança Atual' }]
+                data: [{ value: Number(percentualReserva.toFixed(1)), name: 'Segurança Atual' }]
             }]
         };
         pbiChartGauge.setOption(gaugeOption, true);
+
+        const elResumoGauge = document.getElementById('lblResumoGaugeReserva');
+        if (elResumoGauge) {
+            elResumoGauge.innerHTML = `🛡️ <strong>Guardado:</strong> ${formatBRL(reservaAcumuladaTotal)} &bull; <strong>Meta (3 meses):</strong> ${formatBRL(metaReservaRecomendada)}`;
+        }
 
         aplicarFiltrosDemonstrativo();
 

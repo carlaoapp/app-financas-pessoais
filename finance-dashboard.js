@@ -34,6 +34,23 @@ async function checarResetInicialDoZero() {
     return;
 }
 
+// Funções globais de detecção de Reserva de Emergência e Resgate
+function isTipoReservaEmergencia(m) {
+    if (!m) return false;
+    const tipo = String(m.tipo_gasto || '').toLowerCase();
+    const desc = String(m.descricao || '').toLowerCase();
+    const cat = String(m.categoria || '').toLowerCase();
+    return tipo.includes('reserva') || desc.includes('reserva de emerg') || cat.includes('reserva de emerg');
+}
+
+function isTipoResgateReserva(m) {
+    if (!m) return false;
+    const tipo = String(m.tipo_gasto || '').toLowerCase();
+    const desc = String(m.descricao || '').toLowerCase();
+    const cat = String(m.categoria || '').toLowerCase();
+    return tipo.includes('resgate') || desc.includes('resgate') || cat.includes('resgate');
+}
+
 window.privacyMode = false;
 
 window.togglePrivacyMode = function() {
@@ -302,12 +319,13 @@ async function carregarPlanejamento() {
             const histRealizado = parseFloat(m.valor_realizado) || 0;
             
             // Tratamento especial para o histórico da reserva (ignora parcelamento da reserva para simplificar, já que não faz sentido parcelar a reserva)
-            if (m.tipo_gasto === 'Reserva de Emergência') {
+            const valorReservaEfetivo = histRealizado > 0 ? histRealizado : histOrcado;
+            if (isTipoReservaEmergencia(m)) {
                 reservaOrcadoTotal += histOrcado;
-                reservaRealizadoTotal += histRealizado;
-            } else if (m.tipo_gasto === 'Resgate de Reserva') {
+                reservaRealizadoTotal += valorReservaEfetivo;
+            } else if (isTipoResgateReserva(m)) {
                 reservaOrcadoTotal -= histOrcado;
-                reservaRealizadoTotal -= histRealizado;
+                reservaRealizadoTotal -= valorReservaEfetivo;
             }
         }
 
@@ -345,7 +363,7 @@ async function carregarPlanejamento() {
         const vOrcado = parseFloat(item.valor_total) || 0;
         const vRealizado = parseFloat(item.valor_realizado) || 0;
 
-        if (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva') {
+        if (isTipoResgateReserva(item) || item.tipo_gasto === 'Receita') {
             // Resgate entra como "Receita" do mês para cobrir o buraco
             recOrcado += vOrcado; 
             recRealizado += vRealizado; 
@@ -353,10 +371,10 @@ async function carregarPlanejamento() {
             // Investimento tem seu totalizador próprio e isolado
             invOrcado += vOrcado;
             invRealizado += vRealizado;
-        } else if (item.tipo_gasto === 'Reserva de Emergência') {
+        } else if (isTipoReservaEmergencia(item)) {
             // Reserva de Emergência tem seu totalizador próprio e isolado
             resMesOrcado += vOrcado;
-            resMesRealizado += vRealizado;
+            resMesRealizado += (vRealizado > 0 ? vRealizado : vOrcado);
         } else {
             despOrcado += vOrcado;
             despRealizado += vRealizado;
@@ -526,15 +544,15 @@ function renderizarLista(itens) {
         if (item.tipo_gasto === 'Receita') {
             borderLeftColor = '#10B981';
             tagTipo = '<span class="badge" style="background:rgba(16,185,129,0.15); color:#10B981; margin-left:6px;">Entrada</span>';
-        } else if (item.tipo_gasto === 'Reserva de Emergência') {
+        } else if (isTipoResgateReserva(item)) {
+            borderLeftColor = '#10B981';
+            tagTipo = '<span class="badge" style="background:rgba(16,185,129,0.15); color:#34D399; margin-left:6px;">💰 Resgate</span>';
+        } else if (isTipoReservaEmergencia(item)) {
             borderLeftColor = '#F59E0B';
             tagTipo = '<span class="badge" style="background:rgba(245,158,11,0.2); color:#F59E0B; margin-left:6px;">🛡️ Reserva</span>';
         } else if (item.tipo_gasto === 'Investimento') {
             borderLeftColor = '#8B5CF6';
             tagTipo = '<span class="badge" style="background:rgba(139,92,246,0.2); color:#A78BFA; margin-left:6px;">📈 Investimento</span>';
-        } else if (item.tipo_gasto === 'Resgate de Reserva') {
-            borderLeftColor = '#10B981';
-            tagTipo = '<span class="badge" style="background:rgba(16,185,129,0.15); color:#34D399; margin-left:6px;">💰 Resgate</span>';
         } else if (item.tipo_gasto === 'Despesa Fixa') {
             tagTipo = '<span class="badge" style="background:rgba(239,68,68,0.15); color:#F87171; margin-left:6px;">Fixa</span>';
         } else if (item.tipo_gasto === 'Despesa Variável') {
@@ -675,6 +693,22 @@ function renderizarSelectCategorias() {
 function aoSelecionarCategoriaPredefinida(val) {
     const inp = document.getElementById('inputDescricao');
     if (inp) inp.value = val || '';
+    if (val && typeof val === 'string') {
+        const lower = val.toLowerCase();
+        const selTipo = document.getElementById('inputTipoGasto');
+        if (selTipo) {
+            if (lower.includes('reserva de emerg') || lower.includes('reserva')) {
+                selTipo.value = 'Reserva de Emergência';
+                if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
+            } else if (lower.includes('resgate')) {
+                selTipo.value = 'Resgate de Reserva';
+                if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
+            } else if (lower.includes('investimento') || lower.includes('ações') || lower.includes('fundo') || lower.includes('tesouro')) {
+                selTipo.value = 'Investimento';
+                if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
+            }
+        }
+    }
 }
 
 function abrirModalGerenciarCategorias() {
@@ -1481,7 +1515,7 @@ async function salvarLancamento(event) {
     
     try {
         const idAtual = document.getElementById('inputIdMovimentacao').value;
-        const tipoGasto = document.getElementById('inputTipoGasto').value;
+        let tipoGasto = document.getElementById('inputTipoGasto').value;
         const selCat = document.getElementById('selectCategoriaPredefinida');
         const inpDesc = document.getElementById('inputDescricao');
         const descricao = (selCat && selCat.value ? selCat.value : (inpDesc ? inpDesc.value : '')).trim();
@@ -1490,6 +1524,15 @@ async function salvarLancamento(event) {
             alert("Por favor, selecione ou informe a Descrição / Tipo de Movimentação!");
             if (selCat) selCat.focus();
             return;
+        }
+
+        // Normalização automática de Reserva de Emergência e Resgate
+        const descLower = descricao.toLowerCase();
+        const tipoLower = (tipoGasto || '').toLowerCase();
+        if (descLower.includes('reserva de emerg') || (tipoLower.includes('reserva') && !tipoLower.includes('resgate'))) {
+            tipoGasto = 'Reserva de Emergência';
+        } else if (descLower.includes('resgate') || tipoLower.includes('resgate')) {
+            tipoGasto = 'Resgate de Reserva';
         }
 
         const valorOrcado = desformatarMoedaInput(document.getElementById('inputValor').value);
@@ -3884,7 +3927,7 @@ function renderizarExtratoCompleto() {
         return vr > 0 ? vr : vo;
     };
 
-    const isReceita = (i) => (i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
+    const isReceita = (i) => (i.tipo_gasto === 'Receita' || isTipoResgateReserva(i));
 
     // Separar Receitas e Despesas/Saídas
     const listaReceitas = itens.filter(isReceita);
@@ -3919,7 +3962,7 @@ function renderizarExtratoCompleto() {
         const vOrcado = window.privacyMode ? '•••••' : parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
         const vRealizado = window.privacyMode ? '•••••' : parseFloat(item.valor_realizado || 0).toFixed(2).replace('.', ',');
 
-        const isReserva = (item.tipo_gasto === 'Reserva de Emergência');
+        const isReserva = isTipoReservaEmergencia(item);
         const isInvestimento = (item.tipo_gasto === 'Investimento');
 
         let borderLeftColor = '#EF4444';
@@ -4246,12 +4289,12 @@ async function exportarBackupFinancasDireto(opcao) {
             let totReceitas = 0, totDespesas = 0, totInvest = 0, totReserva = 0, totGaveta = 0, totDesejos = 0;
             movsFiltradas.forEach(m => {
                 const v = parseFloat(m.valor_total || 0);
-                if (m.tipo_gasto === 'Receita') totReceitas += v;
-                else if (m.tipo_gasto === 'Despesa Fixa' || m.tipo_gasto === 'Despesa Variável') totDespesas += v;
+                if (m.tipo_gasto === 'Receita' || isTipoResgateReserva(m)) totReceitas += v;
+                else if (isTipoReservaEmergencia(m)) totReserva += v;
                 else if (m.tipo_gasto === 'Investimento') totInvest += v;
-                else if (m.tipo_gasto === 'Reserva de Emergência') totReserva += v;
                 else if (m.tipo_gasto === 'Conta a Pagar') totGaveta += v;
                 else if (m.tipo_gasto === 'Lista de Desejos') totDesejos += v;
+                else totDespesas += v;
             });
 
             const rowsResumo = [
@@ -4598,9 +4641,9 @@ async function gerarExtratoPDF() {
     try {
         let itens = (window.currentMesItens || []).slice();
         if (window.extratoFiltroAtual === 'receitas') {
-            itens = itens.filter(i => i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
+            itens = itens.filter(i => i.tipo_gasto === 'Receita' || isTipoResgateReserva(i));
         } else if (window.extratoFiltroAtual === 'despesas') {
-            itens = itens.filter(i => i.tipo_gasto !== 'Receita' && i.tipo_gasto !== 'Resgate de Reserva');
+            itens = itens.filter(i => i.tipo_gasto !== 'Receita' && !isTipoResgateReserva(i));
         }
 
         if (itens.length === 0) {
@@ -4613,7 +4656,7 @@ async function gerarExtratoPDF() {
             const vo = parseFloat(item.valor_total) || 0;
             return vr > 0 ? vr : vo;
         };
-        const isReceita = (i) => (i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
+        const isReceita = (i) => (i.tipo_gasto === 'Receita' || isTipoResgateReserva(i));
 
         const recsPDF = itens.filter(isReceita).sort((a, b) => getValorComparacao(b) - getValorComparacao(a));
         const despsPDF = itens.filter(i => !isReceita(i)).sort((a, b) => getValorComparacao(b) - getValorComparacao(a));
@@ -4636,9 +4679,9 @@ async function gerarExtratoPDF() {
             const vOrc = parseFloat(item.valor_total || 0);
             const valorFinal = vReal > 0 ? vReal : vOrc;
 
-            if (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva') {
+            if (item.tipo_gasto === 'Receita' || isTipoResgateReserva(item)) {
                 totalReceitas += valorFinal;
-            } else {
+            } else if (!isTipoReservaEmergencia(item)) {
                 totalDespesas += valorFinal;
             }
         });
@@ -4711,11 +4754,12 @@ async function gerarExtratoPDF() {
             const tableBody = itens.map(item => {
                 const [y, m, d] = (item.data_lancamento || '2026-01-01').split('-');
                 const dataBr = `${d}/${m}/${y}`;
-                const isReceita = (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva');
+                const isReceita = (item.tipo_gasto === 'Receita' || isTipoResgateReserva(item));
+                const isReserva = isTipoReservaEmergencia(item);
                 const vReal = parseFloat(item.valor_realizado || 0);
                 const vOrc = parseFloat(item.valor_total || 0);
                 const valorFinal = vReal > 0 ? vReal : vOrc;
-                const sinal = isReceita ? '+ ' : '- ';
+                const sinal = isReceita ? '+ ' : (isReserva ? '🛡️ ' : '- ');
                 const statusTexto = item.status === 'Pago' ? 'Pago' : (item.status === 'Cancelado' ? 'Cancelado' : 'Pendente');
 
                 return [
@@ -4758,7 +4802,7 @@ async function gerarExtratoPDF() {
                     doc.setFontSize(7.5);
                     doc.setTextColor(148, 163, 184);
                     doc.text(
-                        `Finanças Pessoais - Computador & Mobbi • Página ${doc.internal.getNumberOfPages()}`,
+                        `Finanças Pessoais • Página ${doc.internal.getNumberOfPages()}`,
                         14,
                         pageHeight - 8
                     );
@@ -4788,12 +4832,13 @@ function imprimirExtratoHTML(nomeMes, anoNum, nomeUsuario, totalReceitas, totalD
     itens.forEach(item => {
         const [y, m, d] = (item.data_lancamento || '2026-01-01').split('-');
         const dataBr = `${d}/${m}/${y}`;
-        const isReceita = (item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Resgate de Reserva');
+        const isReceita = (item.tipo_gasto === 'Receita' || isTipoResgateReserva(item));
+        const isReserva = isTipoReservaEmergencia(item);
         const vReal = parseFloat(item.valor_realizado || 0);
         const vOrc = parseFloat(item.valor_total || 0);
         const valorFinal = vReal > 0 ? vReal : vOrc;
-        const cor = isReceita ? '#10B981' : '#EF4444';
-        const sinal = isReceita ? '+ ' : '- ';
+        const cor = isReceita ? '#10B981' : (isReserva ? '#F59E0B' : '#EF4444');
+        const sinal = isReceita ? '+ ' : (isReserva ? '🛡️ ' : '- ');
         rowsHtml += `
             <tr style="border-bottom: 1px solid #E2E8F0;">
                 <td style="padding: 8px; text-align: center;">${dataBr}</td>
