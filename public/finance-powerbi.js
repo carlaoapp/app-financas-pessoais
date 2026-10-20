@@ -644,6 +644,7 @@ async function renderPowerBIDashboard() {
         const datasInvestimento = [];
         let totalInvestimentosAcumulado = 0;
         let metaInvestimentosOrcadaTotal = 0;
+        const investimentosPorNome = {};
 
         movsAtivas.forEach(m => {
             const vr = parseFloat(m.valor_realizado) || 0;
@@ -662,6 +663,22 @@ async function renderPowerBIDashboard() {
                 metaInvestimentosOrcadaTotal += vt;
                 if (m.data_lancamento && m.data_lancamento.includes('-')) {
                     datasInvestimento.push(m.data_lancamento);
+                }
+
+                // Agrupamento detalhado por nome individual do investimento
+                const nomeInv = m.descricao ? m.descricao.replace(/\s*\(\d+\/\d+\)$/, '').trim() : 'Investimentos';
+                if (!investimentosPorNome[nomeInv]) {
+                    investimentosPorNome[nomeInv] = {
+                        nome: nomeInv,
+                        totalRealizado: 0,
+                        totalOrcado: 0,
+                        datas: []
+                    };
+                }
+                investimentosPorNome[nomeInv].totalRealizado += vr;
+                investimentosPorNome[nomeInv].totalOrcado += vt;
+                if (m.data_lancamento && m.data_lancamento.includes('-')) {
+                    investimentosPorNome[nomeInv].datas.push(m.data_lancamento);
                 }
             }
         });
@@ -1125,6 +1142,59 @@ async function renderPowerBIDashboard() {
                 lblPrazoResumoInv.innerText = `Prazo: ${inicioInvInfo.dataFormatada} a ${fimInvInfo.dataFormatada} (${qtdMesesInv} meses)`;
                 lblPrazoResumoInv.style.display = 'block';
             }
+
+            // Exibição de cada investimento individual com seu respectivo prazo e valor
+            const listaDetalhadosEl = document.getElementById('listaInvestimentosDetalhados');
+            if (listaDetalhadosEl) {
+                const chavesInv = Object.keys(investimentosPorNome);
+                if (chavesInv.length > 0) {
+                    let htmlCards = '<div style="font-size: 0.8rem; font-weight: 700; color: #C084FC; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">📋 Seus Investimentos Ativos:</div>';
+                    chavesInv.forEach(nome => {
+                        const inv = investimentosPorNome[nome];
+                        inv.datas.sort();
+                        const dIni = inv.datas[0] || '';
+                        const dFim = inv.datas[inv.datas.length - 1] || '';
+                        
+                        let prazoTexto = 'Data pontual';
+                        let qtdM = 1;
+                        if (dIni && dFim) {
+                            const [y1, m1, dia1] = dIni.split('-');
+                            const [y2, m2, dia2] = dFim.split('-');
+                            qtdM = Math.max(1, (parseInt(y2) - parseInt(y1)) * 12 + (parseInt(m2) - parseInt(m1)) + 1);
+                            prazoTexto = `📅 Início: ${dia1}/${m1}/${y1} • 🏁 Fim: ${dia2}/${m2}/${y2} (${qtdM} ${qtdM === 1 ? 'mês' : 'meses'})`;
+                        }
+
+                        const metaItem = inv.totalOrcado > 0 ? inv.totalOrcado : inv.totalRealizado;
+                        const percItem = metaItem > 0 ? Math.min(100, Math.round((inv.totalRealizado / metaItem) * 100)) : 100;
+
+                        htmlCards += `
+                            <div style="background: rgba(30, 41, 59, 0.7); border: 1.5px solid rgba(139, 92, 246, 0.35); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-weight: 800; color: #FFFFFF; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                                        <span>📈</span> <span>${inv.nome}</span>
+                                    </span>
+                                    <span style="font-weight: 800; color: #A78BFA; font-size: 0.95rem;">${formatBRL(inv.totalRealizado)}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.76rem; color: #94A3B8; font-weight: 600;">
+                                    <span>Meta Prevista: <strong style="color: #E2E8F0;">${formatBRL(metaItem)}</strong></span>
+                                    <span style="color: #C084FC; font-weight: 700;">${percItem}%</span>
+                                </div>
+                                <div style="width: 100%; height: 6px; background: #0F172A; border-radius: 4px; overflow: hidden; border: 1px solid #334155;">
+                                    <div style="width: ${percItem}%; height: 100%; background: linear-gradient(90deg, #8B5CF6, #A855F7); border-radius: 4px;"></div>
+                                </div>
+                                <div style="font-size: 0.75rem; color: #93C5FD; font-weight: 700; margin-top: 2px;">
+                                    ${prazoTexto}
+                                </div>
+                            </div>
+                        `;
+                    });
+                    listaDetalhadosEl.innerHTML = htmlCards;
+                    listaDetalhadosEl.style.display = 'flex';
+                } else {
+                    listaDetalhadosEl.innerHTML = '';
+                    listaDetalhadosEl.style.display = 'none';
+                }
+            }
         } else {
             if (elResumoInv) elResumoInv.innerHTML = `📈 <strong>Total Investido:</strong> R$ 0,00`;
             if (barraProgressoInv) barraProgressoInv.style.width = '0%';
@@ -1135,6 +1205,11 @@ async function renderPowerBIDashboard() {
             }
             if (badgeInvKpi) badgeInvKpi.style.display = 'none';
             if (lblPrazoResumoInv) lblPrazoResumoInv.style.display = 'none';
+            const listaDetalhadosEl = document.getElementById('listaInvestimentosDetalhados');
+            if (listaDetalhadosEl) {
+                listaDetalhadosEl.innerHTML = '';
+                listaDetalhadosEl.style.display = 'none';
+            }
         }
 
         aplicarFiltrosDemonstrativo();

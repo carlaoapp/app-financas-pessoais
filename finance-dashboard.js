@@ -226,6 +226,9 @@ function abrirModalLancamentoComTipo(tipo) {
         select.value = tipo;
         atualizarTextoStatus();
     }
+    if (tipo === 'Investimento') {
+        alternarCampoNomePersonalizado(true);
+    }
 }
 
 async function zerarTodosLancamentos() {
@@ -883,6 +886,30 @@ function salvarCategoriasCustomizadas(lista) {
     renderizarListaGerenciarCategorias();
 }
 
+function alternarCampoNomePersonalizado(forcarAbrir) {
+    const sel = document.getElementById('selectCategoriaPredefinida');
+    const inpCustom = document.getElementById('inputDescricaoPersonalizada');
+    const btn = document.getElementById('btnAlternarNomeCustom');
+    if (!inpCustom) return;
+
+    const deveAbrir = (forcarAbrir !== undefined) ? forcarAbrir : (inpCustom.style.display === 'none');
+
+    if (deveAbrir) {
+        inpCustom.style.display = 'block';
+        if (sel) sel.style.display = 'none';
+        if (btn) btn.innerHTML = '<span>📋</span> Ver Lista';
+        inpCustom.focus();
+    } else {
+        inpCustom.style.display = 'none';
+        if (sel) sel.style.display = 'block';
+        if (btn) {
+            const tipo = document.getElementById('inputTipoGasto') ? document.getElementById('inputTipoGasto').value : '';
+            btn.innerHTML = (tipo === 'Investimento') ? '<span>✏️</span> Nome do Investimento' : '<span>✏️</span> Digitar Nome';
+        }
+    }
+}
+window.alternarCampoNomePersonalizado = alternarCampoNomePersonalizado;
+
 function renderizarSelectCategorias() {
     const sel = document.getElementById('selectCategoriaPredefinida');
     const dlist = document.getElementById('listaCategoriasDescricao');
@@ -893,7 +920,8 @@ function renderizarSelectCategorias() {
     if (sel) {
         const valAtual = sel.value;
         sel.innerHTML = '<option value="">📋 Escolha da lista (Salário, Luz, Água, Celular...)</option>' +
-            lista.map(cat => `<option value="${cat}">${cat}</option>`).join('');
+            lista.map(cat => `<option value="${cat}">${cat}</option>`).join('') +
+            '<option value="__DIGITAR_NOVO__">✏️ + Digitar outro nome personalizado...</option>';
         if (valAtual && lista.includes(valAtual)) {
             sel.value = valAtual;
         }
@@ -905,6 +933,12 @@ function renderizarSelectCategorias() {
 }
 
 function aoSelecionarCategoriaPredefinida(val) {
+    if (val === '__DIGITAR_NOVO__') {
+        alternarCampoNomePersonalizado(true);
+        const sel = document.getElementById('selectCategoriaPredefinida');
+        if (sel) sel.value = '';
+        return;
+    }
     const inp = document.getElementById('inputDescricao');
     if (inp) inp.value = val || '';
     if (val && typeof val === 'string') {
@@ -1411,9 +1445,19 @@ function abrirModalLancamento() {
     renderizarSelectCategorias();
     renderizarSelectTiposGasto();
     const selCat = document.getElementById('selectCategoriaPredefinida');
-    if (selCat) selCat.value = '';
+    if (selCat) {
+        selCat.value = '';
+        selCat.style.display = 'block';
+    }
     const inpDesc = document.getElementById('inputDescricao');
     if (inpDesc) inpDesc.value = '';
+    const inpCustom = document.getElementById('inputDescricaoPersonalizada');
+    if (inpCustom) {
+        inpCustom.value = '';
+        inpCustom.style.display = 'none';
+    }
+    const btnCustom = document.getElementById('btnAlternarNomeCustom');
+    if (btnCustom) btnCustom.innerHTML = '<span>✏️</span> Digitar Nome';
 
     const m = document.getElementById('modalLancamento');
     if (m) {
@@ -1934,13 +1978,34 @@ async function salvarLancamento(event) {
         let tipoGasto = document.getElementById('inputTipoGasto').value;
         const selCat = document.getElementById('selectCategoriaPredefinida');
         const inpDesc = document.getElementById('inputDescricao');
-        const descricao = (selCat && selCat.value ? selCat.value : (inpDesc ? inpDesc.value : '')).trim();
+        const inpCustom = document.getElementById('inputDescricaoPersonalizada');
+
+        let descricao = '';
+        if (inpCustom && inpCustom.style.display !== 'none' && inpCustom.value.trim()) {
+            descricao = inpCustom.value.trim();
+        } else if (selCat && selCat.value && selCat.value !== '__DIGITAR_NOVO__') {
+            descricao = selCat.value.trim();
+        } else if (inpDesc && inpDesc.value) {
+            descricao = inpDesc.value.trim();
+        } else if (inpCustom && inpCustom.value.trim()) {
+            descricao = inpCustom.value.trim();
+        }
 
         if (!descricao) {
-            alert("Por favor, selecione ou informe a Descrição / Tipo de Movimentação!");
-            if (selCat) selCat.focus();
+            alert("Por favor, informe o nome ou descrição da movimentação ou investimento!");
+            if (inpCustom && inpCustom.style.display !== 'none') inpCustom.focus();
+            else if (selCat) selCat.focus();
             return;
         }
+
+        // Salvar a nova descrição nas categorias customizadas para reuso futuro
+        try {
+            const listaCats = obterCategoriasCustomizadas();
+            if (descricao && !listaCats.includes(descricao)) {
+                listaCats.push(descricao);
+                salvarCategoriasCustomizadas(listaCats);
+            }
+        } catch(e) {}
 
         // Auto-correção e proteção: se a descrição for de Receita (ex: Salário), tipo_gasto NUNCA pode ser Despesa!
         if (isDescricaoReceita(descricao) && (tipoGasto === 'Despesa Variável' || tipoGasto === 'Despesa Fixa')) {
