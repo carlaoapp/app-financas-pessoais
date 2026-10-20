@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.8.10">
+    <meta name="app-build-version" content="1.8.11">
     <script>
-        window.APP_BUILD_VERSION = '1.8.10';
+        window.APP_BUILD_VERSION = '1.8.11';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -231,9 +231,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.10" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.11" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.10</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.11</span>
                 </div>
             </div>
 
@@ -716,6 +716,11 @@
                             <div id="metricSaldoTotalContas" style="font-size: 1.25rem; font-weight: 800; color: #10B981; margin-top: 4px;">R$ 0,00</div>
                         </div>
                         <div style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Saldo Cartão Alimentação</div>
+                            <div id="metricSaldoTotalAlimentacao" style="font-size: 1.25rem; font-weight: 800; color: #F59E0B; margin-top: 4px;">R$ 0,00</div>
+                        </div>
+
+                        <div style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
                             <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Fatura Total dos Cartões (Mês)</div>
                             <div id="metricFaturaTotalMes" style="font-size: 1.25rem; font-weight: 800; color: #F59E0B; margin-top: 4px;">R$ 0,00</div>
                         </div>
@@ -739,6 +744,19 @@
                         <span id="badgeQtdCartoes" style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #93C5FD; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
                     </div>
                     <div id="gridCartoesCreditoContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px;">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </div>
+
+                                <!-- Seção 2: Cartões Alimentação & Benefícios (Alelo, Ticket, Sodexo, VR, Flash, etc.) -->
+                <div style="margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                            <span>🍽️</span> Cartões Alimentação & Benefícios
+                        </h3>
+                        <span id="badgeQtdAlimentacao" style="font-size: 0.75rem; background: rgba(245, 158, 11, 0.2); color: #FCD34D; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
+                    </div>
+                    <div id="gridCartoesAlimentacaoContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px;">
                         <!-- Preenchido dinamicamente via JS -->
                     </div>
                 </div>
@@ -1331,6 +1349,7 @@
                         <option value="Reserva de Emergência">Reserva de Emergência (Guardar)</option>
                         <option value="Resgate de Reserva">Resgate de Reserva (Usar)</option>
                         <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Cartão Alimentação">Cartão Alimentação / Benefício</option>
                         <option value="Empréstimo">Empréstimo</option>
                         <option value="Lista de Desejos">Lista de Desejos</option>
                     </select>
@@ -1520,7 +1539,7 @@
                         <input type="text" inputmode="numeric" id="contaLimite" class="input-money-mask" placeholder="R$ 0,00" style="width: 100%; height: 42px; padding: 0 8px; text-align: center; font-weight: 700; color: #A78BFA; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
                     </div>
                     <div class="form-group" style="flex: 1; margin-bottom: 0;" id="grpContaSaldo">
-                        <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Saldo Atual em Conta</label>
+                        <label id="lblContaSaldo" style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Saldo Atual em Conta</label>
                         <input type="text" inputmode="numeric" id="contaSaldo" class="input-money-mask" placeholder="R$ 0,00" value="R$ 0,00" style="width: 100%; height: 42px; padding: 0 8px; text-align: center; font-weight: 700; color: #10B981; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
                     </div>
                 </div>
@@ -1539,6 +1558,8 @@
                 <div class="form-group" style="margin-bottom: 16px;">
                     <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 6px;">Cor do Cartão / Visual</label>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="paletaCoresCartao">
+                        <button type="button" onclick="selecionarCorCartaoForm('#F97316')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #EA580C, #F97316); border: 2px solid transparent; cursor: pointer;" title="Alelo / Laranja Alimentação"></button>
+                        <button type="button" onclick="selecionarCorCartaoForm('#EC4899')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #DB2777, #EC4899); border: 2px solid transparent; cursor: pointer;" title="Flash / Rosa"></button>
                         <button type="button" onclick="selecionarCorCartaoForm('#10B981')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #059669, #10B981); border: 2px solid transparent; cursor: pointer;" title="Sicredi / Verde"></button>
                         <button type="button" onclick="selecionarCorCartaoForm('#8B5CF6')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #7C3AED, #8B5CF6); border: 2px solid transparent; cursor: pointer;" title="Nubank / Roxo"></button>
                         <button type="button" onclick="selecionarCorCartaoForm('#F59E0B')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #D97706, #F59E0B); border: 2px solid transparent; cursor: pointer;" title="Visa Gold / Dourado"></button>
@@ -1664,7 +1685,7 @@
             </div>
             <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
             <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 6px;">Modo Conectado</p>
-            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.10</div>
+            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.11</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="btnAtualizarDesktopZip" onclick="atualizarDesktopPorZip()" style="display: none; padding: 12px; background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1.5px solid #10B981; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -2280,14 +2301,14 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.10"></script>
-    <script src="finance-db.js?v=1.8.10"></script>
-    <script src="finance-sync.js?v=1.8.10"></script>
-    <script src="finance-powerbi.js?v=1.8.10"></script>
-    <script src="finance-dashboard.js?v=1.8.10"></script>
-    <script src="finance-cartoes.js?v=1.8.10"></script>
-    <script src="auth.js?v=1.8.10"></script>
-    <script src="auto-update.js?v=1.8.10"></script>
+    <script src="finance-ocr.js?v=1.8.11"></script>
+    <script src="finance-db.js?v=1.8.11"></script>
+    <script src="finance-sync.js?v=1.8.11"></script>
+    <script src="finance-powerbi.js?v=1.8.11"></script>
+    <script src="finance-dashboard.js?v=1.8.11"></script>
+    <script src="finance-cartoes.js?v=1.8.11"></script>
+    <script src="auth.js?v=1.8.11"></script>
+    <script src="auto-update.js?v=1.8.11"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

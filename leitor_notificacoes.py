@@ -119,9 +119,11 @@ class LeitorNotificacaoBancaria:
         texto_limpo = texto.replace('\r', ' ').replace('\n', ' ')
         texto_upper = texto_limpo.upper()
 
-        # 1. IDENTIFICAR OPERAÇÃO (Débito ou Crédito)
+        # 1. IDENTIFICAR OPERAÇÃO (Débito, Crédito ou Alimentação)
         operacao = "Indefinido"
-        if re.search(r'\b(D[EÉ]BITO|COMPRA\s+D[EÉ]BITO|NO\s+D[EÉ]BITO|CARTAO\s+DE\s+DEBITO)\b', texto_upper):
+        if re.search(r'\b(ALELO|SODEXO|PLUXEE|TICKET|VR|FLASH|CAJU|SWILE|VALE\s+ALIMENTACAO|VALE\s+REFEICAO|ALIMENTACAO|REFEICAO)\b', texto_upper):
+            operacao = "Alimentação"
+        elif re.search(r'\b(D[EÉ]BITO|COMPRA\s+D[EÉ]BITO|NO\s+D[EÉ]BITO|CARTAO\s+DE\s+DEBITO)\b', texto_upper):
             operacao = "Débito"
         elif re.search(r'\b(CR[EÉ]DITO|COMPRA\s+CR[EÉ]DITO|NO\s+CR[EÉ]DITO|CARTAO\s+DE\s+CREDITO|FATURA|PARCELADO)\b', texto_upper):
             operacao = "Crédito"
@@ -174,6 +176,14 @@ class LeitorNotificacaoBancaria:
         # 4. IDENTIFICAR CARTÃO / BANCO
         cartao_identificado = ""
         bancos_padroes = [
+            ("Alelo", r'\bALELO\b'),
+            ("Ticket", r'\bTICKET\b'),
+            ("Sodexo / Pluxee", r'\b(SODEXO|PLUXEE)\b'),
+            ("VR Benefícios", r'\bVR(?:\s+(?:BENEFICIOS|ALIMENTACAO|REFEICAO))?\b'),
+            ("Flash", r'\bFLASH\b'),
+            ("Caju", r'\bCAJU\b'),
+            ("Swile", r'\bSWILE\b'),
+            ("Cartão Alimentação", r'\b(VALE\s+ALIMENTACAO|VALE\s+REFEICAO|ALIMENTACAO|REFEICAO)\b'),
             ("Visa Gold", r'\bVISA\s+GOLD\b'),
             ("Visa Infinite", r'\bVISA\s+INFINITE\b'),
             ("Visa Platinum", r'\bVISA\s+PLATINUM\b'),
@@ -282,22 +292,39 @@ class LeitorNotificacaoBancaria:
                 if termo in c_nome or termo in c_banco or c_nome in termo:
                     return c
 
-        # 2. Se for cartão de crédito, pega o primeiro cartão de crédito
-        if operacao == "Crédito":
+        # 2. Se for cartão de alimentação, prioriza Cartão Alimentação
+        if operacao == "Alimentação":
+            for c in contas:
+                if c.get('tipo_conta') == 'Cartão Alimentação':
+                    return c
+        elif operacao == "Crédito":
             for c in contas:
                 if c.get('tipo_conta') == 'Cartão de Crédito':
                     return c
         else:
             for c in contas:
-                if c.get('tipo_conta') != 'Cartão de Crédito':
+                if c.get('tipo_conta') != 'Cartão de Crédito' and c.get('tipo_conta') != 'Cartão Alimentação':
                     return c
 
         # 3. Se nenhuma conta existir, cria automaticamente uma com o nome identificado
-        nome_novo = cartao_banco if cartao_banco else ("Cartão de Crédito Principal" if operacao == "Crédito" else "Conta Corrente Principal")
-        tipo_novo = "Cartão de Crédito" if operacao == "Crédito" else "Conta Corrente"
-        limite_novo = 3000.0 if operacao == "Crédito" else 0.0
-        saldo_novo = 1000.0 if operacao == "Débito" else 0.0
-        cor_novo = "#8B5CF6" if "Nubank" in nome_novo else ("#10B981" if "Sicredi" in nome_novo else "#2563EB")
+        if operacao == "Alimentação":
+            nome_novo = cartao_banco if cartao_banco else "Cartão Alimentação"
+            tipo_novo = "Cartão Alimentação"
+            limite_novo = 0.0
+            saldo_novo = 500.0
+            cor_novo = "#F97316"
+        elif operacao == "Crédito":
+            nome_novo = cartao_banco if cartao_banco else "Cartão de Crédito Principal"
+            tipo_novo = "Cartão de Crédito"
+            limite_novo = 3000.0
+            saldo_novo = 0.0
+            cor_novo = "#8B5CF6" if "Nubank" in (nome_novo or "") else ("#10B981" if "Sicredi" in (nome_novo or "") else "#2563EB")
+        else:
+            nome_novo = cartao_banco if cartao_banco else "Conta Corrente Principal"
+            tipo_novo = "Conta Corrente"
+            limite_novo = 0.0
+            saldo_novo = 1000.0
+            cor_novo = "#10B981"
 
         novo_id = self.cadastrar_conta_ou_cartao(
             nome=nome_novo,
@@ -355,7 +382,10 @@ class LeitorNotificacaoBancaria:
         mov_id = str(uuid.uuid4())
 
         # Define tipo de gasto no padrão do App
-        if operacao == "Crédito" or tipo_conta == "Cartão de Crédito":
+        if operacao == "Alimentação" or tipo_conta == "Cartão Alimentação":
+            tipo_gasto = "Cartão Alimentação"
+            status = "Pago"
+        elif operacao == "Crédito" or tipo_conta == "Cartão de Crédito":
             tipo_gasto = "Cartão de Crédito"
             status = "Pago"
         elif operacao == "Receita":
@@ -382,7 +412,12 @@ class LeitorNotificacaoBancaria:
         limite_total = float(conta.get('limite_cartao') or 0.0)
         saldo_novo = saldo_anterior
 
-        if operacao == "Débito" and tipo_conta != "Cartão de Crédito":
+        if (operacao == "Alimentação" or tipo_conta == "Cartão Alimentação"):
+            # Subtrai o valor gasto do saldo do cartão alimentação
+            saldo_novo = saldo_anterior - valor
+            cur.execute("UPDATE contas_bancarias SET saldo_atual = ?, updated_at = ? WHERE id = ?", (saldo_novo, ts, conta_id_final))
+            print(f"[CARTÃO ALIMENTAÇÃO] '{nome_conta}': Saldo anterior R$ {saldo_anterior:.2f} -> Novo Saldo: R$ {saldo_novo:.2f} (-R$ {valor:.2f})")
+        elif operacao == "Débito" and tipo_conta != "Cartão de Crédito":
             # Subtrai o valor gasto do saldo da conta corrente
             saldo_novo = saldo_anterior - valor
             cur.execute("UPDATE contas_bancarias SET saldo_atual = ?, updated_at = ? WHERE id = ?", (saldo_novo, ts, conta_id_final))
@@ -556,8 +591,12 @@ def abrir_interface_grafica():
                 msg += f"• Valor: R$ {res['valor']:.2f}\n"
                 msg += f"• Operação: {res['operacao']}\n"
                 msg += f"• Conta: {res['nome_conta']}\n\n"
-                if res['operacao'] == 'Débito':
-                    msg += f"✓ Saldo atualizado: R$ {res['saldo_novo']:.2f} (Subtraído automaticamente)"
+                if res['operacao'] == 'Alimentação':
+                    msg += f"✓ Saldo do Cartão Alimentação atualizado: R$ {res['saldo_novo']:.2f} (Subtraído automaticamente)"
+                elif res['operacao'] == 'Débito':
+                    msg += f"✓ Saldo da Conta atualizado: R$ {res['saldo_novo']:.2f} (Subtraído automaticamente)"
+                elif res['operacao'] == 'Receita':
+                    msg += f"✓ Saldo em Conta atualizado: R$ {res['saldo_novo']:.2f} (Adicionado automaticamente)"
                 else:
                     msg += f"✓ Fatura do cartão atualizada automaticamente"
                 messagebox.showinfo("Sucesso", msg)

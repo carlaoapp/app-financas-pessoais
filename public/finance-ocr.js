@@ -231,9 +231,17 @@ function interpretarTextoComprovante(texto, origem) {
         }
     }
 
-    // 3. TIPO DE MOVIMENTAÇÃO E STATUS MULTIBANCO (DÉBITO E CRÉDITO)
+    // 3. TIPO DE MOVIMENTAÇÃO E STATUS MULTIBANCO (DÉBITO, CRÉDITO E BENEFÍCIOS/ALIMENTAÇÃO)
     let cartaoBancoDetectado = "";
     const bancosCartoesRegex = [
+        { nome: "Alelo", regex: /\bALELO\b/i },
+        { nome: "Ticket", regex: /\bTICKET\b/i },
+        { nome: "Sodexo / Pluxee", regex: /\b(SODEXO|PLUXEE)\b/i },
+        { nome: "VR Benefícios", regex: /\bVR(?:\s+(?:BENEFICIOS|ALIMENTACAO|REFEICAO))?\b/i },
+        { nome: "Flash", regex: /\bFLASH\b/i },
+        { nome: "Caju", regex: /\bCAJU\b/i },
+        { nome: "Swile", regex: /\bSWILE\b/i },
+        { nome: "Alimentação", regex: /\b(VALE\s+ALIMENTACAO|ALIMENTACAO|REFEICAO)\b/i },
         { nome: "Visa Gold", regex: /\bVISA\s+GOLD\b/i },
         { nome: "Visa Infinite", regex: /\bVISA\s+INFINITE\b/i },
         { nome: "Visa Platinum", regex: /\bVISA\s+PLATINUM\b/i },
@@ -260,11 +268,15 @@ function interpretarTextoComprovante(texto, origem) {
         }
     }
 
+    const isAlimentacaoNotif = /\b(ALELO|SODEXO|PLUXEE|TICKET|VR|FLASH|CAJU|SWILE|VALE\s+ALIMENTACAO|VALE\s+REFEICAO|ALIMENTACAO|REFEICAO)\b/i.test(textoLimpo);
     const isDebitoNotif = /\b(DEBITO|COMPRA\s+DEBITO|NO\s+DEBITO|CARTAO\s+DE\s+DEBITO)\b/i.test(textoLimpo);
     const isCreditoNotif = /\b(CREDITO|COMPRA\s+CREDITO|NO\s+CREDITO|CARTAO\s+DE\s+CREDITO|FATURA|PARCELADO)\b/i.test(textoLimpo);
 
     if (textoLimpo.includes('PIX RECEBIDO') || textoLimpo.includes('TRANSFERENCIA RECEBIDA') || textoLimpo.includes('CREDITO EM CONTA') || textoLimpo.includes('SALARIO') || textoLimpo.includes('PROVENTOS')) {
         tipoMovimentacao = 'Receita';
+        isStatusPago = true;
+    } else if (isAlimentacaoNotif) {
+        tipoMovimentacao = 'Cartão Alimentação';
         isStatusPago = true;
     } else if (isCreditoNotif) {
         tipoMovimentacao = 'Cartão de Crédito';
@@ -426,6 +438,14 @@ function interpretarTextoComprovante(texto, origem) {
                 if (selConta.options[i].dataset && selConta.options[i].dataset.tipo === 'Cartão de Crédito') {
                     selConta.selectedIndex = i;
                     camposPreenchidos.push("Cartão: " + selConta.options[i].text.split('(')[0].trim());
+                    break;
+                }
+            }
+        } else if (!encontrouConta && tipoMovimentacao === 'Cartão Alimentação') {
+            for (let i = 0; i < selConta.options.length; i++) {
+                if (selConta.options[i].dataset && selConta.options[i].dataset.tipo === 'Cartão Alimentação') {
+                    selConta.selectedIndex = i;
+                    camposPreenchidos.push("Alimentação: " + selConta.options[i].text.split('(')[0].trim());
                     break;
                 }
             }
