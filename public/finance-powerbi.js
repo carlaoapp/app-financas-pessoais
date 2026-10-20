@@ -637,10 +637,14 @@ async function renderPowerBIDashboard() {
         const receitasPorCat = {};
         const despesasPorCat = {};
 
-        // 1. Histórico acumulado da Reserva de Emergência:
-        // - valor_realizado (vr) é o que foi efetivamente GUARDADO
-        // - valor_total (vt) é a META da Reserva definida pelo usuário no Orçado
+        // 1. Histórico acumulado da Reserva de Emergência e Investimentos:
+        // - valor_realizado (vr) é o que foi efetivamente GUARDADO / INVESTIDO
+        // - valor_total (vt) é a META definida pelo usuário no Orçado
         const datasReserva = [];
+        const datasInvestimento = [];
+        let totalInvestimentosAcumulado = 0;
+        let metaInvestimentosOrcadaTotal = 0;
+
         movsAtivas.forEach(m => {
             const vr = parseFloat(m.valor_realizado) || 0;
             const vt = parseFloat(m.valor_total) || 0;
@@ -653,6 +657,12 @@ async function renderPowerBIDashboard() {
                 }
             } else if (isTipoResgateReserva(m)) {
                 reservaAcumuladaTotal -= vr;
+            } else if (m.tipo_gasto === 'Investimento' || (m.descricao && m.descricao.toLowerCase().includes('investimento'))) {
+                totalInvestimentosAcumulado += vr;
+                metaInvestimentosOrcadaTotal += vt;
+                if (m.data_lancamento && m.data_lancamento.includes('-')) {
+                    datasInvestimento.push(m.data_lancamento);
+                }
             }
         });
 
@@ -1021,10 +1031,110 @@ async function renderPowerBIDashboard() {
                     </div>
                 `;
                 elPeriodoMeta.style.display = 'block';
+
+                const badgeResKpi = document.getElementById('badgePeriodoReservaKpi');
+                if (badgeResKpi) {
+                    badgeResKpi.innerHTML = `📅 ${inicioInfo.mesAno} ➜ 🏁 ${fimInfo.mesAno} (${qtdMesesMeta}m)`;
+                    badgeResKpi.style.display = 'block';
+                }
+                const lblPrazoResumoRes = document.getElementById('lblPrazoResumoReserva');
+                if (lblPrazoResumoRes) {
+                    lblPrazoResumoRes.innerText = `Prazo: ${inicioInfo.dataFormatada} a ${fimInfo.dataFormatada} (${qtdMesesMeta} meses)`;
+                    lblPrazoResumoRes.style.display = 'block';
+                }
             } else {
                 elPeriodoMeta.innerHTML = '';
                 elPeriodoMeta.style.display = 'none';
+                const badgeResKpi = document.getElementById('badgePeriodoReservaKpi');
+                if (badgeResKpi) badgeResKpi.style.display = 'none';
+                const lblPrazoResumoRes = document.getElementById('lblPrazoResumoReserva');
+                if (lblPrazoResumoRes) lblPrazoResumoRes.style.display = 'none';
             }
+        }
+
+        // ==============================================================
+        // RENDERIZAÇÃO DE METAS E PRAZOS DE INVESTIMENTOS
+        // ==============================================================
+        const elResumoInv = document.getElementById('lblResumoInvestimentos');
+        const barraProgressoInv = document.getElementById('barraProgressoInvestimento');
+        const lblPercInv = document.getElementById('lblPercentualMetaInvestimento');
+        const elPeriodoMetaInv = document.getElementById('lblPeriodoMetaInvestimento');
+        const badgeInvKpi = document.getElementById('badgePeriodoInvestimentoKpi');
+        const lblPrazoResumoInv = document.getElementById('lblPrazoResumoInvestimento');
+
+        if (datasInvestimento.length > 0) {
+            datasInvestimento.sort();
+            const dIniIsoInv = datasInvestimento[0];
+            const dFimIsoInv = datasInvestimento[datasInvestimento.length - 1];
+
+            const formatarDataAmigavelInv = (isoStr) => {
+                const [y, m, d] = isoStr.split('-');
+                const idx = parseInt(m, 10) - 1;
+                const nomeMes = MESES_NOMES_DEMO[idx] || m;
+                return {
+                    dataFormatada: `${d}/${m}/${y}`,
+                    mesAno: `${nomeMes}/${y}`,
+                    textoCompleto: `${d}/${m}/${y} (${nomeMes}/${y})`
+                };
+            };
+
+            const inicioInvInfo = formatarDataAmigavelInv(dIniIsoInv);
+            const fimInvInfo = formatarDataAmigavelInv(dFimIsoInv);
+
+            const [yIniInv, mIniInv] = dIniIsoInv.split('-').map(Number);
+            const [yFimInv, mFimInv] = dFimIsoInv.split('-').map(Number);
+            const qtdMesesInv = Math.max(1, (yFimInv - yIniInv) * 12 + (mFimInv - mIniInv) + 1);
+
+            const metaInvFinal = metaInvestimentosOrcadaTotal > 0 ? metaInvestimentosOrcadaTotal : totalInvestimentosAcumulado;
+            const percInv = metaInvFinal > 0 ? Math.min(100, Math.round((totalInvestimentosAcumulado / metaInvFinal) * 100)) : 100;
+
+            if (elResumoInv) {
+                elResumoInv.innerHTML = `📈 <strong>Total Investido (Realizado):</strong> ${formatBRL(totalInvestimentosAcumulado)} &bull; <strong>Meta Orçada:</strong> ${formatBRL(metaInvFinal)}`;
+            }
+            if (barraProgressoInv) {
+                barraProgressoInv.style.width = `${percInv}%`;
+            }
+            if (lblPercInv) {
+                lblPercInv.innerText = `${percInv}% (${formatBRL(totalInvestimentosAcumulado)} / ${formatBRL(metaInvFinal)})`;
+            }
+
+            if (elPeriodoMetaInv) {
+                elPeriodoMetaInv.innerHTML = `
+                    <div style="display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 4px;">
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.4); padding: 5px 12px; border-radius: 8px; color: #C084FC; font-size: 0.8rem; font-weight: 700;">
+                            <span>📅</span> Início da Meta: <strong style="color: #FFFFFF;">${inicioInvInfo.textoCompleto}</strong>
+                        </span>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 5px 12px; border-radius: 8px; color: #6EE7B7; font-size: 0.8rem; font-weight: 700;">
+                            <span>🏁</span> Prazo Final: <strong style="color: #FFFFFF;">${fimInvInfo.textoCompleto}</strong>
+                        </span>
+                        ${qtdMesesInv > 1 ? `
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); padding: 5px 10px; border-radius: 8px; color: #93C5FD; font-size: 0.8rem; font-weight: 700;">
+                            <span>⏱️</span> Prazo: ${qtdMesesInv} meses
+                        </span>` : ''}
+                    </div>
+                `;
+                elPeriodoMetaInv.style.display = 'block';
+            }
+
+            if (badgeInvKpi) {
+                badgeInvKpi.innerHTML = `📅 ${inicioInvInfo.mesAno} ➜ 🏁 ${fimInvInfo.mesAno} (${qtdMesesInv}m)`;
+                badgeInvKpi.style.display = 'block';
+            }
+
+            if (lblPrazoResumoInv) {
+                lblPrazoResumoInv.innerText = `Prazo: ${inicioInvInfo.dataFormatada} a ${fimInvInfo.dataFormatada} (${qtdMesesInv} meses)`;
+                lblPrazoResumoInv.style.display = 'block';
+            }
+        } else {
+            if (elResumoInv) elResumoInv.innerHTML = `📈 <strong>Total Investido:</strong> R$ 0,00`;
+            if (barraProgressoInv) barraProgressoInv.style.width = '0%';
+            if (lblPercInv) lblPercInv.innerText = '0%';
+            if (elPeriodoMetaInv) {
+                elPeriodoMetaInv.innerHTML = '';
+                elPeriodoMetaInv.style.display = 'none';
+            }
+            if (badgeInvKpi) badgeInvKpi.style.display = 'none';
+            if (lblPrazoResumoInv) lblPrazoResumoInv.style.display = 'none';
         }
 
         aplicarFiltrosDemonstrativo();

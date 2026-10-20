@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.8.4">
+    <meta name="app-build-version" content="1.8.5">
     <script>
-        window.APP_BUILD_VERSION = '1.8.4';
+        window.APP_BUILD_VERSION = '1.8.5';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -231,9 +231,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.4" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.5" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.4</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.5</span>
                 </div>
             </div>
 
@@ -544,6 +544,7 @@
                         </div>
                         <div class="demo-kpi-value" id="pbiValInvestimentos" style="color: #A78BFA;">R$ 0,00</div>
                         <div class="demo-kpi-subtext" id="subKpiInv">Aplicações guardadas para o seu futuro</div>
+                        <div id="badgePeriodoInvestimentoKpi" style="display: none; margin-top: 6px; font-size: 0.74rem; font-weight: 700; color: #DDD6FE; background: rgba(139, 92, 246, 0.2); border: 1px solid rgba(139, 92, 246, 0.45); border-radius: 6px; padding: 3px 8px; text-align: center;"></div>
                     </div>
 
                     <!-- 4. Reserva de Emergência -->
@@ -554,6 +555,7 @@
                         </div>
                         <div class="demo-kpi-value" id="pbiValReserva" style="color: #FBBF24;">R$ 0,00</div>
                         <div class="demo-kpi-subtext" id="subKpiRes">Fundo protegido acumulado até hoje</div>
+                        <div id="badgePeriodoReservaKpi" style="display: none; margin-top: 6px; font-size: 0.74rem; font-weight: 700; color: #FCD34D; background: rgba(245, 158, 11, 0.2); border: 1px solid rgba(245, 158, 11, 0.45); border-radius: 6px; padding: 3px 8px; text-align: center;"></div>
                     </div>
                 </div>
 
@@ -616,6 +618,38 @@
                         <div id="lblPeriodoMetaReserva" style="margin-bottom: 12px; text-align: center; width: 100%; max-width: 500px;"></div>
                         <div style="text-align: center; max-width: 500px; padding: 10px 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; font-size: 0.82rem; color: #FCD34D;">
                             💡 <strong>Dica de Segurança:</strong> Uma reserva ideal cobre de 3 a 6 meses do seu custo fixo para imprevistos.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- SEÇÃO 4: INVESTIMENTOS (METAS E PRAZOS) -->
+                <div class="demo-chart-box" id="boxChartInvestimentos" style="margin-bottom: 16px;">
+                    <div class="demo-chart-header">
+                        <div class="demo-chart-title" style="color: #8B5CF6;">
+                            <span>📈</span> Metas e Prazos de Investimentos
+                        </div>
+                        <div class="demo-chart-desc">Acompanhamento do progresso e prazos dos seus aportes de investimento</div>
+                    </div>
+                    <div style="display: flex; flex-direction: column; align-items: center; padding: 10px 0;">
+                        <!-- Resumo de Valores -->
+                        <div id="lblResumoInvestimentos" style="font-size: 0.95rem; font-weight: 700; color: #A78BFA; margin-bottom: 10px; text-align: center;"></div>
+                        
+                        <!-- Barra de Progresso da Meta de Investimentos -->
+                        <div style="width: 100%; max-width: 500px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 700; color: #94A3B8; margin-bottom: 4px;">
+                                <span>Progresso dos Aportes</span>
+                                <span id="lblPercentualMetaInvestimento" style="color: #C084FC;">0%</span>
+                            </div>
+                            <div style="width: 100%; height: 10px; background: #1E293B; border-radius: 6px; overflow: hidden; border: 1px solid #334155;">
+                                <div id="barraProgressoInvestimento" style="width: 0%; height: 100%; background: linear-gradient(90deg, #8B5CF6, #A855F7); border-radius: 6px; transition: width 0.5s;"></div>
+                            </div>
+                        </div>
+
+                        <!-- Badges de Início e Prazo Final -->
+                        <div id="lblPeriodoMetaInvestimento" style="margin-bottom: 12px; text-align: center; width: 100%; max-width: 500px;"></div>
+
+                        <div style="text-align: center; max-width: 500px; padding: 10px 14px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 10px; font-size: 0.82rem; color: #DDD6FE;">
+                            💎 <strong>Planejamento Patrimonial:</strong> Acompanhe o período de início e fim da sua meta de investimento para garantir a consistência dos seus aportes.
                         </div>
                     </div>
                 </div>
@@ -897,8 +931,11 @@
                     
                     <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Investimento')" title="Clique para lançar Investimento">
                         <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
-                            <div style="color: #8B5CF6; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#8B5CF6;"></span> Investimentos
+                            <div style="color: #8B5CF6; font-weight: 600; display: flex; flex-direction: column; gap: 2px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#8B5CF6;"></span> Investimentos
+                                </div>
+                                <span id="lblPrazoResumoInvestimento" style="display:none; font-size: 0.72rem; color: #C084FC; margin-left: 14px; font-weight: 500;"></span>
                             </div>
                             <div id="valInvestimentoOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
                             <div id="valInvestimentoRealizado" style="text-align: right; font-weight: bold; color: #8B5CF6;">R$ 0,00</div>
@@ -907,8 +944,11 @@
                     
                     <div class="summary-row-interactive" onclick="abrirModalLancamentoComTipo('Reserva de Emergência')" title="Clique para lançar Reserva">
                         <div style="display: grid; grid-template-columns: 1.4fr 1fr 1fr; align-items: center; font-size: 0.95rem;">
-                            <div style="color: #F59E0B; font-weight: 600; display: flex; align-items: center; gap: 6px;">
-                                <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#F59E0B;"></span> Reserva de Emergência
+                            <div style="color: #F59E0B; font-weight: 600; display: flex; flex-direction: column; gap: 2px;">
+                                <div style="display: flex; align-items: center; gap: 6px;">
+                                    <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#F59E0B;"></span> Reserva de Emergência
+                                </div>
+                                <span id="lblPrazoResumoReserva" style="display:none; font-size: 0.72rem; color: #FBBF24; margin-left: 14px; font-weight: 500;"></span>
                             </div>
                             <div id="valReservaOrcado" style="text-align: right; color: var(--text-secondary);">R$ 0,00</div>
                             <div id="valReservaRealizado" style="text-align: right; font-weight: bold; color: #F59E0B;">R$ 0,00</div>
@@ -1198,8 +1238,8 @@
 
                 <div class="form-group-row" style="display: flex; gap: 10px; margin-bottom: 14px;">
                     <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Data</label>
-                        <input type="date" id="inputData" style="width: 100%; height: 44px; padding: 0 8px; font-size: 0.9rem; font-weight: 600; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; color: #FFFFFF; box-sizing: border-box;">
+                        <label id="lblInputData" style="display: block; font-size: 0.8rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Data</label>
+                        <input type="date" id="inputData" onchange="if(typeof atualizarAvisoMetaPrazos === 'function') atualizarAvisoMetaPrazos()" style="width: 100%; height: 44px; padding: 0 8px; font-size: 0.9rem; font-weight: 600; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; color: #FFFFFF; box-sizing: border-box;">
                     </div>
                     <div class="form-group" style="flex: 1; margin-bottom: 0;">
                         <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Status</label>
@@ -1211,7 +1251,7 @@
                     </div>
                 </div>
 
-                <div class="form-group-row" style="display: flex; gap: 10px; align-items: center; margin-bottom: 14px;">
+                <div class="form-group-row" id="rowParcelado" style="display: flex; gap: 10px; align-items: center; margin-bottom: 14px;">
                     <div class="form-group" style="flex: 1; margin-bottom: 0;">
                         <div style="height: 44px; background: rgba(30, 41, 59, 0.5); border: 1.5px solid #334155; border-radius: 10px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; cursor: pointer;" onclick="const cb = document.getElementById('inputParcelado'); if(event.target !== cb) { cb.checked = !cb.checked; toggleParcelas(); }">
                             <label for="inputParcelado" class="checkbox-label" style="cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.82rem; font-weight: 700; color: #E2E8F0; text-transform: uppercase; letter-spacing: 0.5px;">
@@ -1226,9 +1266,12 @@
                     </div>
                 </div>
 
-                <div class="form-group-row" style="display: flex; gap: 10px; margin-bottom: 16px;">
+                <!-- Painel Informativo Dinâmico de Prazos (Início e Fim) para Investimentos e Reserva de Emergência -->
+                <div id="boxMetaPrazosAviso" style="display: none; margin-bottom: 14px; padding: 12px 14px; border-radius: 10px; font-size: 0.82rem; line-height: 1.4;"></div>
+
+                <div class="form-group-row" id="rowRecorrencia" style="display: flex; gap: 10px; margin-bottom: 16px;">
                     <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Recorrência (Mensal)</label>
+                        <label id="lblInputRecorrencia" style="display: block; font-size: 0.8rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Recorrência (Mensal)</label>
                         <select id="inputRecorrencia" onchange="if(typeof toggleRecorrencia === 'function') toggleRecorrencia()" style="width: 100%; height: 44px; padding: 0 10px; font-size: 0.9rem; font-weight: 600; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; color: #FFFFFF; box-sizing: border-box;">
                             <option value="Unica">Única (Não se repete)</option>
                             <option value="Continua">Contínua (Repete todo mês)</option>
@@ -1236,8 +1279,8 @@
                         </select>
                     </div>
                     <div class="form-group" style="flex: 1; display: none; margin-bottom: 0;" id="divDataFim">
-                        <label style="display: block; font-size: 0.8rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Até qual mês/ano?</label>
-                        <input type="month" id="inputDataFim" style="width: 100%; height: 44px; padding: 0 10px; font-size: 0.9rem; font-weight: 600; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; color: #FFFFFF; box-sizing: border-box;">
+                        <label id="lblInputDataFim" style="display: block; font-size: 0.8rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px;">Até qual mês/ano?</label>
+                        <input type="month" id="inputDataFim" onchange="if(typeof atualizarAvisoMetaPrazos === 'function') atualizarAvisoMetaPrazos()" style="width: 100%; height: 44px; padding: 0 10px; font-size: 0.9rem; font-weight: 600; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; color: #FFFFFF; box-sizing: border-box;">
                     </div>
                 </div>
 
@@ -1321,7 +1364,7 @@
             </div>
             <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
             <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 6px;">Modo Conectado</p>
-            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.4</div>
+            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.5</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="btnAtualizarDesktopZip" onclick="atualizarDesktopPorZip()" style="display: none; padding: 12px; background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1.5px solid #10B981; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -1827,13 +1870,13 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.4"></script>
-    <script src="finance-db.js?v=1.8.4"></script>
-    <script src="finance-sync.js?v=1.8.4"></script>
-    <script src="finance-powerbi.js?v=1.8.4"></script>
-    <script src="finance-dashboard.js?v=1.8.4"></script>
-    <script src="auth.js?v=1.8.4"></script>
-    <script src="auto-update.js?v=1.8.4"></script>
+    <script src="finance-ocr.js?v=1.8.5"></script>
+    <script src="finance-db.js?v=1.8.5"></script>
+    <script src="finance-sync.js?v=1.8.5"></script>
+    <script src="finance-powerbi.js?v=1.8.5"></script>
+    <script src="finance-dashboard.js?v=1.8.5"></script>
+    <script src="auth.js?v=1.8.5"></script>
+    <script src="auto-update.js?v=1.8.5"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

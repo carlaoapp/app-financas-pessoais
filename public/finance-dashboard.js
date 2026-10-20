@@ -642,7 +642,7 @@ function renderizarLista(itens) {
 // ------------------------------------------------------------------
 
 function atualizarTextoStatus() {
-    const tipo = document.getElementById('inputTipoGasto').value;
+    const tipo = document.getElementById('inputTipoGasto') ? document.getElementById('inputTipoGasto').value : '';
     const statusSelect = document.getElementById('inputStatus');
     if (statusSelect && statusSelect.options.length > 1) {
         if (tipo === 'Lista de Desejos') {
@@ -656,6 +656,179 @@ function atualizarTextoStatus() {
     const extras = document.getElementById('modalDesejoExtras');
     if (extras) {
         extras.style.display = (tipo === 'Lista de Desejos') ? 'block' : 'none';
+    }
+
+    // Adaptação dos campos de Prazo de Início e Prazo Final para Reserva e Investimentos
+    const lblInputData = document.getElementById('lblInputData');
+    const lblInputRecorrencia = document.getElementById('lblInputRecorrencia');
+    const lblInputDataFim = document.getElementById('lblInputDataFim');
+    const selectRec = document.getElementById('inputRecorrencia');
+    const divDataFim = document.getElementById('divDataFim');
+    const inputDataFim = document.getElementById('inputDataFim');
+    const inputData = document.getElementById('inputData');
+    const boxMetaPrazos = document.getElementById('boxMetaPrazosAviso');
+    const rowParcelado = document.getElementById('rowParcelado');
+
+    const isMetaComPrazo = (tipo === 'Investimento' || tipo === 'Reserva de Emergência');
+
+    if (isMetaComPrazo) {
+        if (lblInputData) {
+            lblInputData.innerHTML = tipo === 'Investimento' 
+                ? '📅 Prazo de Início (Investimento)' 
+                : '📅 Prazo de Início (Meta da Reserva)';
+            lblInputData.style.color = tipo === 'Investimento' ? '#C084FC' : '#FBBF24';
+        }
+        if (lblInputRecorrencia) {
+            lblInputRecorrencia.innerText = '🎯 Planejamento de Prazo / Meta';
+            lblInputRecorrencia.style.color = tipo === 'Investimento' ? '#C084FC' : '#FBBF24';
+        }
+        if (lblInputDataFim) {
+            lblInputDataFim.innerText = '🏁 Prazo Final (Mês/Ano Final)';
+            lblInputDataFim.style.color = '#34D399';
+        }
+
+        if (selectRec) {
+            const valAntigo = selectRec.value;
+            selectRec.innerHTML = `
+                <option value="DataFinal">🏁 Definir Prazo Final (Início e Fim)</option>
+                <option value="Continua">🔄 Contínua (Aporte mensal sem término)</option>
+                <option value="Unica">1️⃣ Aporte Único (Apenas no início)</option>
+            `;
+            // Se for criação de novo lançamento e ainda não estava selecionado, definir como DataFinal
+            const idAtual = document.getElementById('inputIdMovimentacao') ? document.getElementById('inputIdMovimentacao').value : '';
+            if (!idAtual && valAntigo !== 'Continua' && valAntigo !== 'Unica') {
+                selectRec.value = 'DataFinal';
+            } else if (valAntigo) {
+                selectRec.value = valAntigo;
+            }
+        }
+
+        // Sugerir prazo final padrão se vazio (ex: 6 meses a partir da data de início)
+        if (divDataFim && selectRec && selectRec.value === 'DataFinal') {
+            divDataFim.style.display = 'block';
+            if (inputDataFim && !inputDataFim.value && inputData && inputData.value) {
+                const [anoIni, mesIni] = inputData.value.split('-').map(Number);
+                const dtSugerida = new Date(anoIni, mesIni - 1 + 5, 1); // 6 meses
+                const aSug = dtSugerida.getFullYear();
+                const mSug = String(dtSugerida.getMonth() + 1).padStart(2, '0');
+                inputDataFim.value = `${aSug}-${mSug}`;
+            }
+        } else if (divDataFim && selectRec) {
+            divDataFim.style.display = selectRec.value === 'DataFinal' ? 'block' : 'none';
+        }
+
+        // Para metas de investimento e reserva, esconder parcelamento para não confundir
+        if (rowParcelado) {
+            rowParcelado.style.display = 'none';
+        }
+
+        atualizarAvisoMetaPrazos();
+    } else {
+        // Restaura modo padrão
+        if (lblInputData) {
+            lblInputData.innerText = 'Data';
+            lblInputData.style.color = '#94A3B8';
+        }
+        if (lblInputRecorrencia) {
+            lblInputRecorrencia.innerText = 'Recorrência (Mensal)';
+            lblInputRecorrencia.style.color = '#94A3B8';
+        }
+        if (lblInputDataFim) {
+            lblInputDataFim.innerText = 'Até qual mês/ano?';
+            lblInputDataFim.style.color = '#94A3B8';
+        }
+        if (selectRec) {
+            const valAntigo = selectRec.value;
+            selectRec.innerHTML = `
+                <option value="Unica">Única (Não se repete)</option>
+                <option value="Continua">Contínua (Repete todo mês)</option>
+                <option value="DataFinal">Repetir até uma data</option>
+            `;
+            selectRec.value = (valAntigo === 'DataFinal' || valAntigo === 'Continua' || valAntigo === 'Unica') ? valAntigo : 'Unica';
+        }
+        if (rowParcelado) {
+            rowParcelado.style.display = 'flex';
+        }
+        if (boxMetaPrazos) {
+            boxMetaPrazos.style.display = 'none';
+        }
+        if (divDataFim && selectRec) {
+            divDataFim.style.display = selectRec.value === 'DataFinal' ? 'block' : 'none';
+        }
+    }
+}
+
+function atualizarAvisoMetaPrazos() {
+    const boxMetaPrazos = document.getElementById('boxMetaPrazosAviso');
+    if (!boxMetaPrazos) return;
+
+    const tipo = document.getElementById('inputTipoGasto') ? document.getElementById('inputTipoGasto').value : '';
+    const isMetaComPrazo = (tipo === 'Investimento' || tipo === 'Reserva de Emergência');
+    if (!isMetaComPrazo) {
+        boxMetaPrazos.style.display = 'none';
+        return;
+    }
+
+    const selectRec = document.getElementById('inputRecorrencia');
+    const recVal = selectRec ? selectRec.value : '';
+    const inputData = document.getElementById('inputData');
+    const inputDataFim = document.getElementById('inputDataFim');
+
+    const corTema = tipo === 'Investimento' ? '#8B5CF6' : '#F59E0B';
+    const bgTema = tipo === 'Investimento' ? 'rgba(139, 92, 246, 0.12)' : 'rgba(245, 158, 11, 0.12)';
+    const bordaTema = tipo === 'Investimento' ? 'rgba(139, 92, 246, 0.35)' : 'rgba(245, 158, 11, 0.35)';
+    const icone = tipo === 'Investimento' ? '📈' : '🛡️';
+    const tituloTipo = tipo === 'Investimento' ? 'Investimento' : 'Reserva de Emergência';
+
+    boxMetaPrazos.style.background = bgTema;
+    boxMetaPrazos.style.border = `1.5px solid ${bordaTema}`;
+
+    if (recVal === 'DataFinal') {
+        const dataIni = inputData ? inputData.value : '';
+        const dataFim = inputDataFim ? inputDataFim.value : '';
+
+        if (dataIni && dataFim) {
+            const [yIni, mIni, dIni] = dataIni.split('-').map(Number);
+            const [yFim, mFim] = dataFim.split('-').map(Number);
+            const diffMeses = (yFim - yIni) * 12 + (mFim - mIni) + 1;
+            const qtdMeses = Math.max(1, diffMeses);
+
+            boxMetaPrazos.innerHTML = `
+                <div style="font-weight: 700; color: #FFFFFF; display: flex; align-items: center; gap: 6px; margin-bottom: 4px;">
+                    <span>${icone}</span>
+                    <span>Prazo da Meta de ${tituloTipo}: <strong>${qtdMeses} ${qtdMeses === 1 ? 'mês' : 'meses'} de duração</strong></span>
+                </div>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.8rem; margin-top: 4px;">
+                    <span style="color: #94A3B8;">📅 Início: <strong style="color: #60A5FA;">${String(dIni).padStart(2,'0')}/${String(mIni).padStart(2,'0')}/${yIni}</strong></span>
+                    <span style="color: #94A3B8;">🏁 Prazo Final: <strong style="color: #34D399;">${String(mFim).padStart(2,'0')}/${yFim}</strong></span>
+                </div>
+                <div style="font-size: 0.74rem; color: #CBD5E1; margin-top: 6px; line-height: 1.35;">
+                    ℹ️ Os lançamentos mensais de aporte serão gerados automaticamente no seu planejamento durante todo o período programado.
+                </div>
+            `;
+            boxMetaPrazos.style.display = 'block';
+        } else {
+            boxMetaPrazos.innerHTML = `
+                <div style="color: #FBBF24; font-weight: 600;">
+                    ${icone} Informe a Data Inicial e o Mês/Ano Final para calcularmos o prazo da sua meta.
+                </div>
+            `;
+            boxMetaPrazos.style.display = 'block';
+        }
+    } else if (recVal === 'Continua') {
+        boxMetaPrazos.innerHTML = `
+            <div style="color: #93C5FD; font-weight: 600;">
+                🔄 <strong>Meta Contínua:</strong> O aporte de ${tituloTipo} será repetido mensalmente sem prazo final estipulado.
+            </div>
+        `;
+        boxMetaPrazos.style.display = 'block';
+    } else {
+        boxMetaPrazos.innerHTML = `
+            <div style="color: #94A3B8; font-weight: 600;">
+                1️⃣ <strong>Aporte Único:</strong> O valor será registrado exclusivamente no mês da Data de Início informada.
+            </div>
+        `;
+        boxMetaPrazos.style.display = 'block';
     }
 }
 
@@ -1258,9 +1431,18 @@ function toggleParcelas() {
 }
 
 function toggleRecorrencia() {
-    const rec = document.getElementById('inputRecorrencia').value;
-    document.getElementById('divDataFim').style.display = rec === 'DataFinal' ? 'block' : 'none';
+    const rec = document.getElementById('inputRecorrencia') ? document.getElementById('inputRecorrencia').value : 'Unica';
+    const divDataFim = document.getElementById('divDataFim');
+    if (divDataFim) {
+        divDataFim.style.display = rec === 'DataFinal' ? 'block' : 'none';
+    }
+    if (typeof atualizarAvisoMetaPrazos === 'function') {
+        atualizarAvisoMetaPrazos();
+    }
 }
+window.toggleRecorrencia = toggleRecorrencia;
+window.atualizarTextoStatus = atualizarTextoStatus;
+window.atualizarAvisoMetaPrazos = atualizarAvisoMetaPrazos;
 
 async function editarLancamento(id) {
     if (!id) return;
@@ -1338,6 +1520,29 @@ async function editarLancamento(id) {
 
     if(item.parcelado === 'Sim') {
         document.getElementById('inputTotalParcelas').value = item.total_parcelas;
+    }
+
+    // Se fizer parte de um grupo ou meta com prazo final, carregar o prazo final
+    if (item.id_grupo) {
+        try {
+            const allMovs = await dbLocal.movimentacoes.toArray();
+            const movsGrupo = allMovs.filter(m => m.id_grupo === item.id_grupo && m.deleted !== 1);
+            const datasGrupo = movsGrupo.map(m => m.data_lancamento).filter(Boolean).sort();
+            if (datasGrupo.length > 1) {
+                const selRec = document.getElementById('inputRecorrencia');
+                if (selRec) selRec.value = 'DataFinal';
+                const inpFim = document.getElementById('inputDataFim');
+                if (inpFim) {
+                    const ultData = datasGrupo[datasGrupo.length - 1];
+                    const [yUlt, mUlt] = ultData.split('-');
+                    inpFim.value = `${yUlt}-${mUlt}`;
+                }
+                const divFim = document.getElementById('divDataFim');
+                if (divFim) divFim.style.display = 'block';
+            }
+        } catch(e) {
+            console.warn("Erro ao buscar datas do grupo na edição:", e);
+        }
     }
 
     document.getElementById('btnSalvar').innerText = 'Atualizar Lançamento';
