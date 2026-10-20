@@ -1247,6 +1247,7 @@ async function abrirGerenciadorMeta(tipo, nomeInvestimento) {
     const iconeEl = document.getElementById('iconeModalGerenciarMeta');
     const tituloEl = document.getElementById('tituloModalGerenciarMeta');
     const grupoNome = document.getElementById('grupoNomeMeta');
+    const lblNome = document.getElementById('lblMetaPlanoNome');
     const inputNome = document.getElementById('metaPlanoNome');
     const inputTipo = document.getElementById('metaPlanoTipoGasto');
     const inputValor = document.getElementById('metaPlanoValor');
@@ -1267,14 +1268,27 @@ async function abrirGerenciadorMeta(tipo, nomeInvestimento) {
     }
 
     if (lblValor) {
-        lblValor.innerText = isReserva ? 'Meta da Reserva (Orçado)' : 'Valor da Meta / Aporte (Orçado)';
+        lblValor.innerText = isReserva ? 'Meta Mensal (Orçado)' : 'Meta Mensal (Orçado)';
+    }
+
+    if (lblNome) {
+        lblNome.innerText = isReserva ? 'Nome da Meta' : 'Nome do Investimento';
     }
 
     if (grupoNome) {
-        grupoNome.style.display = isReserva ? 'none' : 'block';
+        grupoNome.style.display = 'block';
     }
     if (inputNome) {
         inputNome.value = nomeInvestimento || (isReserva ? 'Reserva de Emergência' : 'Investimento');
+        if (isReserva) {
+            inputNome.readOnly = true;
+            inputNome.style.opacity = '0.85';
+            inputNome.style.background = '#1E293B';
+        } else {
+            inputNome.readOnly = false;
+            inputNome.style.opacity = '1';
+            inputNome.style.background = '#1E293B';
+        }
     }
 
     // Buscar movimentações existentes desse plano no banco Dexie
@@ -1315,7 +1329,12 @@ async function abrirGerenciadorMeta(tipo, nomeInvestimento) {
         if (inputRealizado && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inputRealizado, vRealizado);
         if (inputDataIni) inputDataIni.value = dIniIso;
         if (inputDataFim) inputDataFim.value = dFimIso.substring(0, 7);
-        if (btnExcluir) btnExcluir.style.display = 'flex';
+        if (btnExcluir) {
+            btnExcluir.disabled = false;
+            btnExcluir.style.opacity = '1';
+            btnExcluir.style.cursor = 'pointer';
+            btnExcluir.style.display = 'flex';
+        }
 
         window.planoMetaAtual = {
             tipo,
@@ -1340,7 +1359,12 @@ async function abrirGerenciadorMeta(tipo, nomeInvestimento) {
         if (inputRealizado && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inputRealizado, 0);
         if (inputDataIni) inputDataIni.value = dIniStr;
         if (inputDataFim) inputDataFim.value = dFimStr;
-        if (btnExcluir) btnExcluir.style.display = 'none';
+        if (btnExcluir) {
+            btnExcluir.disabled = true;
+            btnExcluir.style.opacity = '0.35';
+            btnExcluir.style.cursor = 'not-allowed';
+            btnExcluir.style.display = 'flex';
+        }
 
         window.planoMetaAtual = {
             tipo,
@@ -1391,17 +1415,17 @@ function atualizarResumoCalculadoModalMeta() {
     const cor = (tipo === 'Investimento') ? '#C084FC' : '#FBBF24';
 
     box.innerHTML = `
-        <div style="font-weight: 800; color: #FFFFFF; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+        <div style="font-weight: 800; color: #FFFFFF; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
             <span>⏱️ Duração: <strong style="color: ${cor};">${qtdMeses} ${qtdMeses === 1 ? 'mês' : 'meses'}</strong></span>
-            <span style="color: #34D399;">Total Programado: ${formatBRL(totalProgramado)}</span>
+            <span style="color: #34D399; font-weight: 800;">Total: ${formatBRL(totalProgramado)}</span>
         </div>
-        <div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.78rem; color: #CBD5E1;">
+        <div style="display: flex; gap: 4px 10px; flex-wrap: wrap; font-size: 0.76rem; color: #CBD5E1;">
             <span>📅 De: <strong style="color: #93C5FD;">${String(dIni).padStart(2,'0')}/${String(mIni).padStart(2,'0')}/${yIni}</strong></span>
             <span>🏁 Até: <strong style="color: #6EE7B7;">${String(mFim).padStart(2,'0')}/${yFim}</strong></span>
-            <span>💰 Aporte Mensal: <strong style="color: #FFFFFF;">${formatBRL(valOrc)}</strong></span>
+            <span>💰 Aporte: <strong style="color: #FFFFFF;">${formatBRL(valOrc)}</strong></span>
         </div>
-        <div style="font-size: 0.73rem; color: #94A3B8; margin-top: 6px;">
-            ℹ️ Ao salvar, o sistema atualizará ou criará automaticamente os meses programados com esses valores no seu plano financeiro.
+        <div style="font-size: 0.72rem; color: #94A3B8; margin-top: 6px; line-height: 1.3;">
+            ℹ️ Ao salvar, o sistema atualizará ou criará automaticamente as movimentações no seu plano financeiro.
         </div>
     `;
 }
