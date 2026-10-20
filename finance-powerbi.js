@@ -1168,12 +1168,17 @@ async function renderPowerBIDashboard() {
                         const percItem = metaItem > 0 ? Math.min(100, Math.round((inv.totalRealizado / metaItem) * 100)) : 100;
 
                         htmlCards += `
-                            <div style="background: rgba(30, 41, 59, 0.7); border: 1.5px solid rgba(139, 92, 246, 0.35); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px;">
+                            <div style="background: rgba(30, 41, 59, 0.7); border: 1.5px solid rgba(139, 92, 246, 0.35); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;" onclick="abrirGerenciadorMeta('Investimento', '${inv.nome.replace(/'/g, "\\'")}')" title="Clique para editar ou excluir a meta de ${inv.nome}">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
                                     <span style="font-weight: 800; color: #FFFFFF; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
                                         <span>📈</span> <span>${inv.nome}</span>
                                     </span>
-                                    <span style="font-weight: 800; color: #A78BFA; font-size: 0.95rem;">${formatBRL(inv.totalRealizado)}</span>
+                                    <div style="display: flex; align-items: center; gap: 8px;">
+                                        <span style="font-weight: 800; color: #A78BFA; font-size: 0.95rem;">${formatBRL(inv.totalRealizado)}</span>
+                                        <span style="font-size: 0.74rem; background: rgba(139, 92, 246, 0.25); border: 1px solid #8B5CF6; color: #DDD6FE; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                            <span>✏️</span> Editar
+                                        </span>
+                                    </div>
                                 </div>
                                 <div style="display: flex; justify-content: space-between; font-size: 0.76rem; color: #94A3B8; font-weight: 600;">
                                     <span>Meta Prevista: <strong style="color: #E2E8F0;">${formatBRL(metaItem)}</strong></span>
@@ -1227,3 +1232,342 @@ window.confirmarFiltrosDemo = confirmarFiltrosDemo;
 window.selecionarFiltroDemoTudo = selecionarFiltroDemoTudo;
 window.toggleOpcaoFiltroDemo = toggleOpcaoFiltroDemo;
 window.aplicarFiltrosDemonstrativo = aplicarFiltrosDemonstrativo;
+
+// ==============================================================
+// GESTÃO DIRETA DE METAS E PRAZOS (RESERVA E INVESTIMENTOS)
+// Permite editar, salvar, cancelar e excluir o plano todo
+// ==============================================================
+window.planoMetaAtual = null;
+
+async function abrirGerenciadorMeta(tipo, nomeInvestimento) {
+    window.planoMetaAtual = null;
+    const modal = document.getElementById('modalGerenciarPlanoMeta');
+    if (!modal) return;
+
+    const iconeEl = document.getElementById('iconeModalGerenciarMeta');
+    const tituloEl = document.getElementById('tituloModalGerenciarMeta');
+    const grupoNome = document.getElementById('grupoNomeMeta');
+    const inputNome = document.getElementById('metaPlanoNome');
+    const inputTipo = document.getElementById('metaPlanoTipoGasto');
+    const inputValor = document.getElementById('metaPlanoValor');
+    const inputRealizado = document.getElementById('metaPlanoRealizado');
+    const inputDataIni = document.getElementById('metaPlanoDataInicio');
+    const inputDataFim = document.getElementById('metaPlanoDataFim');
+    const btnExcluir = document.getElementById('btnExcluirPlanoMeta');
+    const lblValor = document.getElementById('lblMetaPlanoValor');
+
+    if (inputTipo) inputTipo.value = tipo;
+
+    const isReserva = (tipo === 'Reserva de Emergência');
+    if (iconeEl) iconeEl.innerText = isReserva ? '🛡️' : '📈';
+    if (tituloEl) {
+        tituloEl.innerText = isReserva
+            ? 'Gerenciar Meta: Reserva de Emergência'
+            : (nomeInvestimento ? `Gerenciar Meta: ${nomeInvestimento}` : 'Gerenciar Meta: Investimentos');
+    }
+
+    if (lblValor) {
+        lblValor.innerText = isReserva ? 'Meta da Reserva (Orçado)' : 'Valor da Meta / Aporte (Orçado)';
+    }
+
+    if (grupoNome) {
+        grupoNome.style.display = isReserva ? 'none' : 'block';
+    }
+    if (inputNome) {
+        inputNome.value = nomeInvestimento || (isReserva ? 'Reserva de Emergência' : 'Investimento');
+    }
+
+    // Buscar movimentações existentes desse plano no banco Dexie
+    const allMovs = await dbLocal.movimentacoes.toArray();
+    const activeMovs = allMovs.filter(m => m.deleted !== 1);
+    let movs = [];
+
+    if (isReserva) {
+        movs = activeMovs.filter(m => isTipoReservaEmergencia(m));
+    } else {
+        if (nomeInvestimento) {
+            movs = activeMovs.filter(m => {
+                const desc = (m.descricao || '').replace(/\s*\(\d+\/\d+\)$/, '').trim();
+                return (m.tipo_gasto === 'Investimento' || (m.descricao && m.descricao.toLowerCase().includes('investimento'))) && desc === nomeInvestimento;
+            });
+        } else {
+            movs = activeMovs.filter(m => m.tipo_gasto === 'Investimento' || (m.descricao && m.descricao.toLowerCase().includes('investimento')));
+        }
+    }
+
+    // Ordenar cronologicamente
+    movs.sort((a, b) => (a.data_lancamento || '').localeCompare(b.data_lancamento || ''));
+
+    if (movs.length > 0) {
+        const dIniIso = movs[0].data_lancamento || (new Date()).toISOString().split('T')[0];
+        const dFimIso = movs[movs.length - 1].data_lancamento || dIniIso;
+
+        // Meta orçada: pega o valor_total da movimentação
+        const vOrcado = parseFloat(movs[0].valor_total) || 0;
+        
+        // Realizado: soma do que já foi guardado
+        let vRealizado = 0;
+        movs.forEach(m => {
+            vRealizado += (parseFloat(m.valor_realizado) || 0);
+        });
+
+        if (inputValor && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inputValor, vOrcado);
+        if (inputRealizado && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inputRealizado, vRealizado);
+        if (inputDataIni) inputDataIni.value = dIniIso;
+        if (inputDataFim) inputDataFim.value = dFimIso.substring(0, 7);
+        if (btnExcluir) btnExcluir.style.display = 'flex';
+
+        window.planoMetaAtual = {
+            tipo,
+            nomeInvestimento: nomeInvestimento || movs[0].descricao.replace(/\s*\(\d+\/\d+\)$/, '').trim(),
+            movs,
+            idGrupo: movs[0].id_grupo || ''
+        };
+    } else {
+        // Não há plano criado ainda
+        const hoje = new Date();
+        const y = hoje.getFullYear();
+        const m = String(hoje.getMonth() + 1).padStart(2, '0');
+        const d = String(hoje.getDate()).padStart(2, '0');
+        const dIniStr = `${y}-${m}-${d}`;
+
+        const dFimObj = new Date(y, hoje.getMonth() + 5, 1);
+        const yFim = dFimObj.getFullYear();
+        const mFim = String(dFimObj.getMonth() + 1).padStart(2, '0');
+        const dFimStr = `${yFim}-${mFim}`;
+
+        if (inputValor && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inputValor, 0);
+        if (inputRealizado && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inputRealizado, 0);
+        if (inputDataIni) inputDataIni.value = dIniStr;
+        if (inputDataFim) inputDataFim.value = dFimStr;
+        if (btnExcluir) btnExcluir.style.display = 'none';
+
+        window.planoMetaAtual = {
+            tipo,
+            nomeInvestimento: nomeInvestimento || (isReserva ? 'Reserva de Emergência' : 'Investimento'),
+            movs: [],
+            idGrupo: ''
+        };
+    }
+
+    atualizarResumoCalculadoModalMeta();
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function fecharModalGerenciarMeta() {
+    const modal = document.getElementById('modalGerenciarPlanoMeta');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+    window.planoMetaAtual = null;
+}
+
+function atualizarResumoCalculadoModalMeta() {
+    const box = document.getElementById('boxResumoCalculoMeta');
+    if (!box) return;
+
+    const dataIni = document.getElementById('metaPlanoDataInicio')?.value;
+    const dataFim = document.getElementById('metaPlanoDataFim')?.value;
+    const valOrc = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('metaPlanoValor')?.value) : 0;
+    const valReal = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('metaPlanoRealizado')?.value) : 0;
+    const tipo = document.getElementById('metaPlanoTipoGasto')?.value || '';
+
+    if (!dataIni || !dataFim) {
+        box.innerHTML = `<span style="color: #94A3B8;">Informe a data de início e o mês final para calcular o plano.</span>`;
+        return;
+    }
+
+    const [yIni, mIni, dIni] = dataIni.split('-').map(Number);
+    const [yFim, mFim] = dataFim.split('-').map(Number);
+    const diffMeses = (yFim - yIni) * 12 + (mFim - mIni);
+
+    if (diffMeses < 0) {
+        box.innerHTML = `<span style="color: #EF4444; font-weight: 700;">⚠️ O prazo final não pode ser anterior à data de início!</span>`;
+        return;
+    }
+
+    const qtdMeses = diffMeses + 1;
+    const totalProgramado = qtdMeses * valOrc;
+    const cor = (tipo === 'Investimento') ? '#C084FC' : '#FBBF24';
+
+    box.innerHTML = `
+        <div style="font-weight: 800; color: #FFFFFF; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between;">
+            <span>⏱️ Duração: <strong style="color: ${cor};">${qtdMeses} ${qtdMeses === 1 ? 'mês' : 'meses'}</strong></span>
+            <span style="color: #34D399;">Total Programado: ${formatBRL(totalProgramado)}</span>
+        </div>
+        <div style="display: flex; gap: 12px; flex-wrap: wrap; font-size: 0.78rem; color: #CBD5E1;">
+            <span>📅 De: <strong style="color: #93C5FD;">${String(dIni).padStart(2,'0')}/${String(mIni).padStart(2,'0')}/${yIni}</strong></span>
+            <span>🏁 Até: <strong style="color: #6EE7B7;">${String(mFim).padStart(2,'0')}/${yFim}</strong></span>
+            <span>💰 Aporte Mensal: <strong style="color: #FFFFFF;">${formatBRL(valOrc)}</strong></span>
+        </div>
+        <div style="font-size: 0.73rem; color: #94A3B8; margin-top: 6px;">
+            ℹ️ Ao salvar, o sistema atualizará ou criará automaticamente os meses programados com esses valores no seu plano financeiro.
+        </div>
+    `;
+}
+
+async function salvarPlanoMetaSubmit(event) {
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+
+    const dataIni = document.getElementById('metaPlanoDataInicio')?.value;
+    const dataFim = document.getElementById('metaPlanoDataFim')?.value;
+    const valOrc = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('metaPlanoValor')?.value) : 0;
+    const valReal = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('metaPlanoRealizado')?.value) : 0;
+    const tipo = document.getElementById('metaPlanoTipoGasto')?.value || 'Investimento';
+    const nome = (tipo === 'Reserva de Emergência') ? 'Reserva de Emergência' : (document.getElementById('metaPlanoNome')?.value.trim() || 'Investimento');
+
+    if (!dataIni || !dataFim) {
+        alert("Por favor, preencha a data de início e o prazo final!");
+        return;
+    }
+
+    const [yIni, mIni, dIni] = dataIni.split('-').map(Number);
+    const [yFim, mFim] = dataFim.split('-').map(Number);
+    const diffMeses = (yFim - yIni) * 12 + (mFim - mIni);
+
+    if (diffMeses < 0) {
+        alert("O prazo final não pode ser anterior à data de início!");
+        return;
+    }
+
+    const qtdMeses = diffMeses + 1;
+    const timestamp = Date.now();
+    const authUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+    const currentUserId = authUser ? authUser.id : (localStorage.getItem('financas_current_user_id') || null);
+
+    try {
+        const plano = window.planoMetaAtual || { movs: [] };
+        const movsAntigas = plano.movs || [];
+
+        // Definir ID do grupo
+        let idGrupo = plano.idGrupo;
+        if (!idGrupo) {
+            idGrupo = 'GRP-' + generateUUID().split('-')[0].toUpperCase();
+        }
+
+        // Gerar datas alvo para cada mês do período
+        const baseDate = new Date(yIni, mIni - 1, dIni, 12, 0, 0);
+        const datasAlvo = [];
+        for (let i = 0; i < qtdMeses; i++) {
+            const dt = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, baseDate.getDate(), 12, 0, 0);
+            datasAlvo.push(dt.toISOString().split('T')[0]);
+        }
+
+        const mesesAlvoMap = new Set(datasAlvo.map(d => d.substring(0, 7)));
+
+        // 1. Atualizar existentes ou criar novos para cada mês alvo
+        for (let i = 0; i < datasAlvo.length; i++) {
+            const dataStr = datasAlvo[i];
+            const mesAno = dataStr.substring(0, 7);
+
+            const movExistente = movsAntigas.find(m => m.data_lancamento && m.data_lancamento.substring(0, 7) === mesAno);
+
+            const vr = (i === 0) ? valReal : (movExistente ? (parseFloat(movExistente.valor_realizado) || 0) : 0);
+            const statusLanc = (vr > 0) ? 'Pago' : 'Pendente';
+
+            if (movExistente) {
+                await dbLocal.movimentacoes.update(movExistente.id, {
+                    descricao: nome,
+                    valor_total: valOrc,
+                    valor_realizado: vr,
+                    data_lancamento: dataStr,
+                    tipo_gasto: tipo,
+                    status: statusLanc,
+                    id_grupo: idGrupo,
+                    deleted: 0,
+                    sync_status: 'pending_update',
+                    updated_at: timestamp
+                });
+            } else {
+                const novo = {
+                    id: generateUUID(),
+                    descricao: nome,
+                    valor_total: valOrc,
+                    valor_realizado: vr,
+                    data_lancamento: dataStr,
+                    tipo_gasto: tipo,
+                    status: statusLanc,
+                    conta_id: '1',
+                    parcelado: 'Não',
+                    total_parcelas: 1,
+                    parcela_atual: 1,
+                    id_grupo: idGrupo,
+                    user_id: currentUserId,
+                    deleted: 0,
+                    sync_status: 'pending_insert',
+                    updated_at: timestamp
+                };
+                await dbLocal.movimentacoes.put(novo);
+            }
+        }
+
+        // 2. Excluir movimentações antigas que ficaram fora do novo período (caso tenha encurtado)
+        for (const m of movsAntigas) {
+            const mesAno = (m.data_lancamento || '').substring(0, 7);
+            if (!mesesAlvoMap.has(mesAno)) {
+                await dbLocal.movimentacoes.update(m.id, {
+                    deleted: 1,
+                    sync_status: 'pending_delete',
+                    updated_at: timestamp
+                });
+            }
+        }
+
+        fecharModalGerenciarMeta();
+        showToast(`✅ Plano de ${nome} atualizado com sucesso (${qtdMeses} meses programados)!`);
+
+        // Recarregar todas as visões do sistema
+        if (typeof renderPowerBIDashboard === 'function') renderPowerBIDashboard();
+        if (typeof carregarPlanejamento === 'function') carregarPlanejamento();
+        if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+        if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+
+    } catch(err) {
+        console.error("Erro ao salvar plano de meta:", err);
+        alert("Erro ao salvar plano: " + err.message);
+    }
+}
+
+async function excluirPlanoMetaConfirmar() {
+    const plano = window.planoMetaAtual;
+    if (!plano || !plano.movs || plano.movs.length === 0) {
+        fecharModalGerenciarMeta();
+        return;
+    }
+
+    const nome = plano.nomeInvestimento || plano.tipo;
+    const qtd = plano.movs.length;
+
+    if (!confirm(`⚠️ ATENÇÃO: Tem certeza de que deseja excluir este plano de ${nome}?\n\nTodas as ${qtd} movimentações programadas deste período serão removidas do seu planejamento financeiro.`)) {
+        return;
+    }
+
+    try {
+        const timestamp = Date.now();
+        for (const m of plano.movs) {
+            await dbLocal.movimentacoes.update(m.id, {
+                deleted: 1,
+                sync_status: 'pending_delete',
+                updated_at: timestamp
+            });
+        }
+
+        fecharModalGerenciarMeta();
+        showToast(`🗑️ Plano de ${nome} excluído com sucesso!`);
+
+        if (typeof renderPowerBIDashboard === 'function') renderPowerBIDashboard();
+        if (typeof carregarPlanejamento === 'function') carregarPlanejamento();
+        if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+        if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+
+    } catch (err) {
+        console.error("Erro ao excluir plano de meta:", err);
+        alert("Erro ao excluir plano: " + err.message);
+    }
+}
+
+window.abrirGerenciadorMeta = abrirGerenciadorMeta;
+window.fecharModalGerenciarMeta = fecharModalGerenciarMeta;
+window.atualizarResumoCalculadoModalMeta = atualizarResumoCalculadoModalMeta;
+window.salvarPlanoMetaSubmit = salvarPlanoMetaSubmit;
+window.excluirPlanoMetaConfirmar = excluirPlanoMetaConfirmar;
