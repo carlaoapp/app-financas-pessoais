@@ -358,14 +358,15 @@ async function carregarPlanejamento() {
             const histOrcado = parseFloat(m.valor_total) || 0;
             const histRealizado = parseFloat(m.valor_realizado) || 0;
             
-            // Tratamento especial para o histórico da reserva (ignora parcelamento da reserva para simplificar, já que não faz sentido parcelar a reserva)
-            const valorReservaEfetivo = histRealizado > 0 ? histRealizado : histOrcado;
+            // Tratamento especial para o histórico da reserva:
+            // - Orçado (histOrcado) é a Meta da Reserva definida pelo usuário
+            // - Realizado (histRealizado) é o que foi efetivamente Guardado
             if (isTipoReservaEmergencia(m)) {
                 reservaOrcadoTotal += histOrcado;
-                reservaRealizadoTotal += valorReservaEfetivo;
+                reservaRealizadoTotal += histRealizado;
             } else if (isTipoResgateReserva(m)) {
                 reservaOrcadoTotal -= histOrcado;
-                reservaRealizadoTotal -= valorReservaEfetivo;
+                reservaRealizadoTotal -= histRealizado;
             }
         }
 
@@ -412,9 +413,9 @@ async function carregarPlanejamento() {
             invOrcado += vOrcado;
             invRealizado += vRealizado;
         } else if (isTipoReservaEmergencia(item)) {
-            // Reserva de Emergência tem seu totalizador próprio e isolado
+            // Reserva de Emergência tem seu totalizador próprio e isolado (Orçado = Meta / Realizado = Guardado)
             resMesOrcado += vOrcado;
-            resMesRealizado += (vRealizado > 0 ? vRealizado : vOrcado);
+            resMesRealizado += vRealizado;
         } else {
             despOrcado += vOrcado;
             despRealizado += vRealizado;

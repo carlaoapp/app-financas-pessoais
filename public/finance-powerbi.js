@@ -632,20 +632,23 @@ async function renderPowerBIDashboard() {
         let totalInvestimentosMes = 0;
         let totalReservaMes = 0;
         let reservaAcumuladaTotal = 0;
+        let metaReservaOrcadaTotal = 0;
 
         const receitasPorCat = {};
         const despesasPorCat = {};
 
-        // 1. Histórico acumulado total da Reserva de Emergência
+        // 1. Histórico acumulado da Reserva de Emergência:
+        // - valor_realizado (vr) é o que foi efetivamente GUARDADO
+        // - valor_total (vt) é a META da Reserva definida pelo usuário no Orçado
         movsAtivas.forEach(m => {
             const vr = parseFloat(m.valor_realizado) || 0;
             const vt = parseFloat(m.valor_total) || 0;
-            const val = vr > 0 ? vr : vt;
 
             if (isTipoReservaEmergencia(m)) {
-                reservaAcumuladaTotal += val;
+                reservaAcumuladaTotal += vr;
+                metaReservaOrcadaTotal += vt;
             } else if (isTipoResgateReserva(m)) {
-                reservaAcumuladaTotal -= val;
+                reservaAcumuladaTotal -= vr;
             }
         });
 
@@ -675,7 +678,7 @@ async function renderPowerBIDashboard() {
             } else if (m.tipo_gasto === 'Investimento') {
                 totalInvestimentosMes += vEfetivo;
             } else if (isTipoReservaEmergencia(m)) {
-                totalReservaMes += vEfetivo;
+                totalReservaMes += vReal;
             } else {
                 totalDespesasMes += vEfetivo;
                 despesasPorCat[descName] = (despesasPorCat[descName] || 0) + vEfetivo;
@@ -699,8 +702,8 @@ async function renderPowerBIDashboard() {
         if (elRec) elRec.innerText = formatBRL(totalReceitasMes);
         if (elDes) elDes.innerText = formatBRL(totalDespesasMes);
         if (elInv) elInv.innerText = formatBRL(totalInvestimentosMes);
-        // Se o usuário selecionou vários meses/anos, mostra quanto guardou na reserva no período (ou o acumulado se for 0 no período)
-        if (elRes) elRes.innerText = formatBRL(isMultiPeriodo && totalReservaMes > 0 ? totalReservaMes : reservaAcumuladaTotal);
+        // O valor exibido no card de Reserva é estritamente o que foi GUARDADO (Realizado)
+        if (elRes) elRes.innerText = formatBRL(reservaAcumuladaTotal);
 
         if (subRec) {
             subRec.innerText = isMultiPeriodo
@@ -719,8 +722,8 @@ async function renderPowerBIDashboard() {
         }
         if (subRes) {
             subRes.innerText = isMultiPeriodo
-                ? `No período: ${formatBRL(totalReservaMes)} • Acumulado total: ${formatBRL(reservaAcumuladaTotal)}`
-                : `No mês: ${formatBRL(totalReservaMes)} • Acumulado total: ${formatBRL(reservaAcumuladaTotal)}`;
+                ? `Guardado no período: ${formatBRL(totalReservaMes)} • Total Guardado: ${formatBRL(reservaAcumuladaTotal)}`
+                : `Guardado no mês: ${formatBRL(totalReservaMes)} • Total Guardado: ${formatBRL(reservaAcumuladaTotal)}`;
         }
 
         if (elSaldo) {
@@ -903,10 +906,23 @@ async function renderPowerBIDashboard() {
 
         // --- Gráfico 4: Medidor / Termômetro da Reserva de Emergência ---
         const despesaMediaMensal = qtdMesesTotal > 0 ? (totalDespesasMes / qtdMesesTotal) : totalDespesasMes;
-        const metaReservaRecomendada = Math.max(despesaMediaMensal * 3, 3000);
+        
+        // Regra de Meta da Reserva:
+        // O valor Orçado lançado pelo usuário é a sua Meta de Reserva Emergencial.
+        // Caso o usuário não tenha lançado nenhum orçado para a reserva, usa a recomendação de 3 meses de despesas (mínimo R$ 3.000).
+        let metaReservaFinal = 0;
+        let labelMeta = 'Meta da Reserva';
+        if (metaReservaOrcadaTotal > 0) {
+            metaReservaFinal = metaReservaOrcadaTotal;
+            labelMeta = 'Meta da Reserva';
+        } else {
+            metaReservaFinal = Math.max(despesaMediaMensal * 3, 3000);
+            labelMeta = 'Meta (3 meses)';
+        }
+
         let percentualReserva = 0;
-        if (metaReservaRecomendada > 0) {
-            percentualReserva = Math.min(100, Math.max(0, (reservaAcumuladaTotal / metaReservaRecomendada) * 100));
+        if (metaReservaFinal > 0) {
+            percentualReserva = Math.min(100, Math.max(0, (reservaAcumuladaTotal / metaReservaFinal) * 100));
         }
 
         const gaugeOption = {
@@ -958,7 +974,7 @@ async function renderPowerBIDashboard() {
 
         const elResumoGauge = document.getElementById('lblResumoGaugeReserva');
         if (elResumoGauge) {
-            elResumoGauge.innerHTML = `🛡️ <strong>Guardado:</strong> ${formatBRL(reservaAcumuladaTotal)} &bull; <strong>Meta (3 meses):</strong> ${formatBRL(metaReservaRecomendada)}`;
+            elResumoGauge.innerHTML = `🛡️ <strong>Guardado:</strong> ${formatBRL(reservaAcumuladaTotal)} &bull; <strong>${labelMeta}:</strong> ${formatBRL(metaReservaFinal)}`;
         }
 
         aplicarFiltrosDemonstrativo();
