@@ -2994,11 +2994,21 @@ textarea:focus {
     animation: none !important;
     box-sizing: border-box !important;
     z-index: 2147483647 !important;
+}/* ==========================================================================
+   SUB-ABAS ORGANIZADAS DA TELA DE CARTÕES & BANCOS
+   ========================================================================== */
+#subtabCartoesCredito:hover,
+#subtabCartoesAlimentacao:hover,
+#subtabCartoesBancos:hover,
+#subtabCartoesTodos:hover {
+    filter: brightness(1.1);
+    transform: translateY(-1px);
 }
 
-
-
-
-
+@media (max-width: 768px) {
+    #tabCartoes .filters-header-row {
+        flex-direction: column !important;
+    }
+}
 
 

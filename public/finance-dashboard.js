@@ -2288,7 +2288,7 @@ function switchFinanceTab(tabName) {
     // Redireciona qualquer chamada legada da aba Painel/Resumo para a aba Lançamentos
     if (tabName === 'Painel') tabName = 'Lancamentos';
 
-    const tabs = ['Lancamentos', 'APagar', 'PowerBI', 'Desejos', 'RendaExtra', 'Tema'];
+    const tabs = ['Lancamentos', 'Cartoes', 'APagar', 'PowerBI', 'Desejos', 'RendaExtra', 'Tema'];
     
     // Oculta todas as abas
     tabs.forEach(t => {

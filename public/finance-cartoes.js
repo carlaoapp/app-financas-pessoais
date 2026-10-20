@@ -5,6 +5,98 @@
 
 // Estado local da tela de cartões
 window.cartaoEmEdicaoId = null;
+window.subAbaCartoesAtiva = localStorage.getItem('financas_subaba_cartoes') || 'credito';
+
+// Alterna entre as sub-visões organizadas da tela de cartões (Crédito, Alimentação, Bancos, Todos)
+function alternarSubAbaCartoes(subAba) {
+    if (!['credito', 'alimentacao', 'bancos', 'todos'].includes(subAba)) {
+        subAba = 'credito';
+    }
+    window.subAbaCartoesAtiva = subAba;
+    try {
+        localStorage.setItem('financas_subaba_cartoes', subAba);
+    } catch (e) {}
+
+    // 1. Atualiza visual dos botões de sub-abas
+    const tabsConfig = [
+        { id: 'subtabCartoesCredito', key: 'credito', color: '#2563EB', border: '#3B82F6' },
+        { id: 'subtabCartoesAlimentacao', key: 'alimentacao', color: '#EA580C', border: '#F97316' },
+        { id: 'subtabCartoesBancos', key: 'bancos', color: '#059669', border: '#10B981' },
+        { id: 'subtabCartoesTodos', key: 'todos', color: '#475569', border: '#64748B' }
+    ];
+
+    tabsConfig.forEach(cfg => {
+        const btn = document.getElementById(cfg.id);
+        if (!btn) return;
+        const isActive = cfg.key === subAba;
+        if (isActive) {
+            btn.style.background = cfg.color;
+            btn.style.borderColor = cfg.border;
+            btn.style.color = '#FFFFFF';
+            btn.style.boxShadow = `0 4px 12px ${cfg.color}55`;
+        } else {
+            btn.style.background = '#1E293B';
+            btn.style.borderColor = '#334155';
+            btn.style.color = '#94A3B8';
+            btn.style.boxShadow = 'none';
+        }
+    });
+
+    // 2. Visibilidade das Métricas no topo
+    const boxContas = document.getElementById('metricBoxContas');
+    const boxAlim = document.getElementById('metricBoxAlimentacao');
+    const boxFat = document.getElementById('metricBoxFatura');
+    const boxLim = document.getElementById('metricBoxLimite');
+    const boxDisp = document.getElementById('metricBoxDisponivel');
+
+    if (boxContas) boxContas.style.display = (subAba === 'bancos' || subAba === 'todos') ? 'block' : 'none';
+    if (boxAlim) boxAlim.style.display = (subAba === 'alimentacao' || subAba === 'todos') ? 'block' : 'none';
+    if (boxFat) boxFat.style.display = (subAba === 'credito' || subAba === 'todos') ? 'block' : 'none';
+    if (boxLim) boxLim.style.display = (subAba === 'credito' || subAba === 'todos') ? 'block' : 'none';
+    if (boxDisp) boxDisp.style.display = (subAba === 'credito' || subAba === 'todos') ? 'block' : 'none';
+
+    // 3. Visibilidade das Seções de Cartões e Bancos
+    const secCredito = document.getElementById('secaoCartoesCredito');
+    const secAlim = document.getElementById('secaoCartoesAlimentacao');
+    const secBancos = document.getElementById('secaoCartoesBancos');
+
+    if (secCredito) secCredito.style.display = (subAba === 'credito' || subAba === 'todos') ? 'block' : 'none';
+    if (secAlim) secAlim.style.display = (subAba === 'alimentacao' || subAba === 'todos') ? 'block' : 'none';
+    if (secBancos) secBancos.style.display = (subAba === 'bancos' || subAba === 'todos') ? 'block' : 'none';
+
+    // 4. Atualiza rótulo do botão de adição rápida
+    const lblBtnNovo = document.getElementById('lblBtnNovoItemCartoes');
+    if (lblBtnNovo) {
+        if (subAba === 'alimentacao') lblBtnNovo.innerText = 'Novo Cartão Alimentação';
+        else if (subAba === 'bancos') lblBtnNovo.innerText = 'Nova Conta Bancária';
+        else if (subAba === 'credito') lblBtnNovo.innerText = 'Novo Cartão de Crédito';
+        else lblBtnNovo.innerText = 'Novo Cartão ou Conta';
+    }
+
+    // 5. Atualiza título da seção de compras e atualiza lançamentos
+    const titCompras = document.getElementById('tituloSecaoComprasCartoes');
+    if (titCompras) {
+        if (subAba === 'alimentacao') titCompras.innerHTML = '<span>🍽️</span> Gastos & Lançamentos do Cartão Alimentação no Mês';
+        else if (subAba === 'bancos') titCompras.innerHTML = '<span>🏦</span> Movimentações Bancárias & Débitos no Mês';
+        else if (subAba === 'credito') titCompras.innerHTML = '<span>💳</span> Compras do Cartão de Crédito no Mês';
+        else titCompras.innerHTML = '<span>🧾</span> Compras & Lançamentos de Cartões e Contas no Mês';
+    }
+
+    // Atualiza filtro de contas e lista de compras
+    atualizarFiltroCartoesPorSubAba();
+    renderizarComprasCartoes();
+}
+window.alternarSubAbaCartoes = alternarSubAbaCartoes;
+
+// Abre modal de criação já com o tipo correto baseado na sub-aba em visualização
+function abrirModalNovoItemSubAba() {
+    const sub = window.subAbaCartoesAtiva || 'credito';
+    let tipo = 'Cartão de Crédito';
+    if (sub === 'alimentacao') tipo = 'Cartão Alimentação';
+    else if (sub === 'bancos') tipo = 'Conta Corrente';
+    abrirModalGerenciarConta('novo', tipo);
+}
+window.abrirModalNovoItemSubAba = abrirModalNovoItemSubAba;
 
 // Popula o <select id="inputContaId"> do modal de lançamento de despesas/receitas
 async function carregarSelectContasModal(contaIdSelecionada = '') {
@@ -369,25 +461,56 @@ async function carregarCartoesEContas() {
     }
 
     // 3. Atualiza Seletor de Cartões no filtro e renderiza compras
-    const selFiltro = document.getElementById('filtroCartaoEspecifico');
-    if (selFiltro) {
-        const valAtual = selFiltro.value;
-        selFiltro.innerHTML = '<option value="">Todos os Cartões</option>';
-        cartoesList.forEach(c => {
-            const opt = document.createElement('option');
-            opt.value = c.id;
-            opt.innerText = c.nome_conta;
-            if (c.id === valAtual) opt.selected = true;
-            selFiltro.appendChild(opt);
-        });
-    }
+    window._cacheContasCartoes = contas;
+    window._cacheMovsDoMesCartoes = movsDoMes;
+    atualizarFiltroCartoesPorSubAba(contas);
+
+    // Aplica visibilidade da sub-aba ativa (mantém foco e funções de cada tela)
+    alternarSubAbaCartoes(window.subAbaCartoesAtiva || 'credito');
 
     renderizarComprasCartoes(movsDoMes, contas);
     carregarSelectContasModal();
 }
 window.carregarCartoesEContas = carregarCartoesEContas;
 
-// Renderiza a lista de compras dos cartões de crédito
+// Atualiza o <select id="filtroCartaoEspecifico"> de acordo com a sub-aba ativa
+function atualizarFiltroCartoesPorSubAba(contas = null) {
+    const selFiltro = document.getElementById('filtroCartaoEspecifico');
+    if (!selFiltro) return;
+
+    const lista = contas || window._cacheContasCartoes || [];
+    const sub = window.subAbaCartoesAtiva || 'credito';
+    const valAtual = selFiltro.value;
+
+    let contasFiltradas = [];
+    let textoPadrao = 'Todos os Cartões';
+
+    if (sub === 'credito') {
+        contasFiltradas = lista.filter(c => c.tipo_conta === 'Cartão de Crédito');
+        textoPadrao = 'Todos os Cartões de Crédito';
+    } else if (sub === 'alimentacao') {
+        contasFiltradas = lista.filter(c => c.tipo_conta === 'Cartão Alimentação');
+        textoPadrao = 'Todos os Cartões Alimentação';
+    } else if (sub === 'bancos') {
+        contasFiltradas = lista.filter(c => c.tipo_conta !== 'Cartão de Crédito' && c.tipo_conta !== 'Cartão Alimentação');
+        textoPadrao = 'Todas as Contas Correntes';
+    } else {
+        contasFiltradas = lista;
+        textoPadrao = 'Todos os Cartões & Contas';
+    }
+
+    selFiltro.innerHTML = `<option value="">${textoPadrao}</option>`;
+    contasFiltradas.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.innerText = c.nome_conta;
+        if (String(c.id) === String(valAtual)) opt.selected = true;
+        selFiltro.appendChild(opt);
+    });
+}
+window.atualizarFiltroCartoesPorSubAba = atualizarFiltroCartoesPorSubAba;
+
+// Renderiza a lista de compras e lançamentos respeitando a sub-aba ativa
 function renderizarComprasCartoes(movsDoMes = null, contas = null) {
     const container = document.getElementById('listaComprasCartoesContainer');
     if (!container) return;
@@ -396,14 +519,35 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
 
     // Se não foram passados diretamente, busca da memória ou recarrega
     if (!movsDoMes) {
-        carregarCartoesEContas();
-        return;
+        movsDoMes = window._cacheMovsDoMesCartoes;
+        contas = window._cacheContasCartoes;
+        if (!movsDoMes || !contas) {
+            carregarCartoesEContas();
+            return;
+        }
     }
 
     const contasMap = new Map((contas || []).map(c => [String(c.id), c]));
+    const sub = window.subAbaCartoesAtiva || 'credito';
 
-    // Filtra movimentações de cartão de crédito
-    let compras = movsDoMes.filter(m => m.tipo_gasto === 'Cartão de Crédito' && m.status !== 'Cancelado');
+    // Filtra lançamentos com base na sub-aba ativa
+    let compras = movsDoMes.filter(m => {
+        if (m.status === 'Cancelado') return false;
+        const conta = m.conta_id ? contasMap.get(String(m.conta_id)) : null;
+        const tipoConta = conta ? conta.tipo_conta : null;
+
+        if (sub === 'credito') {
+            return m.tipo_gasto === 'Cartão de Crédito' || tipoConta === 'Cartão de Crédito';
+        } else if (sub === 'alimentacao') {
+            return m.tipo_gasto === 'Cartão Alimentação' || tipoConta === 'Cartão Alimentação';
+        } else if (sub === 'bancos') {
+            return tipoConta !== 'Cartão de Crédito' && tipoConta !== 'Cartão Alimentação' && m.tipo_gasto !== 'Cartão de Crédito';
+        } else {
+            // 'todos': qualquer lançamento vinculado a conta ou cartão
+            return m.tipo_gasto === 'Cartão de Crédito' || m.tipo_gasto === 'Cartão Alimentação' || !!m.conta_id;
+        }
+    });
+
     if (filtroCartaoId) {
         compras = compras.filter(m => String(m.conta_id) === String(filtroCartaoId));
     }
@@ -414,9 +558,14 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
     container.innerHTML = '';
 
     if (compras.length === 0) {
+        let msgVazia = 'Nenhum lançamento encontrado para esta categoria neste mês.';
+        if (sub === 'credito') msgVazia = 'Nenhuma compra lançada nos cartões de crédito para este mês.';
+        else if (sub === 'alimentacao') msgVazia = 'Nenhum gasto ou recarga nos cartões alimentação para este mês.';
+        else if (sub === 'bancos') msgVazia = 'Nenhuma movimentação bancária registrada para este mês.';
+
         container.innerHTML = `
             <div style="text-align: center; padding: 24px; color: #94A3B8; font-size: 0.88rem;">
-                Nenhuma compra lançada nos cartões para este mês.
+                ${msgVazia}
             </div>
         `;
         return;
@@ -424,8 +573,9 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
 
     compras.forEach(item => {
         const conta = contasMap.get(String(item.conta_id));
-        const nomeCartao = conta ? conta.nome_conta : 'Cartão de Crédito';
-        const corCartao = conta ? (conta.cor_cartao || '#2563EB') : '#2563EB';
+        const tipoC = conta ? conta.tipo_conta : (item.tipo_gasto === 'Cartão Alimentação' ? 'Cartão Alimentação' : 'Cartão de Crédito');
+        const nomeCartao = conta ? conta.nome_conta : (tipoC === 'Cartão Alimentação' ? 'Cartão Alimentação' : 'Cartão de Crédito');
+        const corCartao = conta ? (conta.cor_cartao || (tipoC === 'Cartão Alimentação' ? '#F97316' : '#2563EB')) : (tipoC === 'Cartão Alimentação' ? '#F97316' : '#2563EB');
 
         let dataStr = item.data_lancamento || '';
         if (dataStr.includes('-')) {
@@ -435,6 +585,21 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
 
         const isPago = item.status === 'Pago';
         const val = parseFloat(item.valor_total) || 0;
+
+        // Ícone e Tag de Status Personalizados
+        let iconeItem = '💳';
+        let tagStatus = isPago ? '✓ Fatura Paga' : '⏳ Na Fatura';
+        let corTag = isPago ? '#10B981' : '#F59E0B';
+
+        if (tipoC === 'Cartão Alimentação' || item.tipo_gasto === 'Cartão Alimentação') {
+            iconeItem = '🍽️';
+            tagStatus = item.tipo_gasto === 'Receita' ? '💰 Recarga (+)' : '🍽️ Benefício Débito';
+            corTag = item.tipo_gasto === 'Receita' ? '#10B981' : '#F97316';
+        } else if (tipoC !== 'Cartão de Crédito') {
+            iconeItem = '🏦';
+            tagStatus = item.tipo_gasto === 'Receita' ? '💰 Depósito (+)' : '🏦 Débito em Conta';
+            corTag = item.tipo_gasto === 'Receita' ? '#10B981' : '#60A5FA';
+        }
 
         const row = document.createElement('div');
         row.style.cssText = `
@@ -460,7 +625,7 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
 
         row.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-                <span style="font-size: 1.1rem; flex-shrink: 0;">💳</span>
+                <span style="font-size: 1.15rem; flex-shrink: 0;">${iconeItem}</span>
                 <div style="min-width: 0;">
                     <div style="color: #FFFFFF; font-weight: 700; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         ${item.descricao.split(' (')[0]}${parcText}
@@ -470,7 +635,7 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
                         <span>•</span>
                         <span>${dataStr}</span>
                         <span>•</span>
-                        <span style="color: ${isPago ? '#10B981' : '#F59E0B'}; font-weight: 600;">${isPago ? '✓ Fatura Paga' : '⏳ Na Fatura'}</span>
+                        <span style="color: ${corTag}; font-weight: 600;">${tagStatus}</span>
                     </div>
                 </div>
             </div>
