@@ -640,6 +640,7 @@ async function renderPowerBIDashboard() {
         // 1. Histórico acumulado da Reserva de Emergência:
         // - valor_realizado (vr) é o que foi efetivamente GUARDADO
         // - valor_total (vt) é a META da Reserva definida pelo usuário no Orçado
+        const datasReserva = [];
         movsAtivas.forEach(m => {
             const vr = parseFloat(m.valor_realizado) || 0;
             const vt = parseFloat(m.valor_total) || 0;
@@ -647,6 +648,9 @@ async function renderPowerBIDashboard() {
             if (isTipoReservaEmergencia(m)) {
                 reservaAcumuladaTotal += vr;
                 metaReservaOrcadaTotal += vt;
+                if (m.data_lancamento && m.data_lancamento.includes('-')) {
+                    datasReserva.push(m.data_lancamento);
+                }
             } else if (isTipoResgateReserva(m)) {
                 reservaAcumuladaTotal -= vr;
             }
@@ -975,6 +979,52 @@ async function renderPowerBIDashboard() {
         const elResumoGauge = document.getElementById('lblResumoGaugeReserva');
         if (elResumoGauge) {
             elResumoGauge.innerHTML = `🛡️ <strong>Guardado:</strong> ${formatBRL(reservaAcumuladaTotal)} &bull; <strong>${labelMeta}:</strong> ${formatBRL(metaReservaFinal)}`;
+        }
+
+        const elPeriodoMeta = document.getElementById('lblPeriodoMetaReserva');
+        if (elPeriodoMeta) {
+            if (datasReserva.length > 0) {
+                datasReserva.sort();
+                const dIniIso = datasReserva[0];
+                const dFimIso = datasReserva[datasReserva.length - 1];
+
+                const formatarDataAmigavel = (isoStr) => {
+                    const [y, m, d] = isoStr.split('-');
+                    const idx = parseInt(m, 10) - 1;
+                    const nomeMes = MESES_NOMES_DEMO[idx] || m;
+                    return {
+                        dataFormatada: `${d}/${m}/${y}`,
+                        mesAno: `${nomeMes}/${y}`,
+                        textoCompleto: `${d}/${m}/${y} (${nomeMes}/${y})`
+                    };
+                };
+
+                const inicioInfo = formatarDataAmigavel(dIniIso);
+                const fimInfo = formatarDataAmigavel(dFimIso);
+
+                const [yIni, mIni] = dIniIso.split('-').map(Number);
+                const [yFim, mFim] = dFimIso.split('-').map(Number);
+                const qtdMesesMeta = Math.max(1, (yFim - yIni) * 12 + (mFim - mIni) + 1);
+
+                elPeriodoMeta.innerHTML = `
+                    <div style="display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 4px;">
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); padding: 5px 12px; border-radius: 8px; color: #93C5FD; font-size: 0.8rem; font-weight: 700;">
+                            <span>📅</span> Início da Meta: <strong style="color: #FFFFFF;">${inicioInfo.textoCompleto}</strong>
+                        </span>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); padding: 5px 12px; border-radius: 8px; color: #6EE7B7; font-size: 0.8rem; font-weight: 700;">
+                            <span>🏁</span> Prazo Final: <strong style="color: #FFFFFF;">${fimInfo.textoCompleto}</strong>
+                        </span>
+                        ${qtdMesesMeta > 1 ? `
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 5px 10px; border-radius: 8px; color: #FCD34D; font-size: 0.8rem; font-weight: 700;">
+                            <span>⏱️</span> Prazo: ${qtdMesesMeta} meses
+                        </span>` : ''}
+                    </div>
+                `;
+                elPeriodoMeta.style.display = 'block';
+            } else {
+                elPeriodoMeta.innerHTML = '';
+                elPeriodoMeta.style.display = 'none';
+            }
         }
 
         aplicarFiltrosDemonstrativo();
