@@ -739,17 +739,20 @@ function aoSelecionarCategoriaPredefinida(val) {
         if (selTipo) {
             if (isDescricaoReceita(val)) {
                 selTipo.value = 'Receita';
-                if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
             } else if (lower.includes('reserva de emerg') || lower.includes('reserva')) {
                 selTipo.value = 'Reserva de Emergência';
-                if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
             } else if (lower.includes('resgate')) {
                 selTipo.value = 'Resgate de Reserva';
-                if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
             } else if (lower.includes('investimento') || lower.includes('ações') || lower.includes('fundo') || lower.includes('tesouro')) {
                 selTipo.value = 'Investimento';
-                if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
+            } else if (lower.includes('cartão') || lower.includes('cartao') || lower.includes('fatura') || lower.includes('crédito') || lower.includes('credito')) {
+                selTipo.value = 'Cartão de Crédito';
+            } else if (lower.includes('aluguel') || lower.includes('condomínio') || lower.includes('condominio') || lower.includes('internet') || lower.includes('assinatura') || lower.includes('streaming') || lower.includes('celular') || lower.includes('telefone') || lower.includes('plano') || lower.includes('escola') || lower.includes('faculdade') || lower.includes('curso') || lower.includes('empréstimo') || lower.includes('financiamento')) {
+                selTipo.value = 'Despesa Fixa';
+            } else if (lower.includes('luz') || lower.includes('água') || lower.includes('agua') || lower.includes('mercado') || lower.includes('supermercado') || lower.includes('alimentação') || lower.includes('combustível') || lower.includes('combustivel') || lower.includes('farmácia') || lower.includes('farmacia') || lower.includes('saúde') || lower.includes('lazer')) {
+                selTipo.value = 'Despesa Variável';
             }
+            if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
         }
     }
 }
