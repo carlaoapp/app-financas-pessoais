@@ -51,6 +51,30 @@ function isTipoResgateReserva(m) {
     return tipo.includes('resgate') || desc.includes('resgate') || cat.includes('resgate');
 }
 
+// Detecção inteligente e segura de palavras-chave de Receita (Salário, Pró-Labore, etc.)
+function isDescricaoReceita(desc) {
+    if (!desc || typeof desc !== 'string') return false;
+    const d = desc.toLowerCase().trim();
+    return (
+        d.includes('salário') ||
+        d.includes('salario') ||
+        d.includes('pró-labore') ||
+        d.includes('pro-labore') ||
+        d.includes('comissão') ||
+        d.includes('comissao') ||
+        d.includes('honorário') ||
+        d.includes('honorario') ||
+        d.includes('13º') ||
+        d.includes('13o') ||
+        d.includes('décimo terceiro') ||
+        d.includes('decimo terceiro') ||
+        d.includes('rendimento') ||
+        d.includes('adiantamento') ||
+        d.includes('receita') ||
+        d.startsWith('renda')
+    );
+}
+
 window.privacyMode = false;
 
 window.togglePrivacyMode = function() {
@@ -276,6 +300,22 @@ function aplicarTema(corStr) {
 async function carregarPlanejamento() {
     // Pega todas as movimentações do IndexedDB local
     const movs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
+
+    // Autocorreção transparente: se houver lançamentos ativos com nome de Salário/Receita cadastrados como Despesa, corrige para Receita
+    let houveAutocorrecaoReceita = false;
+    for (const m of movs) {
+        if (isDescricaoReceita(m.descricao) && (m.tipo_gasto === 'Despesa Variável' || m.tipo_gasto === 'Despesa Fixa')) {
+            m.tipo_gasto = 'Receita';
+            m.sync_status = 'pending_update';
+            m.updated_at = Date.now();
+            dbLocal.movimentacoes.put(m).catch(e => console.warn('Erro ao autocorrigir:', e));
+            houveAutocorrecaoReceita = true;
+        }
+    }
+    if (houveAutocorrecaoReceita && typeof syncFinanceWithServer === 'function') {
+        syncFinanceWithServer();
+    }
+
     const itensDoMes = [];
 
     const targetYear = currentViewDate.getFullYear();
@@ -697,7 +737,10 @@ function aoSelecionarCategoriaPredefinida(val) {
         const lower = val.toLowerCase();
         const selTipo = document.getElementById('inputTipoGasto');
         if (selTipo) {
-            if (lower.includes('reserva de emerg') || lower.includes('reserva')) {
+            if (isDescricaoReceita(val)) {
+                selTipo.value = 'Receita';
+                if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
+            } else if (lower.includes('reserva de emerg') || lower.includes('reserva')) {
                 selTipo.value = 'Reserva de Emergência';
                 if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
             } else if (lower.includes('resgate')) {
@@ -1508,6 +1551,170 @@ window.validarQtdExclusao = validarQtdExclusao;
 window.fecharModalConfirmarExclusao = fecharModalConfirmarExclusao;
 window.executarConfirmacaoExclusao = executarConfirmacaoExclusao;
 
+// --- SISTEMA INTELIGENTE DE EDIÇÃO DE REPETIÇÕES ---
+let modoEdicaoSelecionado = 'todos';
+window.edicaoPendente = null;
+
+function abrirModalConfirmarEdicao(itemOriginal, updateData, irmaosFuturos) {
+    modoEdicaoSelecionado = 'todos';
+    const modal = document.getElementById('modalConfirmarEdicao');
+    const info = document.getElementById('modalEdicaoInfoLancamento');
+    const descTodos = document.getElementById('descOptEditarTodos');
+
+    const [y, m, d] = (itemOriginal.data_lancamento || '2026-01-01').split('-');
+    const dataBr = `${d}/${m}/${y}`;
+    const valorFmt = parseFloat(updateData.valor_total || 0).toFixed(2).replace('.', ',');
+
+    if (info) {
+        info.innerHTML = `
+            <div style="font-weight: 800; font-size: 1.05rem; color: #FFFFFF; margin-bottom: 6px;">${updateData.descricao}</div>
+            <div style="display: flex; gap: 14px; font-size: 0.85rem; color: #94A3B8; flex-wrap: wrap;">
+                <span>📅 Mês: <strong style="color: #60A5FA;">${dataBr}</strong></span>
+                <span>🏷️ Tipo: <strong style="color: ${updateData.tipo_gasto === 'Receita' ? '#10B981' : '#F59E0B'};">${updateData.tipo_gasto}</strong></span>
+                <span>💰 Valor: <strong style="color: #34D399;">R$ ${valorFmt}</strong></span>
+            </div>
+            <div style="margin-top: 8px; font-size: 0.82rem; color: #38BDF8; font-weight: 600;">
+                ℹ️ Foram encontradas <strong>${irmaosFuturos.length} repetições vinculadas</strong> nos próximos meses.
+            </div>
+        `;
+    }
+
+    if (descTodos) {
+        descTodos.innerText = `Aplica o novo tipo (${updateData.tipo_gasto}), valor e descrição neste mês e em todas as ${irmaosFuturos.length} repetições futuras.`;
+    }
+
+    aoMudarOpcaoEdicao('todos');
+
+    if (modal) modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+function aoMudarOpcaoEdicao(opcao) {
+    modoEdicaoSelecionado = opcao;
+    const optTodos = document.getElementById('lblOptEditarTodos');
+    const optAtual = document.getElementById('lblOptEditarAtual');
+
+    if (optTodos) {
+        if (opcao === 'todos') {
+            optTodos.style.border = '1.5px solid #2563EB';
+            optTodos.style.background = 'rgba(37, 99, 235, 0.12)';
+        } else {
+            optTodos.style.border = '1px solid #334155';
+            optTodos.style.background = '#0F172A';
+        }
+    }
+    if (optAtual) {
+        if (opcao === 'atual') {
+            optAtual.style.border = '1.5px solid #2563EB';
+            optAtual.style.background = 'rgba(37, 99, 235, 0.12)';
+        } else {
+            optAtual.style.border = '1px solid #334155';
+            optAtual.style.background = '#0F172A';
+        }
+    }
+}
+
+function fecharModalConfirmarEdicao() {
+    const modal = document.getElementById('modalConfirmarEdicao');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+    window.edicaoPendente = null;
+}
+
+async function executarConfirmacaoEdicao() {
+    if (!window.edicaoPendente) {
+        fecharModalConfirmarEdicao();
+        return;
+    }
+
+    const { idAtual, updateData, itemOriginal, irmaosFuturos, origemDesejoId, origemContaId } = window.edicaoPendente;
+    const timestamp = Date.now();
+
+    try {
+        // 1. Atualiza o lançamento atual
+        await dbLocal.movimentacoes.update(idAtual, updateData);
+
+        // 2. Se escolheu atualizar todas as repetições
+        if (modoEdicaoSelecionado === 'todos' && Array.isArray(irmaosFuturos) && irmaosFuturos.length > 0) {
+            for (const irmao of irmaosFuturos) {
+                const patch = {
+                    tipo_gasto: updateData.tipo_gasto,
+                    sync_status: 'pending_update',
+                    updated_at: timestamp
+                };
+
+                // Se o valor orçado foi modificado em relação ao original, propaga o novo valor
+                if (parseFloat(updateData.valor_total) !== parseFloat(itemOriginal.valor_total)) {
+                    patch.valor_total = updateData.valor_total;
+                }
+
+                // Se a descrição foi modificada
+                if (updateData.descricao !== itemOriginal.descricao) {
+                    if (irmao.parcelado !== 'Sim') {
+                        patch.descricao = updateData.descricao;
+                    } else if (irmao.parcela_atual && irmao.total_parcelas) {
+                        const descSemParc = updateData.descricao.replace(/\s*\(\d+\/\d+\)$/, '').trim();
+                        patch.descricao = `${descSemParc} (${irmao.parcela_atual}/${irmao.total_parcelas})`;
+                    }
+                }
+
+                await dbLocal.movimentacoes.update(irmao.id, patch);
+            }
+            showToast(`✅ Atualizado este mês e todas as ${irmaosFuturos.length} repetições futuras!`);
+        } else {
+            showToast('Lançamento atualizado!');
+        }
+
+        // Trata vínculos de desejo ou gaveta se houver
+        if (origemDesejoId) {
+            try {
+                let desejoOriginal = await dbLocal.movimentacoes.get(origemDesejoId);
+                if (!desejoOriginal && !isNaN(origemDesejoId)) desejoOriginal = await dbLocal.movimentacoes.get(Number(origemDesejoId));
+                if (desejoOriginal) {
+                    await dbLocal.movimentacoes.update(desejoOriginal.id, {
+                        status: 'Pago',
+                        sync_status: 'pending_update',
+                        updated_at: timestamp
+                    });
+                }
+            } catch(e) {}
+        }
+        if (origemContaId) {
+            try {
+                let contaOriginal = await dbLocal.movimentacoes.get(origemContaId);
+                if (!contaOriginal && !isNaN(origemContaId)) contaOriginal = await dbLocal.movimentacoes.get(Number(origemContaId));
+                if (contaOriginal) {
+                    await dbLocal.movimentacoes.update(contaOriginal.id, {
+                        status: 'Pago',
+                        sync_status: 'pending_update',
+                        updated_at: timestamp
+                    });
+                }
+            } catch(e) {}
+        }
+
+        fecharModalConfirmarEdicao();
+        fecharModalLancamento();
+
+        // Atualiza a tela e sincroniza com o servidor
+        carregarPlanejamento();
+        if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+        if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
+        if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
+        if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+
+    } catch (err) {
+        console.error('Erro ao executar confirmação de edição:', err);
+        alert('Erro ao atualizar repetições: ' + err.message);
+        fecharModalConfirmarEdicao();
+    }
+}
+
+window.abrirModalConfirmarEdicao = abrirModalConfirmarEdicao;
+window.aoMudarOpcaoEdicao = aoMudarOpcaoEdicao;
+window.fecharModalConfirmarEdicao = fecharModalConfirmarEdicao;
+window.executarConfirmacaoEdicao = executarConfirmacaoEdicao;
+
 async function salvarLancamento(event) {
     if (event && typeof event.preventDefault === 'function') {
         event.preventDefault();
@@ -1524,6 +1731,11 @@ async function salvarLancamento(event) {
             alert("Por favor, selecione ou informe a Descrição / Tipo de Movimentação!");
             if (selCat) selCat.focus();
             return;
+        }
+
+        // Auto-correção e proteção: se a descrição for de Receita (ex: Salário), tipo_gasto NUNCA pode ser Despesa!
+        if (isDescricaoReceita(descricao) && (tipoGasto === 'Despesa Variável' || tipoGasto === 'Despesa Fixa')) {
+            tipoGasto = 'Receita';
         }
 
         // Normalização automática de Reserva de Emergência e Resgate
@@ -1593,6 +1805,43 @@ async function salvarLancamento(event) {
                 updateData.midia_url = '';
                 updateData.midia_tipo = '';
             }
+
+            // Verifica se este lançamento faz parte de repetições futuras
+            let itemOriginal = await dbLocal.movimentacoes.get(idAtual);
+            if (!itemOriginal && !isNaN(idAtual)) itemOriginal = await dbLocal.movimentacoes.get(Number(idAtual));
+            
+            const allMovs = await dbLocal.movimentacoes.toArray();
+            const activeMovs = allMovs.filter(m => m.deleted !== 1);
+            let irmaosFuturos = [];
+
+            if (itemOriginal && itemOriginal.id_grupo && itemOriginal.id_grupo.trim() !== '') {
+                irmaosFuturos = activeMovs.filter(m => 
+                    m.id_grupo === itemOriginal.id_grupo && 
+                    String(m.id) !== String(itemOriginal.id) && 
+                    (m.data_lancamento >= itemOriginal.data_lancamento || (m.parcela_atual && itemOriginal.parcela_atual && m.parcela_atual > itemOriginal.parcela_atual))
+                );
+            } else if (itemOriginal) {
+                const descBase = (itemOriginal.descricao || '').replace(/\s*\(\d+\/\d+\)$/, '').trim().toLowerCase();
+                irmaosFuturos = activeMovs.filter(m => {
+                    const mDescBase = (m.descricao || '').replace(/\s*\(\d+\/\d+\)$/, '').trim().toLowerCase();
+                    return String(m.id) !== String(itemOriginal.id) && mDescBase === descBase && m.data_lancamento >= itemOriginal.data_lancamento;
+                });
+            }
+
+            if (irmaosFuturos.length > 0) {
+                const modalEl = document.getElementById('modalLancamento');
+                window.edicaoPendente = {
+                    idAtual,
+                    updateData,
+                    itemOriginal,
+                    irmaosFuturos,
+                    origemDesejoId: modalEl ? modalEl.dataset.origemDesejoId : null,
+                    origemContaId: modalEl ? modalEl.dataset.origemContaId : null
+                };
+                abrirModalConfirmarEdicao(itemOriginal, updateData, irmaosFuturos);
+                return; // Aguarda escolha do usuário no modal
+            }
+
             await dbLocal.movimentacoes.update(idAtual, updateData);
             console.log('Lançamento atualizado localmente:', idAtual);
             showToast('Lançamento atualizado!');

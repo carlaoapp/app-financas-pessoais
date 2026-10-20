@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.8.1">
+    <meta name="app-build-version" content="1.8.2">
     <script>
-        window.APP_BUILD_VERSION = '1.8.1';
+        window.APP_BUILD_VERSION = '1.8.2';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -231,9 +231,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.1" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.2" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.1</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.2</span>
                 </div>
             </div>
 
@@ -1320,7 +1320,7 @@
             </div>
             <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
             <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 6px;">Modo Conectado</p>
-            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.1</div>
+            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.2</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="btnAtualizarDesktopZip" onclick="atualizarDesktopPorZip()" style="display: none; padding: 12px; background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1.5px solid #10B981; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -1534,6 +1534,53 @@
                 </button>
                 <button type="button" id="btnConfirmarExclusaoFinal" onclick="executarConfirmacaoExclusao()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #EF4444, #DC2626); border: none; border-radius: 10px; color: #FFFFFF; font-weight: 800; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);">
                     🗑️ Confirmar Exclusão
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Elegante de Confirmação de Edição de Repetições -->
+    <div id="modalConfirmarEdicao" class="modal-overlay" onclick="if(event.target === this) fecharModalConfirmarEdicao()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
+        <div style="background: #0B1120; border: 1.5px solid #334155; border-radius: 20px; width: 100%; max-width: 480px; box-shadow: 0 25px 60px rgba(0,0,0,0.9); padding: 22px; box-sizing: border-box; animation: modalFadeIn 0.2s ease;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; border-bottom: 1px solid #1E293B; padding-bottom: 12px;">
+                <div style="font-size: 1.2rem; font-weight: 800; color: #3B82F6; display: flex; align-items: center; gap: 8px;">
+                    <span>✏️</span> Atualizar Repetições
+                </div>
+                <button type="button" onclick="fecharModalConfirmarEdicao()" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 8px; color: #E2E8F0; padding: 4px 10px; font-weight: 700; cursor: pointer;">✕</button>
+            </div>
+
+            <!-- Dados da Alteração -->
+            <div id="modalEdicaoInfoLancamento" style="background: #141F36; border: 1px solid #1E293B; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; font-size: 0.88rem; color: #E2E8F0; line-height: 1.5;">
+            </div>
+
+            <!-- Opções de Edição -->
+            <div id="modalEdicaoOpcoesContainer" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 18px;">
+                <!-- Opção 1: Todos os que se repetem (Recomendado) -->
+                <label id="lblOptEditarTodos" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1.5px solid #2563EB; background: rgba(37, 99, 235, 0.12); cursor: pointer; transition: all 0.2s;">
+                    <input type="radio" name="opcaoEdicao" value="todos" checked style="margin-top: 3px; accent-color: #2563EB; cursor: pointer; width: 18px; height: 18px;" onchange="aoMudarOpcaoEdicao('todos')">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: #FFFFFF; font-size: 0.95rem;">Atualizar este mês e todas as repetições</div>
+                        <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;" id="descOptEditarTodos">Aplica as alterações em todos os meses futuros vinculados.</div>
+                    </div>
+                </label>
+
+                <!-- Opção 2: Apenas o atual -->
+                <label id="lblOptEditarAtual" style="display: flex; align-items: flex-start; gap: 12px; padding: 12px 14px; border-radius: 12px; border: 1px solid #334155; background: #0F172A; cursor: pointer; transition: all 0.2s;">
+                    <input type="radio" name="opcaoEdicao" value="atual" style="margin-top: 3px; accent-color: #2563EB; cursor: pointer; width: 18px; height: 18px;" onchange="aoMudarOpcaoEdicao('atual')">
+                    <div style="flex: 1;">
+                        <div style="font-weight: 700; color: #CBD5E1; font-size: 0.95rem;">Atualizar apenas este mês</div>
+                        <div style="font-size: 0.78rem; color: #94A3B8; margin-top: 2px;">Altera somente este lançamento. Os outros meses da série não serão modificados.</div>
+                    </div>
+                </label>
+            </div>
+
+            <!-- Botões de Ação do Modal -->
+            <div style="display: flex; gap: 10px; margin-top: 16px;">
+                <button type="button" onclick="fecharModalConfirmarEdicao()" style="flex: 1; padding: 12px; background: #1E293B; border: 1px solid #334155; border-radius: 10px; color: #CBD5E1; font-weight: 700; font-size: 0.9rem; cursor: pointer;">
+                    Cancelar
+                </button>
+                <button type="button" id="btnConfirmarEdicaoFinal" onclick="executarConfirmacaoEdicao()" style="flex: 1; padding: 12px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; border-radius: 10px; color: #FFFFFF; font-weight: 800; font-size: 0.9rem; cursor: pointer; box-shadow: 0 4px 14px rgba(37, 99, 235, 0.4);">
+                    💾 Confirmar Atualização
                 </button>
             </div>
         </div>
@@ -1779,13 +1826,13 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.1"></script>
-    <script src="finance-db.js?v=1.8.1"></script>
-    <script src="finance-sync.js?v=1.8.1"></script>
-    <script src="finance-powerbi.js?v=1.8.1"></script>
-    <script src="finance-dashboard.js?v=1.8.1"></script>
-    <script src="auth.js?v=1.8.1"></script>
-    <script src="auto-update.js?v=1.8.1"></script>
+    <script src="finance-ocr.js?v=1.8.2"></script>
+    <script src="finance-db.js?v=1.8.2"></script>
+    <script src="finance-sync.js?v=1.8.2"></script>
+    <script src="finance-powerbi.js?v=1.8.2"></script>
+    <script src="finance-dashboard.js?v=1.8.2"></script>
+    <script src="auth.js?v=1.8.2"></script>
+    <script src="auto-update.js?v=1.8.2"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
