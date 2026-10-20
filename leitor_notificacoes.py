@@ -72,6 +72,38 @@ class LeitorNotificacaoBancaria:
         
         return ""
 
+    def extrair_texto_pdf(self, caminho_pdf):
+        """Extrai texto de um comprovante em formato PDF gerado pelo banco."""
+        try:
+            import fitz
+            doc = fitz.open(caminho_pdf)
+            texto_completo = ""
+            for page in doc:
+                texto_completo += page.get_text() + "\n"
+            
+            # Se o PDF foi escaneado e não tem texto selecionável, faz OCR na imagem da página
+            if len(texto_completo.strip()) < 15 and HAS_WINOCR:
+                for i, page in enumerate(doc):
+                    pix = page.get_pixmap(dpi=200)
+                    img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+                    res = asyncio.run(winocr.recognize_pil(img, lang='pt-BR'))
+                    texto_completo += res.text + "\n"
+            return texto_completo
+        except Exception as e:
+            print(f"[ERRO LEITURA PDF]: {e}")
+            return ""
+
+    def extrair_texto_arquivo(self, caminho_arquivo):
+        """Lê qualquer arquivo de comprovante (Foto, Print ou PDF)."""
+        if not os.path.exists(caminho_arquivo):
+            raise FileNotFoundError(f"Arquivo não encontrado: {caminho_arquivo}")
+        
+        ext = os.path.splitext(caminho_arquivo)[1].lower()
+        if ext == '.pdf':
+            return self.extrair_texto_pdf(caminho_arquivo)
+        else:
+            return self.extrair_texto_imagem(caminho_arquivo)
+
     def extrair_texto_imagem(self, caminho_imagem):
         """Versão síncrona para extração de OCR."""
         return asyncio.run(self.extrair_texto_imagem_async(caminho_imagem))
@@ -425,18 +457,18 @@ def abrir_interface_grafica():
     btn_frame.pack(fill="x", pady=(0, 10))
 
     def on_selecionar_imagem():
-        path = filedialog.askopenfilename(title="Selecione o Print da Notificação", filetypes=[("Imagens", "*.png;*.jpg;*.jpeg;*.webp")])
+        path = filedialog.askopenfilename(title="Selecione o Print ou Comprovante (Imagem ou PDF)", filetypes=[("Comprovantes & Prints", "*.png;*.jpg;*.jpeg;*.webp;*.pdf"), ("Todos os arquivos", "*.*")])
         if path:
             txt_area.delete("1.0", tk.END)
-            txt_area.insert(tk.END, f"[Lendo imagem com OCR: {os.path.basename(path)}...]\n")
+            txt_area.insert(tk.END, f"[Lendo comprovante com IA/OCR: {os.path.basename(path)}...]\n")
             root.update()
             try:
-                texto_ocr = leitor.extrair_texto_imagem(path)
+                texto_ocr = leitor.extrair_texto_arquivo(path)
                 txt_area.delete("1.0", tk.END)
                 txt_area.insert(tk.END, texto_ocr)
                 on_analisar()
             except Exception as ex:
-                messagebox.showerror("Erro no OCR", f"Não foi possível extrair o texto: {ex}")
+                messagebox.showerror("Erro na Leitura", f"Não foi possível extrair os dados do comprovante: {ex}")
 
     def on_colar_clipboard():
         try:
@@ -547,6 +579,8 @@ def modo_cli():
     """Interface de linha de comando para o leitor de notificações."""
     parser = argparse.ArgumentParser(description="Leitor Inteligente de Notificações Bancárias (Python)")
     parser.add_argument("--imagem", help="Caminho do arquivo de imagem/screenshot da notificação")
+    parser.add_argument("--pdf", help="Caminho do arquivo PDF do comprovante gerado pelo banco")
+    parser.add_argument("--arquivo", help="Caminho de qualquer arquivo de comprovante (Foto, Print ou PDF)")
     parser.add_argument("--texto", help="Texto bruto da notificação bancária copiada")
     parser.add_argument("--listar-contas", action="store_true", help="Lista todas as contas e cartões cadastrados")
     parser.add_argument("--salvar", action="store_true", help="Salva a movimentação automaticamente no banco SQLite")
@@ -578,7 +612,15 @@ def modo_cli():
         return
 
     texto_para_analise = ""
-    if args.imagem:
+    if args.arquivo:
+        print(f"[ARQUIVO] Lendo comprovante/print: {args.arquivo}...")
+        texto_para_analise = leitor.extrair_texto_arquivo(args.arquivo)
+        print(f"[Texto Extraído]: {texto_para_analise}")
+    elif args.pdf:
+        print(f"[PDF] Lendo comprovante bancário em PDF: {args.pdf}...")
+        texto_para_analise = leitor.extrair_texto_pdf(args.pdf)
+        print(f"[Texto Extraído do PDF]: {texto_para_analise}")
+    elif args.imagem:
         print(f"[OCR] Lendo imagem: {args.imagem}...")
         texto_para_analise = leitor.extrair_texto_imagem(args.imagem)
         print(f"[OCR Texto Extraído]: {texto_para_analise}")
@@ -586,7 +628,7 @@ def modo_cli():
         texto_para_analise = args.texto
 
     if not texto_para_analise:
-        print("[AVISO] Nenhuma imagem ou texto foi fornecido. Use --imagem, --texto ou --listar-contas.")
+        print("[AVISO] Nenhuma imagem, PDF ou texto foi fornecido. Use --imagem, --pdf, --arquivo, --texto ou --listar-contas.")
         return
 
     resultado = leitor.interpretar_notificacao(texto_para_analise)

@@ -1,11 +1,11 @@
 @echo off
 chcp 65001 > nul
-title Leitor de Notificações Bancárias & Cartões (Python)
+title Leitor Inteligente de Prints, Comprovantes & Notificações (Python)
 cd /d "%~dp0"
 
 echo ========================================================
-echo   LEITOR INTELIGENTE DE NOTIFICAÇÕES BANCÁRIAS (PYTHON)  
+echo   LEITOR INTELIGENTE DE PRINTS E COMPROVANTES (PYTHON)   
 echo ========================================================
 echo.
-echo Iniciando leitor com suporte a Débito e Crédito...
+echo Iniciando leitor com suporte a Fotos, Prints, PDFs e Textos...
 python leitor_notificacoes.py --gui

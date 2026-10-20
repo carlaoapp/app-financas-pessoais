@@ -694,7 +694,9 @@ window.pagarFaturaCartao = pagarFaturaCartao;
 
 // Abre o modal de lançamento já com foco na leitura inteligente
 function abrirModalLancamentoComLeitura() {
-    if (typeof abrirModalLancamento === 'function') {
+    if (typeof abrirModalEscolhaComprovante === 'function') {
+        abrirModalEscolhaComprovante();
+    } else if (typeof abrirModalLancamento === 'function') {
         abrirModalLancamento();
         const selTipo = document.getElementById('inputTipoGasto');
         if (selTipo) selTipo.value = 'Cartão de Crédito';
