@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.8.8
-const CACHE_NAME = 'financas-pessoais-v1.8.8';
+// Service Worker - APP Finanças Pessoais v1.8.9
+const CACHE_NAME = 'financas-pessoais-v1.8.9';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -13,6 +13,7 @@ const ASSETS_TO_CACHE = [
     '/tesseract.min.js',
     '/finance-ocr.js',
     '/finance-dashboard.js',
+    '/finance-cartoes.js',
     '/finance-powerbi.js',
     '/finance-db.js',
     '/finance-sync.js',

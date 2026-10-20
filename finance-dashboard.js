@@ -176,6 +176,7 @@ function updateMonthLabel() {
 
     carregarPlanejamento();
     if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+    if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
     if (typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
         renderPowerBIDashboard();
     }
@@ -1417,6 +1418,7 @@ function fecharModalLancamento() {
 function abrirModalLancamento() {
     document.getElementById('inputIdMovimentacao').value = '';
     document.getElementById('formLancamento').reset();
+    if (typeof carregarSelectContasModal === 'function') carregarSelectContasModal();
     setarValorMoedaInput(document.getElementById('inputValor'), '');
     setarValorMoedaInput(document.getElementById('inputValorRealizado'), 0);
     document.getElementById('inputParcelado').disabled = false;
@@ -1502,6 +1504,7 @@ async function editarLancamento(id) {
     }
 
     abrirModalLancamento(); // Prepara o modal e carrega campos
+    if (typeof carregarSelectContasModal === 'function') await carregarSelectContasModal(item.conta_id);
 
     document.getElementById('inputIdMovimentacao').value = item.id;
     const selTipoGasto = document.getElementById('inputTipoGasto');
@@ -1976,6 +1979,7 @@ async function salvarLancamento(event) {
     try {
         const idAtual = document.getElementById('inputIdMovimentacao').value;
         let tipoGasto = document.getElementById('inputTipoGasto').value;
+        const contaId = document.getElementById('inputContaId') ? document.getElementById('inputContaId').value : '';
         const selCat = document.getElementById('selectCategoriaPredefinida');
         const inpDesc = document.getElementById('inputDescricao');
         const inpCustom = document.getElementById('inputDescricaoPersonalizada');
@@ -2064,6 +2068,7 @@ async function salvarLancamento(event) {
                 valor_realizado: valorRealizado,
                 data_lancamento: data,
                 tipo_gasto: tipoGasto,
+                conta_id: contaId || '1',
                 status: status,
                 sync_status: 'pending_update',
                 updated_at: timestamp
@@ -2169,7 +2174,7 @@ async function salvarLancamento(event) {
                     data_lancamento: nextDateStr,
                     tipo_gasto: tipoGasto,
                     status: l_status,
-                    conta_id: '1',
+                    conta_id: contaId || '1',
                     parcelado: isParcelado ? 'Sim' : 'Não',
                     total_parcelas: isParcelado ? totalParcelas : 1,
                     parcela_atual: isParcelado ? (i + 1) : 1,
@@ -2185,6 +2190,27 @@ async function salvarLancamento(event) {
                 await dbLocal.movimentacoes.put(novoLancamento);
             }
             console.log(`Foram salvos ${qtdCriar} lançamentos localmente.`);
+
+            // Subtração ou Adição Automática em Conta Corrente se vinculada
+            if (contaId) {
+                try {
+                    const contaAlvo = await dbLocal.contas_bancarias.get(contaId);
+                    if (contaAlvo && contaAlvo.tipo_conta !== 'Cartão de Crédito') {
+                        let saldoAnt = parseFloat(contaAlvo.saldo_atual) || 0;
+                        let valDelta = parseFloat(valorRealizado) || parseFloat(valorOrcado) || 0;
+                        let novoSaldo = (tipoGasto === 'Receita') ? (saldoAnt + valDelta) : (saldoAnt - valDelta);
+                        await dbLocal.contas_bancarias.update(contaId, {
+                            saldo_atual: novoSaldo,
+                            sync_status: 'pending_update',
+                            updated_at: timestamp
+                        });
+                        console.log(`[SUBTRAÇÃO/ADIÇÃO AUTO] Conta '${contaAlvo.nome_conta}' atualizada: ${saldoAnt} -> ${novoSaldo}`);
+                    }
+                } catch(errConta) {
+                    console.warn('Erro ao atualizar saldo da conta vinculada:', errConta);
+                }
+            }
+
             showToast(qtdCriar > 1 ? `Foram adicionados ${qtdCriar} lançamentos com sucesso!` : 'Lançamento adicionado com sucesso!');
         }
 
@@ -2231,12 +2257,15 @@ async function salvarLancamento(event) {
         carregarPlanejamento();
         if(typeof carregarContasAPagar === 'function') carregarContasAPagar();
         if(typeof carregarListaDesejos === 'function') carregarListaDesejos();
+        if(typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
         if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
         
         if (tipoGasto === 'Lista de Desejos') {
             switchFinanceTab('Desejos');
         } else if (tipoGasto === 'Conta a Pagar') {
             switchFinanceTab('APagar');
+        } else if (tipoGasto === 'Cartão de Crédito') {
+            switchFinanceTab('Cartoes');
         } else {
             switchFinanceTab('Lancamentos');
         }
@@ -2294,6 +2323,8 @@ function switchFinanceTab(tabName) {
         }
         if (tabName === 'Desejos') {
             carregarListaDesejos();
+        } else if (tabName === 'Cartoes') {
+            if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
         } else if (tabName === 'RendaExtra') {
             if (typeof carregarPlanejamentoRendaExtra === 'function') carregarPlanejamentoRendaExtra();
         } else if (tabName === 'APagar') {
@@ -4349,6 +4380,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     inicializarMascarasMoeda();
     renderizarSelectCategorias();
     renderizarSelectTiposGasto();
+    if (typeof carregarSelectContasModal === 'function') carregarSelectContasModal();
+    if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
     setInterval(syncFinanceWithServer, 10000);
 });
 

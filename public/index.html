@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.8.8">
+    <meta name="app-build-version" content="1.8.9">
     <script>
-        window.APP_BUILD_VERSION = '1.8.8';
+        window.APP_BUILD_VERSION = '1.8.9';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -18,7 +18,7 @@
         // Fallbacks imediatos para garantir resposta instantânea a qualquer clique
         window.switchFinanceTab = function(tabName) {
             if (tabName === 'Painel') tabName = 'Lancamentos';
-            var tabs = ['Lancamentos', 'APagar', 'PowerBI', 'Desejos', 'RendaExtra', 'Tema'];
+            var tabs = ['Lancamentos', 'Cartoes', 'APagar', 'PowerBI', 'Desejos', 'RendaExtra', 'Tema'];
             tabs.forEach(function(t) {
                 var el = document.getElementById('tab' + t);
                 if (el) el.style.display = (t === tabName) ? 'block' : 'none';
@@ -231,9 +231,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.8" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.9" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.8</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.9</span>
                 </div>
             </div>
 
@@ -325,9 +325,13 @@
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
                 <span>Lançamentos</span>
             </button>
-            <button class="tab-pill" id="navAPagar" onclick="switchFinanceTab('APagar')">
+                        <button class="tab-pill" id="navCartoes" onclick="switchFinanceTab('Cartoes')">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-                <span>Cartão & Contas</span>
+                <span>Cartões & Bancos</span>
+            </button>
+            <button class="tab-pill" id="navAPagar" onclick="switchFinanceTab('APagar')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+                <span>Contas a Pagar</span>
             </button>
             <button class="tab-pill" id="navPowerBI" onclick="switchFinanceTab('PowerBI')">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
@@ -676,6 +680,97 @@
                     </div>
                 </div>
 
+            </div>
+
+                        <!-- ABA DEDICADA: CARTÕES DE CRÉDITO & CONTAS BANCÁRIAS -->
+            <div id="tabCartoes" class="tab-content" style="display: none;">
+                <!-- Cabeçalho e Métricas Resumo -->
+                <div style="background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <div>
+                            <h2 style="font-size: 1.25rem; color: #60A5FA; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span>💳</span> Cartões de Crédito & Contas Bancárias
+                            </h2>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0 0;">
+                                Controle limites de cartões, saldos de conta corrente e faturas com subtrações automáticas
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" onclick="abrirModalGerenciarConta()" style="background: #2563EB; color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.35);">
+                                <span>➕</span> Novo Cartão ou Conta
+                            </button>
+                            <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 10px 16px; border-radius: 10px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <span>📷</span> Ler Notificação / Print
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- 4 Cards de Métricas Principais -->
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
+                        <div style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Saldo em Contas Correntes</div>
+                            <div id="metricSaldoTotalContas" style="font-size: 1.25rem; font-weight: 800; color: #10B981; margin-top: 4px;">R$ 0,00</div>
+                        </div>
+                        <div style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Fatura Total dos Cartões (Mês)</div>
+                            <div id="metricFaturaTotalMes" style="font-size: 1.25rem; font-weight: 800; color: #F59E0B; margin-top: 4px;">R$ 0,00</div>
+                        </div>
+                        <div style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Limite Total dos Cartões</div>
+                            <div id="metricLimiteTotalCartoes" style="font-size: 1.25rem; font-weight: 800; color: #A78BFA; margin-top: 4px;">R$ 0,00</div>
+                        </div>
+                        <div style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Limite Disponível Geral</div>
+                            <div id="metricLimiteDisponivelTotal" style="font-size: 1.25rem; font-weight: 800; color: #60A5FA; margin-top: 4px;">R$ 0,00</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Seção 1: Meus Cartões de Crédito (Design Realista de Cartão) -->
+                <div style="margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                            <span>💳</span> Meus Cartões de Crédito
+                        </h3>
+                        <span id="badgeQtdCartoes" style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #93C5FD; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
+                    </div>
+                    <div id="gridCartoesCreditoContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px;">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <!-- Seção 2: Contas Correntes & Saldos -->
+                <div style="margin-bottom: 24px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                        <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                            <span>🏦</span> Contas Correntes & Bancos
+                        </h3>
+                        <span id="badgeQtdContas" style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.2); color: #6EE7B7; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 contas</span>
+                    </div>
+                    <div id="gridContasBancariasContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </div>
+
+                <!-- Seção 3: Compras dos Cartões no Mês Selecionado -->
+                <div style="background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 18px 20px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+                        <div>
+                            <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
+                                <span>🧾</span> Compras & Lançamentos dos Cartões no Mês
+                            </h3>
+                            <span id="lblFiltroMesCartoes" style="font-size: 0.8rem; color: var(--text-secondary);">Mês selecionado</span>
+                        </div>
+                        <div style="display: flex; gap: 8px;">
+                            <select id="filtroCartaoEspecifico" onchange="renderizarComprasCartoes()" style="height: 38px; background: #0F172A; border: 1.5px solid #334155; color: white; padding: 0 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
+                                <option value="">Todos os Cartões</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div id="listaComprasCartoesContainer" style="display: flex; flex-direction: column; gap: 10px;">
+                        <!-- Preenchido dinamicamente via JS -->
+                    </div>
+                </div>
             </div>
 
             <!-- ABA 3: CONTAS A PAGAR (GAVETA) -->
@@ -1108,9 +1203,13 @@
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"></line><line x1="8" y1="12" x2="21" y2="12"></line><line x1="8" y1="18" x2="21" y2="18"></line><line x1="3" y1="6" x2="3.01" y2="6"></line><line x1="3" y1="12" x2="3.01" y2="12"></line><line x1="3" y1="18" x2="3.01" y2="18"></line></svg>
             <span>Lançamentos</span>
         </button>
+                <button class="mobile-nav-item" id="mNavCartoes" onclick="switchFinanceTab('Cartoes')">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            <span>Cartões</span>
+        </button>
         <button class="mobile-nav-item" id="mNavAPagar" onclick="switchFinanceTab('APagar')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-            <span>Contas</span>
+            <span>Gaveta</span>
         </button>
         <button class="mobile-nav-item" id="mNavPowerBI" onclick="switchFinanceTab('PowerBI')">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
@@ -1226,6 +1325,19 @@
                         <option value="Cartão de Crédito">Cartão de Crédito</option>
                         <option value="Empréstimo">Empréstimo</option>
                         <option value="Lista de Desejos">Lista de Desejos</option>
+                    </select>
+                </div>
+
+                                <!-- Seletor de Cartão ou Conta Bancária (com saldo/limite automático) -->
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                        <label style="margin: 0; font-size: 0.8rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px;">💳 Cartão / Conta Bancária</label>
+                        <button type="button" onclick="abrirModalGerenciarConta()" style="background: rgba(37, 99, 235, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 4px 10px; border-radius: 7px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Adicionar ou gerenciar contas e cartões de crédito">
+                            <span>➕</span> Novo / Gerenciar
+                        </button>
+                    </div>
+                    <select id="inputContaId" style="width: 100%; height: 44px; background: #1E293B; border: 1.5px solid #3B82F6; color: #FFFFFF; font-weight: 600; padding: 0 12px; border-radius: 10px; font-size: 0.92rem; box-sizing: border-box;">
+                        <option value="">🏦 Selecione o Cartão ou Conta Corrente...</option>
                     </select>
                 </div>
 
@@ -1366,6 +1478,87 @@
 
     
     <!-- MODAL DE GESTÃO DIRETA DE METAS E PRAZOS (RESERVA E INVESTIMENTOS) -->
+        <!-- MODAL PARA CADASTRAR OU EDITAR CONTA OU CARTÃO -->
+    <div id="modalGerenciarContaBancaria" class="modal-overlay" onclick="if(event.target === this) fecharModalGerenciarConta()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
+        <div class="modal-content" style="max-width: 440px; width: 100%; max-height: 90vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #334155; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 20px; box-sizing: border-box;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span id="iconeModalConta" style="font-size: 1.3rem;">💳</span>
+                    <h3 id="tituloModalConta" style="color: #FFFFFF; font-size: 1.1rem; margin: 0; font-weight: 800;">Adicionar Cartão / Conta</h3>
+                </div>
+                <button type="button" onclick="fecharModalGerenciarConta()" title="Fechar" style="background: none; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer;">✕</button>
+            </div>
+
+            <form id="formGerenciarConta" onsubmit="salvarContaBancariaSubmit(event)">
+                <input type="hidden" id="contaBancariaId" value="">
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Nome do Cartão ou Conta</label>
+                    <input type="text" id="contaNome" placeholder="Ex: Sicredi Visa Gold, Nubank, Itaú Corrente" required style="width: 100%; height: 42px; padding: 0 12px; font-weight: 600; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                </div>
+
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Tipo</label>
+                    <select id="contaTipo" onchange="aoMudarTipoContaForm()" required style="width: 100%; height: 42px; padding: 0 10px; font-weight: 600; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Conta Corrente">Conta Corrente</option>
+                        <option value="Conta Poupança">Conta Poupança</option>
+                    </select>
+                </div>
+
+                <div class="form-group-row" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;" id="grpContaLimite">
+                        <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Limite do Cartão</label>
+                        <input type="text" inputmode="numeric" id="contaLimite" class="input-money-mask" placeholder="R$ 0,00" style="width: 100%; height: 42px; padding: 0 8px; text-align: center; font-weight: 700; color: #A78BFA; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;" id="grpContaSaldo">
+                        <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Saldo Atual em Conta</label>
+                        <input type="text" inputmode="numeric" id="contaSaldo" class="input-money-mask" placeholder="R$ 0,00" value="R$ 0,00" style="width: 100%; height: 42px; padding: 0 8px; text-align: center; font-weight: 700; color: #10B981; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                    </div>
+                </div>
+
+                <div class="form-group-row" id="grpPrazosFatura" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Dia Fechamento</label>
+                        <input type="number" id="contaDiaFechamento" min="1" max="31" value="1" style="width: 100%; height: 42px; padding: 0 8px; text-align: center; font-weight: 700; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Dia Vencimento</label>
+                        <input type="number" id="contaDiaVencimento" min="1" max="31" value="10" style="width: 100%; height: 42px; padding: 0 8px; text-align: center; font-weight: 700; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 6px;">Cor do Cartão / Visual</label>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;" id="paletaCoresCartao">
+                        <button type="button" onclick="selecionarCorCartaoForm('#10B981')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #059669, #10B981); border: 2px solid transparent; cursor: pointer;" title="Sicredi / Verde"></button>
+                        <button type="button" onclick="selecionarCorCartaoForm('#8B5CF6')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #7C3AED, #8B5CF6); border: 2px solid transparent; cursor: pointer;" title="Nubank / Roxo"></button>
+                        <button type="button" onclick="selecionarCorCartaoForm('#F59E0B')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #D97706, #F59E0B); border: 2px solid transparent; cursor: pointer;" title="Visa Gold / Dourado"></button>
+                        <button type="button" onclick="selecionarCorCartaoForm('#2563EB')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #1D4ED8, #2563EB); border: 2px solid #FFFFFF; cursor: pointer;" title="Azul"></button>
+                        <button type="button" onclick="selecionarCorCartaoForm('#0F172A')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #020617, #334155); border: 2px solid transparent; cursor: pointer;" title="Black Card"></button>
+                        <button type="button" onclick="selecionarCorCartaoForm('#EF4444')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #DC2626, #EF4444); border: 2px solid transparent; cursor: pointer;" title="Santander / Vermelho"></button>
+                        <button type="button" onclick="selecionarCorCartaoForm('#EA580C')" style="width: 32px; height: 32px; border-radius: 8px; background: linear-gradient(135deg, #C2410C, #EA580C); border: 2px solid transparent; cursor: pointer;" title="Inter / Laranja"></button>
+                    </div>
+                    <input type="hidden" id="contaCorCartao" value="#2563EB">
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button type="submit" id="btnSalvarContaBancaria" style="width: 100%; height: 44px; background: #2563EB; color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.92rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.35);">
+                        <span>💾</span> Salvar Cartão / Conta
+                    </button>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button type="button" onclick="fecharModalGerenciarConta()" style="height: 42px; background: #1E293B; border: 1.5px solid #334155; color: #E2E8F0; font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer;">
+                            ✕ Cancelar
+                        </button>
+                        <button type="button" id="btnExcluirContaBancaria" onclick="excluirContaBancariaConfirmar()" style="height: 42px; background: rgba(239, 68, 68, 0.15); border: 1.5px solid #EF4444; color: #FCA5A5; font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                            <span>🗑️</span> Excluir
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="modalGerenciarPlanoMeta" class="modal-overlay" onclick="if(event.target === this) fecharModalGerenciarMeta()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
         <div class="modal-content" style="max-width: 440px; width: 100%; max-height: 90vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #334155; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 18px; box-sizing: border-box;">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 14px;">
@@ -1463,7 +1656,7 @@
             </div>
             <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
             <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 6px;">Modo Conectado</p>
-            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.8</div>
+            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.9</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="btnAtualizarDesktopZip" onclick="atualizarDesktopPorZip()" style="display: none; padding: 12px; background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1.5px solid #10B981; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -1969,13 +2162,14 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.8"></script>
-    <script src="finance-db.js?v=1.8.8"></script>
-    <script src="finance-sync.js?v=1.8.8"></script>
-    <script src="finance-powerbi.js?v=1.8.8"></script>
-    <script src="finance-dashboard.js?v=1.8.8"></script>
-    <script src="auth.js?v=1.8.8"></script>
-    <script src="auto-update.js?v=1.8.8"></script>
+    <script src="finance-ocr.js?v=1.8.9"></script>
+    <script src="finance-db.js?v=1.8.9"></script>
+    <script src="finance-sync.js?v=1.8.9"></script>
+    <script src="finance-powerbi.js?v=1.8.9"></script>
+    <script src="finance-dashboard.js?v=1.8.9"></script>
+    <script src="finance-cartoes.js?v=1.8.9"></script>
+    <script src="auth.js?v=1.8.9"></script>
+    <script src="auto-update.js?v=1.8.9"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

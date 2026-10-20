@@ -9,6 +9,9 @@ if (typeof Dexie !== 'undefined') {
         contas_bancarias: 'id, nome_conta, tipo_conta, limite_cartao, dia_fechamento, dia_vencimento, sync_status, updated_at',
         movimentacoes: 'id, descricao, valor_total, valor_realizado, data_lancamento, tipo_gasto, status, conta_id, parcelado, total_parcelas, parcela_atual, id_grupo, sync_status, updated_at'
     });
+    dbLocal.version(2).stores({
+        contas_bancarias: 'id, nome_conta, tipo_conta, limite_cartao, saldo_atual, dia_fechamento, dia_vencimento, sync_status, updated_at'
+    });
 }
 
 // Gera UUID (Identificador Único Universal) v4 para as chaves

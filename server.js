@@ -424,12 +424,15 @@ app.post('/api/sync/push', (req, res) => {
         // Contas Bancarias
         if (contas_bancarias.length > 0) {
             const stmtConta = db.prepare(`
-                INSERT INTO contas_bancarias (id, nome_conta, tipo_conta, limite_cartao, dia_fechamento, dia_vencimento, user_id, updated_at, deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO contas_bancarias (id, nome_conta, tipo_conta, limite_cartao, saldo_atual, cor_cartao, banco, dia_fechamento, dia_vencimento, user_id, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     nome_conta = excluded.nome_conta,
                     tipo_conta = excluded.tipo_conta,
                     limite_cartao = excluded.limite_cartao,
+                    saldo_atual = excluded.saldo_atual,
+                    cor_cartao = excluded.cor_cartao,
+                    banco = excluded.banco,
                     dia_fechamento = excluded.dia_fechamento,
                     dia_vencimento = excluded.dia_vencimento,
                     user_id = COALESCE(excluded.user_id, contas_bancarias.user_id),
@@ -438,7 +441,20 @@ app.post('/api/sync/push', (req, res) => {
             `);
             contas_bancarias.forEach(c => {
                 const ts = Math.max(Number(c.updated_at) || 0, serverTimestamp);
-                stmtConta.run([String(c.id), c.nome_conta, c.tipo_conta, c.limite_cartao, c.dia_fechamento, c.dia_vencimento, c.user_id || headerUserId || null, ts, c.deleted ? 1 : 0]);
+                stmtConta.run([
+                    String(c.id),
+                    c.nome_conta,
+                    c.tipo_conta,
+                    parseFloat(c.limite_cartao) || 0,
+                    parseFloat(c.saldo_atual) || 0,
+                    c.cor_cartao || '#2563EB',
+                    c.banco || '',
+                    parseInt(c.dia_fechamento, 10) || 1,
+                    parseInt(c.dia_vencimento, 10) || 10,
+                    c.user_id || headerUserId || null,
+                    ts,
+                    c.deleted ? 1 : 0
+                ]);
             });
             stmtConta.finalize();
         }

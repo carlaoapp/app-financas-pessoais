@@ -27,6 +27,8 @@ function atualizarUIAposSync() {
     if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
     if (typeof carregarPlanejamentoRendaExtra === 'function') carregarPlanejamentoRendaExtra();
     if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
+    if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
+    if (typeof carregarSelectContasModal === 'function') carregarSelectContasModal();
     if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
     if (typeof renderPowerBIDashboard === 'function') {
         const tabPbi = document.getElementById('tabPowerBI');

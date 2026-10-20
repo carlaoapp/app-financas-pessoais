@@ -1,6 +1,6 @@
 {
   "name": "app-financas-pessoais",
-  "version": "1.8.8",
+  "version": "1.8.9",
   "description": "APP Financas Pessoais - Sistema para Computador com Mobbi",
   "main": "server.js",
   "scripts": {

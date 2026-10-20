@@ -231,12 +231,46 @@ function interpretarTextoComprovante(texto, origem) {
         }
     }
 
-    // 3. TIPO DE MOVIMENTAÇÃO E STATUS
+    // 3. TIPO DE MOVIMENTAÇÃO E STATUS MULTIBANCO (DÉBITO E CRÉDITO)
+    let cartaoBancoDetectado = "";
+    const bancosCartoesRegex = [
+        { nome: "Visa Gold", regex: /\bVISA\s+GOLD\b/i },
+        { nome: "Visa Infinite", regex: /\bVISA\s+INFINITE\b/i },
+        { nome: "Visa Platinum", regex: /\bVISA\s+PLATINUM\b/i },
+        { nome: "Visa", regex: /\bVISA\b/i },
+        { nome: "Mastercard Black", regex: /\bMASTERCARD\s+BLACK\b/i },
+        { nome: "Mastercard", regex: /\bMASTERCARD\b/i },
+        { nome: "Elo Nanquim", regex: /\bELO\s+NANQUIM\b/i },
+        { nome: "Elo", regex: /\bELO\b/i },
+        { nome: "Sicredi", regex: /\bSICREDI\b/i },
+        { nome: "Nubank", regex: /\bNUBANK\b/i },
+        { nome: "Inter", regex: /\b(BANCO\s+INTER|INTER)\b/i },
+        { nome: "Itaú", regex: /\bITA[UÚ]\b/i },
+        { nome: "Bradesco", regex: /\bBRADESCO\b/i },
+        { nome: "Santander", regex: /\bSANTANDER\b/i },
+        { nome: "Banco do Brasil", regex: /\b(BANCO\s+DO\s+BRASIL|OUROCARD|BB)\b/i },
+        { nome: "Caixa", regex: /\bCAIXA\b/i },
+        { nome: "C6 Bank", regex: /\b(C6\s*BANK|C6)\b/i }
+    ];
+
+    for (let b of bancosCartoesRegex) {
+        if (b.regex.test(textoLimpo)) {
+            cartaoBancoDetectado = b.nome;
+            break;
+        }
+    }
+
+    const isDebitoNotif = /\b(DEBITO|COMPRA\s+DEBITO|NO\s+DEBITO|CARTAO\s+DE\s+DEBITO)\b/i.test(textoLimpo);
+    const isCreditoNotif = /\b(CREDITO|COMPRA\s+CREDITO|NO\s+CREDITO|CARTAO\s+DE\s+CREDITO|FATURA|PARCELADO)\b/i.test(textoLimpo);
+
     if (textoLimpo.includes('PIX RECEBIDO') || textoLimpo.includes('TRANSFERENCIA RECEBIDA') || textoLimpo.includes('CREDITO EM CONTA') || textoLimpo.includes('SALARIO') || textoLimpo.includes('PROVENTOS')) {
         tipoMovimentacao = 'Receita';
         isStatusPago = true;
-    } else if (textoLimpo.includes('CARTAO DE CREDITO') || textoLimpo.includes('CREDITO A VISTA') || textoLimpo.includes('PARCELADO EM') || textoLimpo.includes('MASTERCARD CREDITO') || textoLimpo.includes('VISA CREDITO')) {
+    } else if (isCreditoNotif) {
         tipoMovimentacao = 'Cartão de Crédito';
+        isStatusPago = true;
+    } else if (isDebitoNotif) {
+        tipoMovimentacao = 'Despesa Variável';
         isStatusPago = true;
     } else if (textoLimpo.includes('BOLETO') || textoLimpo.includes('PAGAMENTO DE CONTA') || textoLimpo.includes('ENEL') || textoLimpo.includes('SABESP') || textoLimpo.includes('COPASA') || textoLimpo.includes('CONDOMINIO')) {
         tipoMovimentacao = 'Despesa Fixa';
@@ -246,17 +280,36 @@ function interpretarTextoComprovante(texto, origem) {
         isStatusPago = true;
     }
 
-    // 4. ESTABELECIMENTO / BENEFICIÁRIO / DESCRIÇÃO
+    // 4. ESTABELECIMENTO / BENEFICIÁRIO / DESCRIÇÃO MULTIBANCO
+    // Caso Sicredi (ex: 20/10 SATSOM COMPONENTES ELE Paranavai BR R$ 4,50)
+    const matchSicredi = texto.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|SP|PR|RJ|BR|R\$|-|\d{4}))/i);
+    if (matchSicredi && matchSicredi[1]) {
+        descricaoEncontrada = matchSicredi[1].trim();
+    }
+
+    // Padrão Nubank / Itaú / Inter / Santander: "em Estabelecimento" ou "na Estabelecimento"
+    if (!descricaoEncontrada) {
+        const matchEm = texto.match(/\bem\s+([A-Za-z0-9\s\.\-_&]{3,35})(?:[\.\-,]|$)/i) || texto.match(/\b(?:em|na|no)\s+([A-Za-z0-9\s\.\-_&]{3,35})(?:[\.\-,]|$)/i);
+        if (matchEm && matchEm[1]) {
+            const cand = matchEm[1].trim();
+            if (!/^(NUBANK|CART[AÃ]O|SICREDI|ITA[UÚ]|BRADESCO|SANTANDER|INTER|BANCO|OUROCARD|CAIXA|C6)\b/i.test(cand)) {
+                descricaoEncontrada = cand;
+            }
+        }
+    }
+
     const regexFavorecido = [
         /(?:DESTINATARIO|RECEBEDOR|NOME DO BENEFICIARIO|BENEFICIARIO|PAGO A|PARA|ESTABELECIMENTO|RAZAO SOCIAL|NOME FANTASIA)[\s:]*([^\n\r,]+)/i,
         /(?:DEBITADO DE|CONTA ORIGEM|EMPRESA)[\s:]*([^\n\r,]+)/i
     ];
 
-    for (let r of regexFavorecido) {
-        const match = texto.match(r);
-        if (match && match[1] && match[1].trim().length > 2) {
-            descricaoEncontrada = match[1].trim().replace(/^[:\-\s]+/, '');
-            break;
+    if (!descricaoEncontrada) {
+        for (let r of regexFavorecido) {
+            const match = texto.match(r);
+            if (match && match[1] && match[1].trim().length > 2) {
+                descricaoEncontrada = match[1].trim().replace(/^[:\-\s]+/, '');
+                break;
+            }
         }
     }
 
@@ -270,11 +323,20 @@ function interpretarTextoComprovante(texto, origem) {
         ];
         for (let est of estabelecimentosComuns) {
             if (textoLimpo.includes(est)) {
-                // Pega o nome formatado bonito
                 descricaoEncontrada = est.charAt(0) + est.slice(1).toLowerCase();
                 break;
             }
         }
+    }
+
+    // Limpeza de ruídos no estabelecimento
+    if (descricaoEncontrada) {
+        descricaoEncontrada = descricaoEncontrada.replace(/^(COMPRA|D[EÉ]BITO|CR[EÉ]DITO|APROVADA|CART[AÃ]O|VISA|MASTERCARD)\s+/i, '');
+        descricaoEncontrada = descricaoEncontrada.replace(/\s+(BR|PARANAVAI|CURITIBA|SP|RJ|PR)$/i, '');
+        descricaoEncontrada = descricaoEncontrada.split(' ')
+            .filter(Boolean)
+            .map(p => p.length > 2 ? (p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()) : p.toUpperCase())
+            .join(' ');
     }
 
     // APLICAR CAMPOS NO FORMULÁRIO DO MODAL
@@ -340,6 +402,33 @@ function interpretarTextoComprovante(texto, origem) {
             const inpDesc = document.getElementById('inputDescricao');
             if (inpDesc) inpDesc.value = descricaoEncontrada;
             camposPreenchidos.push("Descrição: " + descricaoEncontrada);
+        }
+    }
+
+    // Casamento de Conta Bancária ou Cartão de Crédito
+    const selConta = document.getElementById('inputContaId');
+    if (selConta) {
+        let encontrouConta = false;
+        if (cartaoBancoDetectado) {
+            const termoBusca = ocrNormalizarTexto(cartaoBancoDetectado);
+            for (let i = 0; i < selConta.options.length; i++) {
+                const optTxt = ocrNormalizarTexto(selConta.options[i].text);
+                if (optTxt.includes(termoBusca) || (optTxt && termoBusca.includes(optTxt))) {
+                    selConta.selectedIndex = i;
+                    encontrouConta = true;
+                    camposPreenchidos.push("Conta: " + selConta.options[i].text.split('(')[0].trim());
+                    break;
+                }
+            }
+        }
+        if (!encontrouConta && tipoMovimentacao === 'Cartão de Crédito') {
+            for (let i = 0; i < selConta.options.length; i++) {
+                if (selConta.options[i].dataset && selConta.options[i].dataset.tipo === 'Cartão de Crédito') {
+                    selConta.selectedIndex = i;
+                    camposPreenchidos.push("Cartão: " + selConta.options[i].text.split('(')[0].trim());
+                    break;
+                }
+            }
         }
     }
 

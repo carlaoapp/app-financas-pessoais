@@ -60,6 +60,9 @@ const db = new sqlite3.Database(dbPath, (err) => {
             db.run("ALTER TABLE movimentacoes ADD COLUMN user_id TEXT", () => {});
             db.run("ALTER TABLE origens_renda ADD COLUMN user_id TEXT", () => {});
             db.run("ALTER TABLE contas_bancarias ADD COLUMN user_id TEXT", () => {});
+            db.run("ALTER TABLE contas_bancarias ADD COLUMN saldo_atual REAL DEFAULT 0", () => {});
+            db.run("ALTER TABLE contas_bancarias ADD COLUMN cor_cartao TEXT DEFAULT '#2563EB'", () => {});
+            db.run("ALTER TABLE contas_bancarias ADD COLUMN banco TEXT DEFAULT ''", () => {});
 
             // Índices para otimização de busca por usuário
             db.run("CREATE INDEX IF NOT EXISTS idx_mov_user ON movimentacoes(user_id)", () => {});
