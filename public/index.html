@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.8.14">
+    <meta name="app-build-version" content="1.8.15">
     <script>
-        window.APP_BUILD_VERSION = '1.8.14';
+        window.APP_BUILD_VERSION = '1.8.15';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -231,9 +231,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.14" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.15" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.14</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.15</span>
                 </div>
             </div>
 
@@ -686,23 +686,13 @@
             <div id="tabCartoes" class="tab-content" style="display: none;">
                 <!-- Cabeçalho e Métricas Resumo -->
                 <div style="background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
-                        <div>
-                            <h2 style="font-size: 1.25rem; color: #60A5FA; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
-                                <span>💳</span> Cartões & Contas Bancárias
-                            </h2>
-                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0 0;">
-                                Controle limites de faturas, cartões alimentação/benefícios e saldos com subtrações automáticas
-                            </p>
-                        </div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button type="button" id="btnNovoItemCartoes" onclick="abrirModalNovoItemSubAba()" style="background: #2563EB; color: white; border: none; padding: 10px 16px; border-radius: 10px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.35);">
-                                <span>➕</span> <span id="lblBtnNovoItemCartoes">Novo Cartão ou Conta</span>
-                            </button>
-                            <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 10px 16px; border-radius: 10px; font-weight: 800; font-size: 0.88rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                                <span>📷</span> Ler Notificação / Print
-                            </button>
-                        </div>
+                    <div style="margin-bottom: 16px;">
+                        <h2 style="font-size: 1.25rem; color: #60A5FA; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                            <span>💳</span> Cartões & Contas Bancárias
+                        </h2>
+                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0 0;">
+                            Controle limites de faturas, cartões alimentação/benefícios e saldos com subtrações automáticas
+                        </p>
                     </div>
 
                     <!-- Sub-abas de Navegação Interna Organizadas (Cada tela com sua função e foco) -->
@@ -747,13 +737,23 @@
                     </div>
                 </div>
 
-                <!-- Seção 1: Meus Cartões de Crédito -->
+                <!-- Seção 1: Meus Cartões de Crédito & Débito -->
                 <div id="secaoCartoesCredito" style="margin-bottom: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
-                            <span>💳</span> Meus Cartões de Crédito
-                        </h3>
-                        <span id="badgeQtdCartoes" style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #93C5FD; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span>💳</span> Meus Cartões de Crédito & Débito
+                            </h3>
+                            <span id="badgeQtdCartoes" style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #93C5FD; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão de Crédito')" style="background: #2563EB; color: white; border: none; padding: 8px 14px; border-radius: 9px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.35);">
+                                <span>➕</span> Novo Cartão
+                            </button>
+                            <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 8px 14px; border-radius: 9px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <span>📷</span> Ler Notificação / Print
+                            </button>
+                        </div>
                     </div>
                     <div id="gridCartoesCreditoContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px;">
                         <!-- Preenchido dinamicamente via JS -->
@@ -762,11 +762,21 @@
 
                 <!-- Seção 2: Cartões Alimentação & Benefícios (Alelo, Ticket, Sodexo, VR, Flash, etc.) -->
                 <div id="secaoCartoesAlimentacao" style="margin-bottom: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
-                            <span>🍽️</span> Cartões Alimentação & Benefícios
-                        </h3>
-                        <span id="badgeQtdAlimentacao" style="font-size: 0.75rem; background: rgba(245, 158, 11, 0.2); color: #FCD34D; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span>🍽️</span> Cartões Alimentação & Benefícios
+                            </h3>
+                            <span id="badgeQtdAlimentacao" style="font-size: 0.75rem; background: rgba(245, 158, 11, 0.2); color: #FCD34D; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão Alimentação')" style="background: linear-gradient(135deg, #EA580C, #F97316); color: white; border: none; padding: 8px 14px; border-radius: 9px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(249,115,22,0.35);">
+                                <span>➕</span> Novo Cartão Alimentação
+                            </button>
+                            <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 8px 14px; border-radius: 9px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <span>📷</span> Ler Notificação / Print
+                            </button>
+                        </div>
                     </div>
                     <div id="gridCartoesAlimentacaoContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px;">
                         <!-- Preenchido dinamicamente via JS -->
@@ -775,33 +785,20 @@
 
                 <!-- Seção 3: Contas Correntes & Saldos Bancários -->
                 <div id="secaoCartoesBancos" style="margin-bottom: 24px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-                        <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
-                            <span>🏦</span> Contas Correntes & Bancos
-                        </h3>
-                        <span id="badgeQtdContas" style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.2); color: #6EE7B7; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 contas</span>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                            <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span>🏦</span> Contas Correntes & Bancos
+                            </h3>
+                            <span id="badgeQtdContas" style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.2); color: #6EE7B7; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 contas</span>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" onclick="abrirModalGerenciarConta('novo', 'Conta Corrente')" style="background: #10B981; color: #0F172A; border: none; padding: 8px 14px; border-radius: 9px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.35);">
+                                <span>➕</span> Nova Conta Bancária
+                            </button>
+                        </div>
                     </div>
                     <div id="gridContasBancariasContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;">
-                        <!-- Preenchido dinamicamente via JS -->
-                    </div>
-                </div>
-
-                <!-- Seção 4: Compras & Lançamentos Filtrados -->
-                <div id="secaoComprasCartoes" style="background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 18px 20px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 14px;">
-                        <div>
-                            <h3 id="tituloSecaoComprasCartoes" style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; margin: 0; display: flex; align-items: center; gap: 8px;">
-                                <span>🧾</span> Compras & Lançamentos dos Cartões no Mês
-                            </h3>
-                            <span id="lblFiltroMesCartoes" style="font-size: 0.8rem; color: var(--text-secondary);">Mês selecionado</span>
-                        </div>
-                        <div style="display: flex; gap: 8px;">
-                            <select id="filtroCartaoEspecifico" onchange="renderizarComprasCartoes()" style="height: 38px; background: #0F172A; border: 1.5px solid #334155; color: white; padding: 0 10px; border-radius: 8px; font-size: 0.85rem; font-weight: 600;">
-                                <option value="">Todos os Cartões</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div id="listaComprasCartoesContainer" style="display: flex; flex-direction: column; gap: 10px;">
                         <!-- Preenchido dinamicamente via JS -->
                     </div>
                 </div>
@@ -1521,7 +1518,12 @@
                     <span id="iconeModalConta" style="font-size: 1.3rem;">💳</span>
                     <h3 id="tituloModalConta" style="color: #FFFFFF; font-size: 1.1rem; margin: 0; font-weight: 800;">Adicionar Cartão / Conta</h3>
                 </div>
-                <button type="button" onclick="fecharModalGerenciarConta()" title="Fechar" style="background: none; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer;">✕</button>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" onclick="abrirModalLancamentoComLeitura()" title="Ler notificação ou print bancário" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 5px 10px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                        <span>📷</span> Ler Print
+                    </button>
+                    <button type="button" onclick="fecharModalGerenciarConta()" title="Fechar" style="background: none; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer;">✕</button>
+                </div>
             </div>
 
             <form id="formGerenciarConta" onsubmit="salvarContaBancariaSubmit(event)">
@@ -1536,6 +1538,8 @@
                     <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Tipo</label>
                     <select id="contaTipo" onchange="aoMudarTipoContaForm()" required style="width: 100%; height: 42px; padding: 0 10px; font-weight: 600; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
                         <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Cartão de Débito">Cartão de Débito</option>
+                        <option value="Cartão Alimentação">Cartão Alimentação / Benefício</option>
                         <option value="Conta Corrente">Conta Corrente</option>
                         <option value="Conta Poupança">Conta Poupança</option>
                     </select>
@@ -1693,7 +1697,7 @@
             </div>
             <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
             <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 6px;">Modo Conectado</p>
-            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.14</div>
+            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.15</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="btnAtualizarDesktopZip" onclick="atualizarDesktopPorZip()" style="display: none; padding: 12px; background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1.5px solid #10B981; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -2309,14 +2313,14 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.14"></script>
-    <script src="finance-db.js?v=1.8.14"></script>
-    <script src="finance-sync.js?v=1.8.14"></script>
-    <script src="finance-powerbi.js?v=1.8.14"></script>
-    <script src="finance-dashboard.js?v=1.8.14"></script>
-    <script src="finance-cartoes.js?v=1.8.14"></script>
-    <script src="auth.js?v=1.8.14"></script>
-    <script src="auto-update.js?v=1.8.14"></script>
+    <script src="finance-ocr.js?v=1.8.15"></script>
+    <script src="finance-db.js?v=1.8.15"></script>
+    <script src="finance-sync.js?v=1.8.15"></script>
+    <script src="finance-powerbi.js?v=1.8.15"></script>
+    <script src="finance-dashboard.js?v=1.8.15"></script>
+    <script src="finance-cartoes.js?v=1.8.15"></script>
+    <script src="auth.js?v=1.8.15"></script>
+    <script src="auto-update.js?v=1.8.15"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

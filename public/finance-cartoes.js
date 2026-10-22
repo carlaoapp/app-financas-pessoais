@@ -64,27 +64,8 @@ function alternarSubAbaCartoes(subAba) {
     if (secAlim) secAlim.style.display = (subAba === 'alimentacao' || subAba === 'todos') ? 'block' : 'none';
     if (secBancos) secBancos.style.display = (subAba === 'bancos' || subAba === 'todos') ? 'block' : 'none';
 
-    // 4. Atualiza rótulo do botão de adição rápida
-    const lblBtnNovo = document.getElementById('lblBtnNovoItemCartoes');
-    if (lblBtnNovo) {
-        if (subAba === 'alimentacao') lblBtnNovo.innerText = 'Novo Cartão Alimentação';
-        else if (subAba === 'bancos') lblBtnNovo.innerText = 'Nova Conta Bancária';
-        else if (subAba === 'credito') lblBtnNovo.innerText = 'Novo Cartão de Crédito';
-        else lblBtnNovo.innerText = 'Novo Cartão ou Conta';
-    }
-
-    // 5. Atualiza título da seção de compras e atualiza lançamentos
-    const titCompras = document.getElementById('tituloSecaoComprasCartoes');
-    if (titCompras) {
-        if (subAba === 'alimentacao') titCompras.innerHTML = '<span>🍽️</span> Gastos & Lançamentos do Cartão Alimentação no Mês';
-        else if (subAba === 'bancos') titCompras.innerHTML = '<span>🏦</span> Movimentações Bancárias & Débitos no Mês';
-        else if (subAba === 'credito') titCompras.innerHTML = '<span>💳</span> Compras do Cartão de Crédito no Mês';
-        else titCompras.innerHTML = '<span>🧾</span> Compras & Lançamentos de Cartões e Contas no Mês';
-    }
-
-    // Atualiza filtro de contas e lista de compras
-    atualizarFiltroCartoesPorSubAba();
-    renderizarComprasCartoes();
+    // 4. Ações de cadastro e leitura agora ficam diretamente em cada seção de cartões
+    if (typeof atualizarFiltroCartoesPorSubAba === 'function') atualizarFiltroCartoesPorSubAba();
 }
 window.alternarSubAbaCartoes = alternarSubAbaCartoes;
 
@@ -245,10 +226,10 @@ async function carregarCartoesEContas() {
     const lblMes = document.getElementById('lblFiltroMesCartoes');
     if (lblMes) lblMes.innerText = `Fatura e Lançamentos de ${meses[targetMonth]} / ${targetYear}`;
 
-    // 1. RENDERIZA MEUS CARTÕES DE CRÉDITO
+    // 1. RENDERIZA MEUS CARTÕES DE CRÉDITO & DÉBITO
     const cartoesGrid = document.getElementById('gridCartoesCreditoContainer');
     const badgeCartoes = document.getElementById('badgeQtdCartoes');
-    const cartoesList = contas.filter(c => c.tipo_conta === 'Cartão de Crédito');
+    const cartoesList = contas.filter(c => c.tipo_conta === 'Cartão de Crédito' || c.tipo_conta === 'Cartão de Débito');
     if (badgeCartoes) badgeCartoes.innerText = `${cartoesList.length} ${cartoesList.length === 1 ? 'cartão' : 'cartões'}`;
 
     if (cartoesGrid) {
@@ -257,20 +238,26 @@ async function carregarCartoesEContas() {
             cartoesGrid.innerHTML = `
                 <div style="grid-column: 1/-1; padding: 26px; text-align: center; background: #0F172A; border: 1.5px dashed #334155; border-radius: 14px; color: #94A3B8;">
                     <div style="font-size: 2rem; margin-bottom: 6px;">💳</div>
-                    <div style="font-weight: 700; color: #FFFFFF; font-size: 1rem;">Nenhum cartão de crédito cadastrado</div>
-                    <p style="font-size: 0.82rem; margin: 4px 0 14px 0;">Cadastre seus cartões (ex: Sicredi Visa Gold, Nubank, Itaú) para controlar limites e faturas.</p>
-                    <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão de Crédito')" style="background: #2563EB; color: white; border: none; padding: 9px 18px; border-radius: 9px; font-weight: 800; cursor: pointer; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
-                        ➕ Cadastrar Primeiro Cartão
-                    </button>
+                    <div style="font-weight: 700; color: #FFFFFF; font-size: 1rem;">Nenhum cartão cadastrado</div>
+                    <p style="font-size: 0.82rem; margin: 4px 0 14px 0;">Cadastre seus cartões de crédito ou débito (ex: Sicredi Visa Gold, Nubank, Itaú) para controlar limites e faturas.</p>
+                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão de Crédito')" style="background: #2563EB; color: white; border: none; padding: 9px 18px; border-radius: 9px; font-weight: 800; cursor: pointer; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
+                            ➕ Cadastrar Novo Cartão
+                        </button>
+                        <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 9px 18px; border-radius: 9px; font-weight: 800; cursor: pointer; font-size: 0.88rem;">
+                            📷 Ler Notificação / Print
+                        </button>
+                    </div>
                 </div>
             `;
         } else {
             cartoesList.forEach(cartao => {
+                const isDebito = cartao.tipo_conta === 'Cartão de Débito';
                 const limTotal = parseFloat(cartao.limite_cartao) || 0;
                 const faturaAtual = faturasPorCartao[cartao.id] || 0;
                 const limDisp = Math.max(0, limTotal - faturaAtual);
                 const percUsado = limTotal > 0 ? Math.min(100, Math.round((faturaAtual / limTotal) * 100)) : 0;
-                const cor = cartao.cor_cartao || '#2563EB';
+                const cor = cartao.cor_cartao || (isDebito ? '#059669' : '#2563EB');
 
                 const cardEl = document.createElement('div');
                 cardEl.style.cssText = `
@@ -295,10 +282,16 @@ async function carregarCartoesEContas() {
                                 <span style="font-weight: 800; font-size: 1.05rem; letter-spacing: 0.5px;">${cartao.nome_conta}</span>
                             </div>
                             <span style="font-size: 0.72rem; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; font-weight: 700;">
-                                Vence dia ${cartao.dia_vencimento || 10}
+                                ${isDebito ? 'Débito' : `Vence dia ${cartao.dia_vencimento || 10}`}
                             </span>
                         </div>
 
+                        ${isDebito ? `
+                        <div style="margin-bottom: 14px;">
+                            <div style="font-size: 0.72rem; color: #CBD5E1; text-transform: uppercase; font-weight: 600;">Saldo Disponível no Cartão</div>
+                            <div style="font-size: 1.45rem; font-weight: 900; color: #10B981; margin-top: 2px;">${formatBRL(cartao.saldo_atual || 0)}</div>
+                        </div>
+                        ` : `
                         <div style="margin-bottom: 14px;">
                             <div style="font-size: 0.72rem; color: #CBD5E1; text-transform: uppercase; font-weight: 600;">Fatura do Mês (${meses[targetMonth]})</div>
                             <div style="font-size: 1.45rem; font-weight: 900; color: #FFFFFF; margin-top: 2px;">${formatBRL(faturaAtual)}</div>
@@ -319,12 +312,19 @@ async function carregarCartoesEContas() {
                             <span>Fechamento: Dia ${cartao.dia_fechamento || 1}</span>
                             <span>Uso: ${percUsado}%</span>
                         </div>
+                        `}
                     </div>
 
                     <div style="display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 12px;">
+                        ${isDebito ? `
+                        <button type="button" onclick="ajustarSaldoConta('${cartao.id}')" style="flex: 2; height: 38px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                            <span>💰</span> Ajustar Saldo
+                        </button>
+                        ` : `
                         <button type="button" onclick="pagarFaturaCartao('${cartao.id}')" style="flex: 2; height: 38px; background: #10B981; color: #0F172A; border: none; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
                             <span>💵</span> Pagar Fatura
                         </button>
+                        `}
                         <button type="button" onclick="abrirModalGerenciarConta('${cartao.id}')" style="flex: 1; height: 38px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
                             ✏️ Editar
                         </button>
@@ -349,9 +349,14 @@ async function carregarCartoesEContas() {
                     <div style="font-size: 1.8rem; margin-bottom: 6px;">🍽️</div>
                     <div style="font-weight: 700; color: #FFFFFF; font-size: 0.95rem;">Nenhum cartão alimentação ou benefício cadastrado</div>
                     <p style="font-size: 0.8rem; margin: 4px 0 12px 0;">Cadastre seus cartões Alelo, Sodexo/Pluxee, Ticket, VR, Flash ou Caju para controlar o saldo disponível.</p>
-                    <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão Alimentação')" style="background: linear-gradient(135deg, #EA580C, #F97316); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.82rem; box-shadow: 0 4px 12px rgba(249,115,22,0.3);">
-                        ➕ Cadastrar Cartão Alimentação
-                    </button>
+                    <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
+                        <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão Alimentação')" style="background: linear-gradient(135deg, #EA580C, #F97316); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.82rem; box-shadow: 0 4px 12px rgba(249,115,22,0.3);">
+                            ➕ Cadastrar Cartão Alimentação
+                        </button>
+                        <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 8px 16px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.82rem;">
+                            📷 Ler Notificação / Print
+                        </button>
+                    </div>
                 </div>
             `;
         } else {
@@ -702,9 +707,14 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Cartão de Cré
         if (inpVen) inpVen.value = 10;
         if (inpCor) inpCor.value = corPadrao;
         if (ico) {
-            ico.innerText = tipoPadrao === 'Cartão de Crédito' ? '💳' : (tipoPadrao === 'Cartão Alimentação' ? '🍽️' : '🏦');
+            ico.innerText = (tipoPadrao === 'Cartão de Crédito' || tipoPadrao === 'Cartão de Débito') ? '💳' : (tipoPadrao === 'Cartão Alimentação' ? '🍽️' : '🏦');
         }
-        if (tit) tit.innerText = tipoPadrao === 'Cartão Alimentação' ? "Adicionar Cartão Alimentação" : "Adicionar Cartão / Conta";
+        if (tit) {
+            if (tipoPadrao === 'Cartão Alimentação') tit.innerText = "Cadastrar Cartão Alimentação";
+            else if (tipoPadrao === 'Cartão de Crédito') tit.innerText = "Cadastrar Cartão de Crédito";
+            else if (tipoPadrao === 'Cartão de Débito') tit.innerText = "Cadastrar Cartão de Débito";
+            else tit.innerText = "Cadastrar Conta Bancária";
+        }
         if (btnExcluir) {
             btnExcluir.disabled = true;
             btnExcluir.style.opacity = '0.35';
@@ -727,7 +737,7 @@ function fecharModalGerenciarConta() {
 }
 window.fecharModalGerenciarConta = fecharModalGerenciarConta;
 
-// Alterna campos visíveis dependendo do tipo da conta (Cartão de Crédito vs Cartão Alimentação vs Conta Corrente)
+// Alterna campos visíveis dependendo do tipo da conta (Cartão de Crédito vs Débito vs Cartão Alimentação vs Conta Corrente)
 function aoMudarTipoContaForm() {
     const tipo = document.getElementById('contaTipo')?.value;
     const grpLimite = document.getElementById('grpContaLimite');
@@ -740,6 +750,12 @@ function aoMudarTipoContaForm() {
         if (grpLimite) grpLimite.style.display = 'block';
         if (grpSaldo) grpSaldo.style.display = 'none';
         if (grpPrazos) grpPrazos.style.display = 'flex';
+        if (ico) ico.innerText = '💳';
+    } else if (tipo === 'Cartão de Débito') {
+        if (grpLimite) grpLimite.style.display = 'none';
+        if (grpSaldo) grpSaldo.style.display = 'block';
+        if (grpPrazos) grpPrazos.style.display = 'none';
+        if (lblSaldo) lblSaldo.innerText = 'Saldo Disponível no Cartão';
         if (ico) ico.innerText = '💳';
     } else if (tipo === 'Cartão Alimentação') {
         if (grpLimite) grpLimite.style.display = 'none';
