@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="app-build-version" content="1.8.27">
+    <meta name="app-build-version" content="1.8.28">
     <script>
-        window.APP_BUILD_VERSION = '1.8.27';
+        window.APP_BUILD_VERSION = '1.8.28';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -685,13 +685,26 @@
             <div id="tabCartoes" class="tab-content" style="display: none;">
                 <!-- Cabeçalho e Métricas Resumo -->
                 <div style="background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                    <div style="margin-bottom: 16px;">
-                        <h2 style="font-size: 1.25rem; color: #60A5FA; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
-                            <span>💳</span> Cartões & Contas Bancárias
-                        </h2>
-                        <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0 0;">
-                            Controle limites de faturas, cartões alimentação/benefícios e saldos com subtrações automáticas
-                        </p>
+                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                        <div>
+                            <h2 style="font-size: 1.25rem; color: #60A5FA; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                                <span>💳</span> Cartões & Contas Bancárias
+                            </h2>
+                            <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0 0;">
+                                Controle limites de faturas, cartões alimentação/benefícios e saldos com subtrações automáticas
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                            <button type="button" onclick="abrirModalTransferenciaContas()" style="background: linear-gradient(135deg, #059669, #10B981); color: #0F172A; border: none; padding: 9px 16px; border-radius: 9px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: all 0.2s;">
+                                <span>🔄</span> Transferir entre Contas
+                            </button>
+                            <button type="button" onclick="abrirModalGerenciarConta('novo', 'Conta Corrente')" style="background: #1E293B; border: 1.5px solid #334155; color: #E2E8F0; padding: 9px 14px; border-radius: 9px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <span>➕</span> Nova Conta
+                            </button>
+                            <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão de Crédito')" style="background: #1E293B; border: 1.5px solid #334155; color: #E2E8F0; padding: 9px 14px; border-radius: 9px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                                <span>➕</span> Novo Cartão
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Sub-abas de Navegação Interna Organizadas (Cada tela com sua função e foco) -->
@@ -1343,9 +1356,14 @@
                 <div class="form-group" style="margin-bottom: 14px;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
                         <label style="margin: 0; font-size: 0.8rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px;">💳 Cartão / Conta Bancária</label>
-                        <button type="button" onclick="abrirModalGerenciarConta()" style="background: rgba(37, 99, 235, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 4px 10px; border-radius: 7px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Adicionar ou gerenciar contas e cartões de crédito">
-                            <span>➕</span> Novo / Gerenciar
-                        </button>
+                        <div style="display: flex; gap: 6px;">
+                            <button type="button" onclick="abrirModalTransferenciaContas()" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; color: #6EE7B7; padding: 4px 10px; border-radius: 7px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Transferir dinheiro entre contas bancárias">
+                                <span>🔄</span> Transferir
+                            </button>
+                            <button type="button" onclick="abrirModalGerenciarConta()" style="background: rgba(37, 99, 235, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 4px 10px; border-radius: 7px; font-size: 0.74rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Adicionar ou gerenciar contas e cartões de crédito">
+                                <span>➕</span> Novo / Gerenciar
+                            </button>
+                        </div>
                     </div>
                     <select id="inputContaId" onchange="aoMudarContaLancamento(this.value)" style="width: 100%; height: 44px; background: #1E293B; border: 1.5px solid #3B82F6; color: #FFFFFF; font-weight: 600; padding: 0 12px; border-radius: 10px; font-size: 0.92rem; box-sizing: border-box;">
                         <option value="">🏦 Selecione o Cartão ou Conta Corrente...</option>
@@ -1641,6 +1659,90 @@
                             <span>🗑️</span> Excluir
                         </button>
                     </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: TRANSFERÊNCIA ENTRE CONTAS BANCÁRIAS (FLUXO DE CAIXA INTRA-CONTAS) -->
+    <div id="modalTransferenciaContas" class="modal-overlay" onclick="if(event.target === this) fecharModalTransferenciaContas()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
+        <div class="modal-content" style="max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #334155; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 20px; box-sizing: border-box;">
+            <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span style="font-size: 1.4rem;">🔄</span>
+                    <div>
+                        <h3 style="color: #FFFFFF; font-size: 1.1rem; margin: 0; font-weight: 800;">Transferir entre Contas</h3>
+                        <p style="font-size: 0.78rem; color: #94A3B8; margin: 2px 0 0 0;">Mova valores entre contas sem distorcer seu orçamento do mês</p>
+                    </div>
+                </div>
+                <button type="button" class="close-btn" onclick="fecharModalTransferenciaContas()" title="Fechar" style="background: none; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer; padding: 0 4px;">✕</button>
+            </div>
+
+            <form id="formTransferenciaContas" onsubmit="executarTransferenciaContasSubmit(event)">
+                <!-- Conta Origem -->
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #F87171; text-transform: uppercase; margin-bottom: 6px;">
+                        🔻 Conta de Origem (Sai o dinheiro)
+                    </label>
+                    <select id="transferenciaContaOrigem" required onchange="aoMudarContasTransferencia()" style="width: 100%; height: 44px; background: #1E293B; border: 1.5px solid #EF4444; color: #FFFFFF; font-weight: 600; padding: 0 12px; border-radius: 10px; font-size: 0.92rem; box-sizing: border-box;">
+                        <option value="">Selecione a conta de saída...</option>
+                    </select>
+                </div>
+
+                <!-- Conta Destino -->
+                <div class="form-group" style="margin-bottom: 14px;">
+                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #34D399; text-transform: uppercase; margin-bottom: 6px;">
+                        🔺 Conta de Destino (Entra o dinheiro)
+                    </label>
+                    <select id="transferenciaContaDestino" required onchange="aoMudarContasTransferencia()" style="width: 100%; height: 44px; background: #1E293B; border: 1.5px solid #10B981; color: #FFFFFF; font-weight: 600; padding: 0 12px; border-radius: 10px; font-size: 0.92rem; box-sizing: border-box;">
+                        <option value="">Selecione a conta de entrada...</option>
+                    </select>
+                </div>
+
+                <!-- Valor e Data em 50/50 -->
+                <div class="form-group-row" style="display: flex; gap: 10px; margin-bottom: 14px;">
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 6px;">
+                            💵 Valor a Transferir
+                        </label>
+                        <input type="text" inputmode="numeric" id="transferenciaValor" class="input-money-mask" required oninput="aoMudarContasTransferencia()" placeholder="R$ 0,00" style="width: 100%; height: 44px; background: #1E293B; border: 1.5px solid #3B82F6; color: #60A5FA; font-weight: 800; font-size: 1.05rem; padding: 0 12px; border-radius: 10px; box-sizing: border-box;">
+                    </div>
+                    <div class="form-group" style="flex: 1; margin-bottom: 0;">
+                        <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 6px;">
+                            📅 Data
+                        </label>
+                        <input type="date" id="transferenciaData" required style="width: 100%; height: 44px; background: #1E293B; border: 1.5px solid #334155; color: #FFFFFF; font-weight: 600; padding: 0 12px; border-radius: 10px; font-size: 0.9rem; box-sizing: border-box;">
+                    </div>
+                </div>
+
+                <!-- Motivo / Descrição Opcional -->
+                <div class="form-group" style="margin-bottom: 16px;">
+                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 6px;">
+                        📝 Motivo / Observação (Opcional)
+                    </label>
+                    <input type="text" id="transferenciaMotivo" placeholder="Ex: Transferência de salário, Envio para reserva, Cobertura..." style="width: 100%; height: 42px; background: #1E293B; border: 1.5px solid #334155; color: #FFFFFF; font-size: 0.9rem; padding: 0 12px; border-radius: 10px; box-sizing: border-box;">
+                </div>
+
+                <!-- Box Resumo / Simulação ao Vivo dos Saldos -->
+                <div id="boxResumoTransferencia" style="background: rgba(15, 23, 42, 0.7); border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px;">
+                    <div style="font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 8px;">
+                        📊 Simulação dos Novos Saldos
+                    </div>
+                    <div id="boxResumoLinhas" style="display: flex; flex-direction: column; gap: 6px; font-size: 0.85rem;">
+                        <div style="color: #94A3B8; font-size: 0.82rem;">Selecione as contas e digite o valor para simular.</div>
+                    </div>
+                    <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed #334155; font-size: 0.74rem; color: #60A5FA; display: flex; align-items: center; gap: 5px;">
+                        <span>ℹ️</span> <span>Transferência interna: o dinheiro é redistribuído entre suas contas sem gerar despesas ou receitas duplicadas no seu orçamento do mês.</span>
+                    </div>
+                </div>
+
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button type="submit" id="btnConfirmarTransferencia" style="width: 100%; height: 44px; background: linear-gradient(135deg, #059669, #10B981); color: #0F172A; border: none; border-radius: 10px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
+                        <span>✓</span> Confirmar Transferência
+                    </button>
+                    <button type="button" onclick="fecharModalTransferenciaContas()" style="width: 100%; height: 40px; background: #1E293B; border: 1.5px solid #334155; color: #E2E8F0; font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer;">
+                        ✕ Cancelar
+                    </button>
                 </div>
             </form>
         </div>

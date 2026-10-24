@@ -108,6 +108,15 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
     const alimentacao = contas.filter(c => c.tipo_conta === 'Cartão Alimentação');
     const correntes = contas.filter(c => c.tipo_conta !== 'Cartão de Crédito' && c.tipo_conta !== 'Cartão Alimentação');
 
+    // Se nenhuma conta foi pré-selecionada e o tipo for Receita ou despesa de débito, sugere Sicredi por padrão
+    if (!contaIdSelecionada) {
+        const tipoAtual = document.getElementById('inputTipoGasto')?.value;
+        if (tipoAtual === 'Receita') {
+            const sicredi = correntes.find(c => (c.nome_conta + ' ' + (c.banco || '')).toLowerCase().includes('sicredi'));
+            if (sicredi) contaIdSelecionada = sicredi.id;
+        }
+    }
+
     if (cartoes.length > 0) {
         const grp = document.createElement('optgroup');
         grp.label = '💳 Cartões de Crédito';
@@ -197,6 +206,15 @@ async function aoMudarTipoGastoLancamento(tipoGasto) {
             if (optAtual && optAtual.dataset.tipo === 'Cartão Alimentação') return;
             for (let i = 0; i < selConta.options.length; i++) {
                 if (selConta.options[i].dataset.tipo === 'Cartão Alimentação') {
+                    selConta.selectedIndex = i;
+                    break;
+                }
+            }
+        } else if (tipoGasto === 'Receita') {
+            // Conta central de recebimento: Sicredi
+            for (let i = 0; i < selConta.options.length; i++) {
+                const txt = selConta.options[i].innerText.toLowerCase();
+                if (txt.includes('sicredi')) {
                     selConta.selectedIndex = i;
                     break;
                 }
@@ -681,11 +699,14 @@ async function carregarCartoesEContas() {
                             `}
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
-                        <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="height: 40px; background: rgba(59, 130, 246, 0.15); border: 1.5px solid #3B82F6; color: #93C5FD; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
-                            <span>💰</span> Ajustar Saldo
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+                        <button type="button" onclick="abrirModalTransferenciaContas('${c.id}')" style="height: 38px; background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; border-radius: 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;" title="Transferir de ou para esta conta">
+                            <span>🔄</span> Transferir
                         </button>
-                        <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="height: 40px; background: rgba(255,255,255,0.06); border: 1.5px solid #334155; color: #E2E8F0; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                        <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="height: 38px; background: rgba(59, 130, 246, 0.15); border: 1.5px solid #3B82F6; color: #93C5FD; border-radius: 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;" title="Ajustar saldo manualmente">
+                            <span>💰</span> Saldo
+                        </button>
+                        <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="height: 38px; background: rgba(255,255,255,0.06); border: 1.5px solid #334155; color: #E2E8F0; border-radius: 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;" title="Editar conta">
                             <span>✏️</span> Editar
                         </button>
                     </div>
@@ -1612,3 +1633,307 @@ function abrirModalLancamentoComLeitura() {
     }
 }
 window.abrirModalLancamentoComLeitura = abrirModalLancamentoComLeitura;
+
+// ============================================================================
+// TRANSFERÊNCIA ENTRE CONTAS BANCÁRIAS (FLUXO DE CAIXA INTRA-CONTAS)
+// ============================================================================
+window._cacheContasParaTransferencia = [];
+
+async function abrirModalTransferenciaContas(origemPreSelecionadaId = null, destinoPreSelecionadaId = null) {
+    const modal = document.getElementById('modalTransferenciaContas');
+    if (!modal) return;
+
+    const selOrigem = document.getElementById('transferenciaContaOrigem');
+    const selDestino = document.getElementById('transferenciaContaDestino');
+    const inpValor = document.getElementById('transferenciaValor');
+    const inpData = document.getElementById('transferenciaData');
+    const inpMotivo = document.getElementById('transferenciaMotivo');
+
+    if (!selOrigem || !selDestino) return;
+
+    let contas = [];
+    try {
+        if (typeof dbLocal !== 'undefined' && dbLocal && dbLocal.contas_bancarias) {
+            contas = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1).toArray();
+        }
+    } catch (e) {
+        console.error("Erro ao carregar contas para transferência:", e);
+    }
+
+    if (contas.length < 2) {
+        alert("Para realizar uma transferência, você precisa de pelo menos 2 contas ou cartões cadastrados!");
+        abrirModalGerenciarConta('novo', 'Conta Corrente');
+        return;
+    }
+
+    window._cacheContasParaTransferencia = contas;
+
+    // Data de hoje padrão (YYYY-MM-DD)
+    if (inpData) {
+        const hoje = new Date();
+        const yyyy = hoje.getFullYear();
+        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
+        const dd = String(hoje.getDate()).padStart(2, '0');
+        inpData.value = `${yyyy}-${mm}-${dd}`;
+    }
+
+    if (inpValor) inpValor.value = '';
+    if (inpMotivo) inpMotivo.value = '';
+
+    // Prioriza contas que possuem saldo (não cartões de crédito) para a origem
+    const contasComSaldo = contas.filter(c => c.tipo_conta !== 'Cartão de Crédito');
+    const poolOrigem = contasComSaldo.length > 0 ? contasComSaldo : contas;
+
+    // Identifica Sicredi como origem padrão caso não tenha sido passada origem específica
+    let idOrigemDefault = origemPreSelecionadaId;
+    if (!idOrigemDefault) {
+        const sicredi = poolOrigem.find(c => (c.nome_conta + ' ' + (c.banco || '')).toLowerCase().includes('sicredi'));
+        if (sicredi) {
+            idOrigemDefault = sicredi.id;
+        } else {
+            idOrigemDefault = poolOrigem[0].id;
+        }
+    }
+
+    // Identifica Destino padrão (diferente da origem)
+    let idDestinoDefault = destinoPreSelecionadaId;
+    if (!idDestinoDefault || String(idDestinoDefault) === String(idOrigemDefault)) {
+        const outro = contas.find(c => String(c.id) !== String(idOrigemDefault));
+        idDestinoDefault = outro ? outro.id : '';
+    }
+
+    // Popula select de Origem
+    selOrigem.innerHTML = '';
+    poolOrigem.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        const saldo = parseFloat(c.saldo_atual) || 0;
+        const tit = c.titular ? ` [👤 ${c.titular}]` : '';
+        opt.innerText = `${c.nome_conta}${tit} (Saldo: ${formatBRL(saldo)})`;
+        if (String(c.id) === String(idOrigemDefault)) opt.selected = true;
+        selOrigem.appendChild(opt);
+    });
+
+    // Popula select de Destino
+    popularSelectDestinoTransferencia(idOrigemDefault, idDestinoDefault);
+
+    aoMudarContasTransferencia();
+
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+
+    setTimeout(() => {
+        if (inpValor) inpValor.focus();
+    }, 150);
+}
+window.abrirModalTransferenciaContas = abrirModalTransferenciaContas;
+
+function popularSelectDestinoTransferencia(origemId, destinoIdSelecionado = null) {
+    const selDestino = document.getElementById('transferenciaContaDestino');
+    if (!selDestino) return;
+
+    const contas = window._cacheContasParaTransferencia || [];
+    const valorDestinoAtual = destinoIdSelecionado || selDestino.value;
+
+    selDestino.innerHTML = '';
+    let selecionou = false;
+
+    contas.forEach(c => {
+        if (String(c.id) === String(origemId)) return; // Não pode transferir para si mesma
+
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        const saldo = parseFloat(c.saldo_atual) || 0;
+        const tit = c.titular ? ` [👤 ${c.titular}]` : '';
+        const tipoDesc = c.tipo_conta === 'Cartão de Crédito' 
+            ? `Limite: ${formatBRL(parseFloat(c.limite_cartao) || 0)}` 
+            : `Saldo: ${formatBRL(saldo)}`;
+        opt.innerText = `${c.nome_conta}${tit} (${tipoDesc})`;
+
+        if (String(c.id) === String(valorDestinoAtual)) {
+            opt.selected = true;
+            selecionou = true;
+        }
+        selDestino.appendChild(opt);
+    });
+
+    if (!selecionou && selDestino.options.length > 0) {
+        selDestino.selectedIndex = 0;
+    }
+}
+
+function aoMudarContasTransferencia() {
+    const selOrigem = document.getElementById('transferenciaContaOrigem');
+    const selDestino = document.getElementById('transferenciaContaDestino');
+    const inpValor = document.getElementById('transferenciaValor');
+    const boxLinhas = document.getElementById('boxResumoLinhas');
+    if (!selOrigem || !selDestino || !boxLinhas) return;
+
+    const idOrigem = selOrigem.value;
+    const idDestino = selDestino.value;
+
+    // Se origem for igual a destino, recalcula opções de destino
+    if (String(idOrigem) === String(idDestino)) {
+        popularSelectDestinoTransferencia(idOrigem);
+    }
+
+    const contas = window._cacheContasParaTransferencia || [];
+    const contaOrigem = contas.find(c => String(c.id) === String(idOrigem));
+    const contaDestino = contas.find(c => String(c.id) === String(selDestino.value));
+
+    const valorTransf = (typeof desformatarMoedaInput === 'function') 
+        ? desformatarMoedaInput(inpValor?.value || '0')
+        : (parseFloat(inpValor?.value) || 0);
+
+    if (!contaOrigem || !contaDestino) {
+        boxLinhas.innerHTML = `<div style="color: #94A3B8; font-size: 0.82rem;">Selecione a conta de origem e a conta de destino.</div>`;
+        return;
+    }
+
+    const saldoOrigemAtual = parseFloat(contaOrigem.saldo_atual) || 0;
+    const saldoDestinoAtual = parseFloat(contaDestino.saldo_atual) || 0;
+
+    const novoSaldoOrigem = saldoOrigemAtual - valorTransf;
+    const novoSaldoDestino = saldoDestinoAtual + valorTransf;
+
+    const corOrigem = novoSaldoOrigem < 0 ? '#EF4444' : '#6EE7B7';
+    const avisoNegativo = novoSaldoOrigem < 0 
+        ? `<span style="font-size: 0.72rem; color: #EF4444; font-weight: 700; margin-left: 6px;">⚠️ Saldo ficará negativo (Cheque Especial)</span>` 
+        : '';
+
+    boxLinhas.innerHTML = `
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.25); padding: 8px 10px; border-radius: 8px;">
+            <div>
+                <span style="font-weight: 700; color: #FCA5A5;">🔻 ${contaOrigem.nome_conta}</span>
+                ${avisoNegativo}
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.72rem; color: #94A3B8;">${formatBRL(saldoOrigemAtual)} ➔</div>
+                <div style="font-weight: 900; color: ${corOrigem}; font-size: 0.95rem;">${formatBRL(novoSaldoOrigem)}</div>
+            </div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); padding: 8px 10px; border-radius: 8px;">
+            <div>
+                <span style="font-weight: 700; color: #6EE7B7;">🔺 ${contaDestino.nome_conta}</span>
+            </div>
+            <div style="text-align: right;">
+                <div style="font-size: 0.72rem; color: #94A3B8;">${formatBRL(saldoDestinoAtual)} ➔</div>
+                <div style="font-weight: 900; color: #10B981; font-size: 0.95rem;">${formatBRL(novoSaldoDestino)}</div>
+            </div>
+        </div>
+    `;
+}
+window.aoMudarContasTransferencia = aoMudarContasTransferencia;
+
+function fecharModalTransferenciaContas() {
+    const modal = document.getElementById('modalTransferenciaContas');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+window.fecharModalTransferenciaContas = fecharModalTransferenciaContas;
+
+async function executarTransferenciaContasSubmit(event) {
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
+
+    const selOrigem = document.getElementById('transferenciaContaOrigem');
+    const selDestino = document.getElementById('transferenciaContaDestino');
+    const inpValor = document.getElementById('transferenciaValor');
+    const inpData = document.getElementById('transferenciaData');
+    const inpMotivo = document.getElementById('transferenciaMotivo');
+
+    const idOrigem = selOrigem?.value;
+    const idDestino = selDestino?.value;
+    const dataTransf = inpData?.value;
+    const motivo = inpMotivo?.value.trim() || '';
+
+    const valor = (typeof desformatarMoedaInput === 'function')
+        ? desformatarMoedaInput(inpValor?.value || '0')
+        : (parseFloat(inpValor?.value) || 0);
+
+    if (!idOrigem || !idDestino) {
+        alert("Por favor, selecione as contas de origem e destino!");
+        return;
+    }
+
+    if (String(idOrigem) === String(idDestino)) {
+        alert("A conta de origem e destino não podem ser a mesma!");
+        return;
+    }
+
+    if (valor <= 0) {
+        alert("Por favor, digite um valor maior que R$ 0,00 para transferir!");
+        inpValor?.focus();
+        return;
+    }
+
+    if (!dataTransf) {
+        alert("Por favor, informe a data da transferência!");
+        return;
+    }
+
+    const contaOrigem = await dbLocal.contas_bancarias.get(idOrigem);
+    const contaDestino = await dbLocal.contas_bancarias.get(idDestino);
+
+    if (!contaOrigem || !contaDestino) {
+        alert("Conta não encontrada. Recarregue a página e tente novamente.");
+        return;
+    }
+
+    const authUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+    const currentUserId = authUser ? authUser.id : (localStorage.getItem('financas_current_user_id') || null);
+    const ts = Date.now();
+
+    // 1. Atualiza o saldo da conta de Origem (subtrai)
+    const saldoAntOrigem = parseFloat(contaOrigem.saldo_atual) || 0;
+    const novoSaldoOrigem = saldoAntOrigem - valor;
+    await dbLocal.contas_bancarias.update(idOrigem, {
+        saldo_atual: novoSaldoOrigem,
+        sync_status: 'pending_update',
+        updated_at: ts
+    });
+
+    // 2. Atualiza o saldo da conta de Destino (adiciona)
+    const saldoAntDestino = parseFloat(contaDestino.saldo_atual) || 0;
+    const novoSaldoDestino = saldoAntDestino + valor;
+    await dbLocal.contas_bancarias.update(idDestino, {
+        saldo_atual: novoSaldoDestino,
+        sync_status: 'pending_update',
+        updated_at: ts
+    });
+
+    // 3. Registra a movimentação no histórico com tipo 'Transferência Interna'
+    const descMov = `Transferência: ${contaOrigem.nome_conta} ➔ ${contaDestino.nome_conta}`;
+    const obsFinal = motivo ? `${motivo} (De: ${contaOrigem.nome_conta} Para: ${contaDestino.nome_conta})` : `Transferência interna entre contas bancárias`;
+
+    const novoLancamento = {
+        id: generateUUID(),
+        descricao: descMov,
+        categoria: 'Transferência entre Contas',
+        tipo_gasto: 'Transferência Interna',
+        valor_total: valor,
+        valor_realizado: valor,
+        data_lancamento: dataTransf,
+        status: 'Pago',
+        parcelado: 'Não',
+        total_parcelas: 1,
+        parcela_atual: 1,
+        conta_id: contaOrigem.id,
+        observacoes: obsFinal,
+        user_id: currentUserId,
+        deleted: 0,
+        sync_status: 'pending_insert',
+        updated_at: ts
+    };
+
+    await dbLocal.movimentacoes.put(novoLancamento);
+
+    fecharModalTransferenciaContas();
+    showToast(`✓ Transferência de ${formatBRL(valor)} de '${contaOrigem.nome_conta}' para '${contaDestino.nome_conta}' realizada!`);
+
+    await carregarCartoesEContas();
+    if (typeof carregarPlanejamento === 'function') carregarPlanejamento();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+}
+window.executarTransferenciaContasSubmit = executarTransferenciaContasSubmit;
+

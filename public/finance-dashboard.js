@@ -415,6 +415,7 @@ async function carregarPlanejamento() {
 
     itensDoMes.forEach(item => {
         if (item.status === 'Cancelado') return;
+        if (item.tipo_gasto === 'Transferência Interna' || item.tipo_gasto === 'Transferência') return;
 
         const vOrcado = parseFloat(item.valor_total) || 0;
         const vRealizado = parseFloat(item.valor_realizado) || 0;
@@ -574,7 +575,7 @@ async function carregarPlanejamento() {
 
     // Prepara a lista para renderizar (Despesas e Entradas pendentes)
     // Cartão de Crédito NAO vai pra lista principal de Pendentes, vai apenas pra Fatura!
-    const pendentesParaExibir = itensDoMes.filter(item => (item.status === 'Pendente' || item.status === 'Cancelado') && item.tipo_gasto !== 'Cartão de Crédito');
+    const pendentesParaExibir = itensDoMes.filter(item => (item.status === 'Pendente' || item.status === 'Cancelado') && item.tipo_gasto !== 'Cartão de Crédito' && item.tipo_gasto !== 'Transferência Interna');
     renderizarLista(pendentesParaExibir);
     renderizarExtratoCompleto();
     if (typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
@@ -4714,7 +4715,7 @@ function renderizarExtratoCompleto() {
     if (window.extratoFiltroAtual === 'receitas') {
         itens = itens.filter(i => i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
     } else if (window.extratoFiltroAtual === 'despesas') {
-        itens = itens.filter(i => i.tipo_gasto !== 'Receita' && i.tipo_gasto !== 'Resgate de Reserva');
+        itens = itens.filter(i => i.tipo_gasto !== 'Receita' && i.tipo_gasto !== 'Resgate de Reserva' && i.tipo_gasto !== 'Transferência Interna');
     } else if (window.extratoFiltroAtual === 'investimentos') {
         itens = itens.filter(i => i.tipo_gasto === 'Investimento');
     } else if (window.extratoFiltroAtual === 'reserva') {
@@ -4771,6 +4772,7 @@ function renderizarExtratoCompleto() {
 
         const isReserva = isTipoReservaEmergencia(item);
         const isInvestimento = (item.tipo_gasto === 'Investimento');
+        const isTransf = (item.tipo_gasto === 'Transferência Interna');
 
         let borderLeftColor = '#EF4444';
         let iconCat = '📤';
@@ -4782,6 +4784,11 @@ function renderizarExtratoCompleto() {
             iconCat = '📥';
             corValor = '#10B981';
             sinalValor = '+';
+        } else if (isTransf) {
+            borderLeftColor = '#06B6D4';
+            iconCat = '🔄';
+            corValor = '#38BDF8';
+            sinalValor = '⇄ ';
         } else if (isReserva) {
             borderLeftColor = '#F59E0B';
             iconCat = '🛡️';

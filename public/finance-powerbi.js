@@ -502,6 +502,7 @@ function obterItensDeAnoEMes(movsAtivas, targetYear, targetMonth) {
         if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
         if (m.tipo_gasto === 'Conta a Pagar') return;
         if (m.tipo_gasto === 'Planejamento Renda Extra') return;
+        if (m.tipo_gasto === 'Transferência Interna' || m.tipo_gasto === 'Transferência') return;
         if (!m.data_lancamento) return;
 
         const [year, month, day] = m.data_lancamento.split('-');
@@ -519,6 +520,7 @@ function obterItensDeAnoEMes(movsAtivas, targetYear, targetMonth) {
         if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
         if (m.tipo_gasto === 'Conta a Pagar') return;
         if (m.tipo_gasto === 'Planejamento Renda Extra') return;
+        if (m.tipo_gasto === 'Transferência Interna' || m.tipo_gasto === 'Transferência') return;
         if (!m.data_lancamento) return;
         if (m.parcelado !== 'Sim' || !m.id_grupo) return;
         if (gruposFisicosNoMes.has(m.id_grupo)) return;
@@ -680,6 +682,7 @@ async function renderPowerBIDashboard() {
             if (m.deleted === 1 || m.status === 'Cancelado') return;
             if (m.tipo_gasto === 'Conta a Pagar') return;
             if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
+            if (m.tipo_gasto === 'Transferência Interna' || m.tipo_gasto === 'Transferência') return;
 
             const vTotal = parseFloat(m.valor_total) || 0;
             const vReal = parseFloat(m.valor_realizado) || 0;
