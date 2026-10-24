@@ -984,8 +984,9 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
                 opt.dataset.saldo = c.saldo_atual || 0;
                 opt.dataset.limite = c.limite_cartao || 0;
                 const icone = c.tipo_conta === 'Cartão de Crédito' ? '💳' : '🏦';
+                const titInfo = c.titular ? ` [👤 ${c.titular}]` : '';
                 const detalhe = c.tipo_conta === 'Cartão de Crédito' ? `(Limite: ${formatBRL(c.limite_cartao || 0)})` : `(Saldo: ${formatBRL(c.saldo_atual || 0)})`;
-                opt.innerText = `${icone} ${c.nome_conta} ${detalhe}`;
+                opt.innerText = `${icone} ${c.nome_conta}${titInfo} ${detalhe}`;
                 if (String(c.id) === String(contaSelecionadaId)) opt.selected = true;
                 selConta.appendChild(opt);
             });

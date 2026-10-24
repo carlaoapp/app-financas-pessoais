@@ -23,6 +23,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 id TEXT PRIMARY KEY,
                 nome_conta TEXT,
                 tipo_conta TEXT,
+                titular TEXT DEFAULT '',
                 limite_cartao REAL,
                 saldo_atual REAL DEFAULT 0,
                 cor_cartao TEXT DEFAULT '#2563EB',
@@ -68,6 +69,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
             db.run("ALTER TABLE contas_bancarias ADD COLUMN saldo_atual REAL DEFAULT 0", () => {});
             db.run("ALTER TABLE contas_bancarias ADD COLUMN cor_cartao TEXT DEFAULT '#2563EB'", () => {});
             db.run("ALTER TABLE contas_bancarias ADD COLUMN banco TEXT DEFAULT ''", () => {});
+            db.run("ALTER TABLE contas_bancarias ADD COLUMN titular TEXT DEFAULT ''", () => {});
 
             // Índices para otimização de busca por usuário
             db.run("CREATE INDEX IF NOT EXISTS idx_mov_user ON movimentacoes(user_id)", () => {});

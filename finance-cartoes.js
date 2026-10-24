@@ -279,7 +279,10 @@ async function carregarCartoesEContas() {
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
                             <div style="display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 1.4rem;">💳</span>
-                                <span style="font-weight: 800; font-size: 1.05rem; letter-spacing: 0.5px;">${cartao.nome_conta}</span>
+                                <div>
+                                    <div style="font-weight: 800; font-size: 1.05rem; letter-spacing: 0.5px;">${cartao.nome_conta}</div>
+                                    ${cartao.titular ? `<div style="font-size: 0.72rem; color: #E2E8F0; opacity: 0.88; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 1px;"><span>👤</span> ${cartao.titular}</div>` : ''}
+                                </div>
                             </div>
                             <span style="font-size: 0.72rem; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.2); padding: 3px 8px; border-radius: 6px; font-weight: 700;">
                                 ${isDebito ? 'Débito' : `Vence dia ${cartao.dia_vencimento || 10}`}
@@ -406,7 +409,10 @@ async function carregarCartoesEContas() {
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                             <div style="font-weight: 800; color: #FFFFFF; font-size: 1rem; display: flex; align-items: center; gap: 8px;">
                                 <span style="font-size: 1.3rem;">🍽️</span>
-                                <span>${c.nome_conta}</span>
+                                <div>
+                                    <div>${c.nome_conta}</div>
+                                    ${c.titular ? `<div style="font-size: 0.72rem; color: #FED7AA; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 1px;"><span>👤</span> ${c.titular}</div>` : ''}
+                                </div>
                             </div>
                             <span style="font-size: 0.72rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); padding: 2px 7px; border-radius: 6px; font-weight: 700;">Benefício</span>
                         </div>
@@ -495,7 +501,11 @@ async function carregarCartoesEContas() {
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
                             <div style="font-weight: 800; color: #FFFFFF; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
-                                <span>🏦</span> ${c.nome_conta}
+                                <span>🏦</span>
+                                <div>
+                                    <div>${c.nome_conta}</div>
+                                    ${c.titular ? `<div style="font-size: 0.72rem; color: #94A3B8; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 1px;"><span>👤</span> ${c.titular}</div>` : ''}
+                                </div>
                             </div>
                             <div style="display: flex; gap: 4px; align-items: center;">
                                 ${c.banco && c.banco !== c.nome_conta ? `<span style="font-size: 0.7rem; color: #60A5FA; background: rgba(37,99,235,0.18); border: 1px solid rgba(59,130,246,0.3); padding: 2px 6px; border-radius: 6px; font-weight: 700;">${c.banco}</span>` : ''}
@@ -837,6 +847,86 @@ function cadastrarNovoBancoPrompt() {
 }
 window.cadastrarNovoBancoPrompt = cadastrarNovoBancoPrompt;
 
+// --- GESTÃO DE TITULARES / EM NOME DE QUEM ---
+const TITULARES_PADRAO = [
+    'Titular Principal',
+    'Esposa',
+    'Marido',
+    'Filho',
+    'Filha',
+    'Conjunta',
+    'Empresa'
+];
+
+function obterTitularesCadastrados() {
+    try {
+        const salvos = localStorage.getItem('financas_titulares_cadastrados');
+        if (salvos) {
+            const lista = JSON.parse(salvos);
+            if (Array.isArray(lista) && lista.length > 0) return lista;
+        }
+    } catch(e) {}
+    const authUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+    const nomeUser = authUser?.nome || localStorage.getItem('financas_user_nome') || '';
+    if (nomeUser && !TITULARES_PADRAO.includes(nomeUser)) {
+        return [nomeUser, ...TITULARES_PADRAO];
+    }
+    return [...TITULARES_PADRAO];
+}
+
+function salvarTitularesCadastrados(lista) {
+    try {
+        localStorage.setItem('financas_titulares_cadastrados', JSON.stringify(lista));
+    } catch(e) {}
+}
+
+function popularSelectTitulares(titularSelecionado = '') {
+    const sel = document.getElementById('contaTitular');
+    if (!sel) return;
+    const titulares = obterTitularesCadastrados();
+    if (titularSelecionado && !titulares.some(t => t.toLowerCase() === titularSelecionado.toLowerCase())) {
+        titulares.unshift(titularSelecionado);
+        salvarTitularesCadastrados(titulares);
+    }
+    sel.innerHTML = '<option value="">👤 Selecione o Titular (Opcional)...</option>';
+    titulares.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        opt.innerText = `👤 ${t}`;
+        if (t === titularSelecionado) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    const optNovo = document.createElement('option');
+    optNovo.value = '__NOVO_TITULAR__';
+    optNovo.innerText = '➕ Cadastrar Novo Titular...';
+    sel.appendChild(optNovo);
+}
+window.popularSelectTitulares = popularSelectTitulares;
+
+function aoMudarTitularForm() {
+    const sel = document.getElementById('contaTitular');
+    if (!sel) return;
+    if (sel.value === '__NOVO_TITULAR__') {
+        cadastrarNovoTitularPrompt();
+        return;
+    }
+}
+window.aoMudarTitularForm = aoMudarTitularForm;
+
+function cadastrarNovoTitularPrompt() {
+    const novo = prompt('Digite o nome do Titular / Responsável pela conta ou cartão (Ex: Carlão, Patrícia, Empresa, etc.):');
+    if (novo && novo.trim()) {
+        const nomeTitular = novo.trim();
+        const lista = obterTitularesCadastrados();
+        if (!lista.some(t => t.toLowerCase() === nomeTitular.toLowerCase())) {
+            lista.push(nomeTitular);
+            salvarTitularesCadastrados(lista);
+        }
+        popularSelectTitulares(nomeTitular);
+    }
+}
+window.cadastrarNovoTitularPrompt = cadastrarNovoTitularPrompt;
+
 const TIPOS_CONTA_PADRAO = [
     'Conta Corrente',
     'Conta Poupança',
@@ -971,6 +1061,7 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Conta Corrente'
         const conta = await dbLocal.contas_bancarias.get(id);
         if (conta) {
             popularSelectBancos(conta.banco || '');
+            popularSelectTitulares(conta.titular || '');
             popularSelectTiposConta(conta.tipo_conta || 'Conta Corrente');
             if (inpNome) inpNome.value = conta.nome_conta || '';
             if (selTipo) selTipo.value = conta.tipo_conta || 'Conta Corrente';
@@ -994,6 +1085,7 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Conta Corrente'
         }
     } else {
         popularSelectBancos('');
+        popularSelectTitulares('');
         popularSelectTiposConta(tipoPadrao);
         const corPadrao = (tipoPadrao === 'Cartão Alimentação') ? '#F97316' : '#2563EB';
         if (inpId) inpId.value = '';
@@ -1132,6 +1224,7 @@ async function salvarContaBancariaSubmit(event) {
     const id = document.getElementById('contaBancariaId')?.value || generateUUID();
     const nome = document.getElementById('contaNome')?.value.trim();
     const banco = document.getElementById('contaBanco')?.value.trim() || '';
+    const titular = document.getElementById('contaTitular')?.value.trim() || '';
     const tipo = document.getElementById('contaTipo')?.value || 'Conta Corrente';
     const limite = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('contaLimite')?.value) : 0;
     const saldo = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('contaSaldo')?.value) : 0;
@@ -1152,6 +1245,7 @@ async function salvarContaBancariaSubmit(event) {
         id: String(id),
         nome_conta: nome,
         tipo_conta: tipo,
+        titular: titular,
         limite_cartao: parseFloat(limite) || 0,
         saldo_atual: parseFloat(saldo) || 0,
         dia_fechamento: (tipo === 'Cartão de Crédito') ? fechamento : null,
@@ -1163,6 +1257,14 @@ async function salvarContaBancariaSubmit(event) {
         sync_status: window.cartaoEmEdicaoId ? 'pending_update' : 'pending_insert',
         updated_at: ts
     };
+
+    if (titular && titular !== '__NOVO_TITULAR__') {
+        const listaTitulares = obterTitularesCadastrados();
+        if (!listaTitulares.some(t => t.toLowerCase() === titular.toLowerCase())) {
+            listaTitulares.push(titular);
+            salvarTitularesCadastrados(listaTitulares);
+        }
+    }
 
     await dbLocal.contas_bancarias.put(objConta);
     fecharModalGerenciarConta();

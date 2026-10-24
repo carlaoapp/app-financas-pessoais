@@ -424,11 +424,12 @@ app.post('/api/sync/push', (req, res) => {
         // Contas Bancarias
         if (contas_bancarias.length > 0) {
             const stmtConta = db.prepare(`
-                INSERT INTO contas_bancarias (id, nome_conta, tipo_conta, limite_cartao, saldo_atual, cor_cartao, banco, dia_fechamento, dia_vencimento, user_id, updated_at, deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO contas_bancarias (id, nome_conta, tipo_conta, titular, limite_cartao, saldo_atual, cor_cartao, banco, dia_fechamento, dia_vencimento, user_id, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     nome_conta = excluded.nome_conta,
                     tipo_conta = excluded.tipo_conta,
+                    titular = excluded.titular,
                     limite_cartao = excluded.limite_cartao,
                     saldo_atual = excluded.saldo_atual,
                     cor_cartao = excluded.cor_cartao,
@@ -445,6 +446,7 @@ app.post('/api/sync/push', (req, res) => {
                     String(c.id),
                     c.nome_conta,
                     c.tipo_conta,
+                    c.titular || '',
                     parseFloat(c.limite_cartao) || 0,
                     parseFloat(c.saldo_atual) || 0,
                     c.cor_cartao || '#2563EB',
