@@ -1474,6 +1474,10 @@ function abrirModalLancamento() {
     if (modalInputLink) modalInputLink.value = '';
     if (typeof removerMidiaModalDesejo === 'function') removerMidiaModalDesejo();
     if (typeof removerComprovanteAtual === 'function') removerComprovanteAtual();
+    const inpObs = document.getElementById('inputObservacoes');
+    if (inpObs) inpObs.value = '';
+    const badgeOcrObs = document.getElementById('badgeOcrObs');
+    if (badgeOcrObs) badgeOcrObs.style.display = 'none';
 
     // Preenche a data padrão com a data de hoje
     const inputData = document.getElementById('inputData');
@@ -1580,6 +1584,11 @@ async function editarLancamento(id) {
     document.getElementById('inputData').value = item.data_lancamento;
     document.getElementById('inputStatus').value = item.status;
     
+    const inpObsEdit = document.getElementById('inputObservacoes');
+    if (inpObsEdit) inpObsEdit.value = item.observacoes || '';
+    const badgeOcrObsEdit = document.getElementById('badgeOcrObs');
+    if (badgeOcrObsEdit) badgeOcrObsEdit.style.display = item.observacoes ? 'inline-block' : 'none';
+
     // Carregar extras de lista de desejos no modal
     if (item.tipo_gasto === 'Lista de Desejos') {
         const modalInputLink = document.getElementById('modalInputLinkUrl');
@@ -2102,6 +2111,9 @@ async function salvarLancamento(event) {
             }
         }
 
+        const inpObsSalvar = document.getElementById('inputObservacoes');
+        const observacoes = inpObsSalvar ? inpObsSalvar.value.trim() : '';
+
         if (idAtual) {
             // UPDATE (Edição)
             let contaAlvo = null;
@@ -2122,6 +2134,7 @@ async function salvarLancamento(event) {
                 tipo_gasto: tipoGasto,
                 conta_id: contaId || '1',
                 status: status,
+                observacoes: observacoes,
                 sync_status: 'pending_update',
                 updated_at: timestamp
             };
@@ -2295,6 +2308,7 @@ async function salvarLancamento(event) {
                     link_url: linkDesejo,
                     midia_url: midiaSalvarUrl,
                     midia_tipo: midiaSalvarTipo,
+                    observacoes: observacoes,
                     user_id: currentUserId,
                     deleted: 0,
                     sync_status: 'pending_insert',

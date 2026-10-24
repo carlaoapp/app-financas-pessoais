@@ -462,8 +462,8 @@ app.post('/api/sync/push', (req, res) => {
         // Movimentacoes (incluindo Lista de Desejos, Contas a Pagar e Lancamentos)
         if (movimentacoes.length > 0) {
             const stmtMov = db.prepare(`
-                INSERT INTO movimentacoes (id, descricao, valor_total, valor_realizado, data_lancamento, tipo_gasto, status, conta_id, parcelado, total_parcelas, parcela_atual, id_grupo, link_url, midia_url, midia_tipo, user_id, updated_at, deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO movimentacoes (id, descricao, valor_total, valor_realizado, data_lancamento, tipo_gasto, status, conta_id, parcelado, total_parcelas, parcela_atual, id_grupo, link_url, midia_url, midia_tipo, user_id, observacoes, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     descricao = excluded.descricao,
                     valor_total = excluded.valor_total,
@@ -480,6 +480,7 @@ app.post('/api/sync/push', (req, res) => {
                     midia_url = excluded.midia_url,
                     midia_tipo = excluded.midia_tipo,
                     user_id = COALESCE(excluded.user_id, movimentacoes.user_id),
+                    observacoes = excluded.observacoes,
                     updated_at = excluded.updated_at,
                     deleted = excluded.deleted
             `);
@@ -502,6 +503,7 @@ app.post('/api/sync/push', (req, res) => {
                     m.midia_url || null,
                     m.midia_tipo || null,
                     m.user_id || headerUserId || null,
+                    m.observacoes || '',
                     ts,
                     m.deleted ? 1 : 0
                 ]);

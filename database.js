@@ -52,11 +52,13 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 midia_url TEXT,
                 midia_tipo TEXT,
                 user_id TEXT,
+                observacoes TEXT,
                 updated_at INTEGER,
                 deleted INTEGER DEFAULT 0
             )`);
 
             // Migrações seguras de colunas caso a tabela já exista
+            db.run("ALTER TABLE movimentacoes ADD COLUMN observacoes TEXT", () => {});
             db.run("ALTER TABLE movimentacoes ADD COLUMN link_url TEXT", () => {});
             db.run("ALTER TABLE movimentacoes ADD COLUMN midia_url TEXT", () => {});
             db.run("ALTER TABLE movimentacoes ADD COLUMN midia_tipo TEXT", () => {});
