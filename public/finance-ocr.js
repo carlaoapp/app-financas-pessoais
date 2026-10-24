@@ -162,11 +162,6 @@ function carregarTesseractDinamicamente() {
     });
 }
 
-// Interpreta texto de comprovantes brasileiros (Pix, Boletos, Cartões, Maquininhas, Cupons e Notificações de Celular)
-function interpretarTextoComprovante(texto, origem) {
-    ocultarStatusOcr();
-    if (!texto) return;
-
 // Normaliza string para número float considerando pontos e vírgulas de impressoras térmicas
 function normalizarValorNumero(str) {
     if (!str) return 0;
@@ -266,7 +261,14 @@ function extrairValorComprovante(texto) {
 
 function limparNomeEstabelecimento(str) {
     if (!str) return '';
-    return str
+    const sLimpo = str.trim();
+    if (/^(ACESSO|TERMINAL|AUTORIZACAO|TRANSACAO|COMPROVANTE|VIA|REDE|TICKET|CHIP|SENHA|VALE|BENEFICIO|ENERA|VUV)\b/i.test(sLimpo)) {
+        return '';
+    }
+    if (/acesso\s+enera/i.test(sLimpo) || /enera\s+o\s+vuv/i.test(sLimpo)) {
+        return '';
+    }
+    const res = sLimpo
         .replace(/\b(LTDA|EIRELI|S\/?A|S\.A\.|M\.?E\.?|EPP|MEI)\b/gi, '')
         .replace(/^[:\-\s\.\*]+|[:\-\s\.\*]+$/g, '')
         .replace(/\s+/g, ' ')
@@ -275,6 +277,11 @@ function limparNomeEstabelecimento(str) {
         .map(w => w.length > 2 ? (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : w.toUpperCase())
         .join(' ')
         .trim();
+
+    if (res.length < 3 || /^(Acesso|Terminal|Via|Transacao|Autorizacao|Comprovante|Rede|Ticket|Chip|Senha)/i.test(res)) {
+        return '';
+    }
+    return res;
 }
 
 // Extrai o nome real do estabelecimento (mercado, loja, posto) de cupons fiscais e recibos
@@ -286,23 +293,29 @@ function extrairEstabelecimentoComprovante(texto, textoLimpo) {
     // 1. Procura nas primeiras 6 linhas (cabeçalho de cupom fiscal NFC-e / SAT / ECF)
     for (let i = 0; i < Math.min(linhas.length, 6); i++) {
         let l = linhas[i].trim();
-        if (/^(CNPJ|CPF|IE|IM|AV|AVENIDA|RUA|RODOVIA|TRAVESSA|PRACA|CEP|FONE|TEL|DOCUMENTO|DANFE|EXTRATO|NOTA\s+FISCAL|NFC-?E|SAT|SISTEMA)/i.test(l)) continue;
+        if (/^(CNPJ|CPF|IE|IM|AV|AVENIDA|RUA|RODOVIA|TRAVESSA|PRACA|CEP|FONE|TEL|DOCUMENTO|DANFE|EXTRATO|NOTA\s+FISCAL|NFC-?E|SAT|SISTEMA|ACESSO|TERMINAL|AUTORIZACAO|AUTORIZADORA|TRANSACAO|COMPROVANTE|VIA|REDE|CIELO|GETNET|STONE|PAGSEGURO|SUMUP|VALE|TICKET|CONVENIO|DATA|HORA|VALOR|SALDO|WWW|HTTP|SITE|CONSULTE|OBRIGADO|VOLTE\s+SEMPRE|CARTAO|CHIP|SENHA|APROVADA|DEBITO|CREDITO|ALIMENTACAO|REFEICAO|BENEFICIO)/i.test(l)) continue;
         if (l.length < 3 || l.length > 50) continue;
 
         if (/\b(LTDA|EIRELI|S\/?A|M\.?E\.?|EPP|SUPERMERCADO|MERCADO|POSTO|PADARIA|FARMACIA|DROGARIA|LANCHONETE|RESTAURANTE|COMERCIO|DISTRIBUIDORA|CONVENIENCIA)\b/i.test(l)) {
-            return limparNomeEstabelecimento(l);
+            const limpo = limparNomeEstabelecimento(l);
+            if (limpo) return limpo;
         }
         if (i + 1 < linhas.length && /CNPJ/i.test(linhas[i + 1])) {
-            return limparNomeEstabelecimento(l);
+            const limpo = limparNomeEstabelecimento(l);
+            if (limpo) return limpo;
         }
     }
 
     // 2. Procura no comprovante TEF (frequentemente "NOME ESTABELECIMENTO DD/MM/AAAA HH:MM")
     for (const linha of linhas) {
-        if (/^(REDE|AUTORIZACAO|TRANSACAO|CARTAO|COMPRA|SALDO|VALOR|VIA|CLIENTE)/i.test(linha)) continue;
+        if (/^(REDE|AUTORIZACAO|AUTORIZADORA|TRANSACAO|CARTAO|COMPRA|SALDO|VALOR|VIA|CLIENTE|ACESSO|TERMINAL|COMPROVANTE|TICKET|BENEFICIO|CHIP|SENHA|ENERA)/i.test(linha)) continue;
         const matchDataHora = linha.match(/^([A-Za-z0-9\s\.\-_&]{3,40}?)\s+[0-3]?[0-9][\/\.-][0-1]?[0-9][\/\.-]20[2-3][0-9]/i);
         if (matchDataHora && matchDataHora[1] && matchDataHora[1].trim().length > 3) {
-            return limparNomeEstabelecimento(matchDataHora[1]);
+            const cand = matchDataHora[1].trim();
+            if (!/^(ACESSO|TERMINAL|AUTORIZACAO|TRANSACAO|CARTAO|COMPROVANTE|VIA|REDE|TICKET|CHIP|SENHA|VALE|ENERA)/i.test(cand)) {
+                const limpo = limparNomeEstabelecimento(cand);
+                if (limpo) return limpo;
+            }
         }
     }
 
@@ -482,12 +495,22 @@ function interpretarTextoComprovante(texto, origem) {
 
     // 5. ESTABELECIMENTO / BENEFICIÁRIO / DESCRIÇÃO REAL
     descricaoEncontrada = extrairEstabelecimentoComprovante(texto, textoLimpo);
+    if (descricaoEncontrada) {
         descricaoEncontrada = descricaoEncontrada.replace(/^(COMPRA|D[EÉ]BITO|CR[EÉ]DITO|APROVADA|CART[AÃ]O|VISA|MASTERCARD)\s+/i, '');
         descricaoEncontrada = descricaoEncontrada.replace(/\s+(BR|PARANAVAI|CURITIBA|MARINGA|SP|RJ|PR)$/i, '');
         descricaoEncontrada = descricaoEncontrada.split(' ')
             .filter(Boolean)
             .map(p => p.length > 2 ? (p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()) : p.toUpperCase())
             .join(' ');
+    }
+    if (!descricaoEncontrada || /acesso|enera|vuv|terminal/i.test(descricaoEncontrada)) {
+        if (isAlimentacaoNotif) {
+            descricaoEncontrada = "Supermercado / Alimentação";
+        } else if (isCreditoNotif) {
+            descricaoEncontrada = "Compra no Cartão";
+        } else {
+            descricaoEncontrada = "Pagamento / Compra";
+        }
     }
 
     // 6. EXTRAÇÃO DE METADADOS DO COMPROVANTE (AUTENTICAÇÃO, PIX, CNPJ, PROTOCOLO)
@@ -898,13 +921,13 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
 
     // 4. ESTABELECIMENTO / BENEFICIÁRIO
     let estabelecimento = extrairEstabelecimentoComprovante(texto, textoLimpo);
-    if (!estabelecimento) {
-        estabelecimento = isAlimentacao ? "Compra Alimentação" : (isCredito ? "Compra no Cartão" : (isBoleto ? "Pagamento de Boleto" : "Pagamento / Compra"));
+    if (!estabelecimento || /acesso|enera|vuv|terminal|autorizacao|comprovante/i.test(estabelecimento)) {
+        estabelecimento = isAlimentacao ? "Supermercado / Alimentação (Ticket)" : (isCredito ? "Compra no Cartão" : (isBoleto ? "Pagamento de Boleto" : "Pagamento / Compra"));
     }
 
     // 5. BANCO OU CARTÃO
     let cartaoDetectado = "";
-    const bancos = ["Visa Gold", "Visa", "Mastercard", "Elo", "Sicredi", "Nubank", "Inter", "Itaú", "Bradesco", "Santander", "Banco do Brasil", "Caixa", "C6 Bank", "PagBank", "Mercado Pago", "PicPay", "Sicoob"];
+    const bancos = ["Ticket Flex", "Ticket", "Alelo", "Sodexo", "Pluxee", "VR", "Flash", "Caju", "Swile", "Visa Gold", "Visa", "Mastercard", "Elo", "Sicredi", "Nubank", "Inter", "Itaú", "Bradesco", "Santander", "Banco do Brasil", "Caixa", "C6 Bank", "PagBank", "Mercado Pago", "PicPay", "Sicoob"];
     for (let b of bancos) {
         if (new RegExp('\\b' + b.replace(' ', '\\s+') + '\\b', 'i').test(textoLimpo)) {
             cartaoDetectado = b;
@@ -931,11 +954,14 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
     }
 
     if (!contaSelecionadaId && contas.length > 0) {
-        if (tipoGasto === 'Cartão de Crédito') {
+        if (tipoGasto === 'Cartão Alimentação' || isAlimentacao) {
+            const cAlim = contas.find(c => c.tipo_conta === 'Cartão Alimentação' || /ticket|alelo|sodexo|pluxee|vr|alimenta/i.test(c.nome_conta || ''));
+            if (cAlim) contaSelecionadaId = cAlim.id;
+        } else if (tipoGasto === 'Cartão de Crédito') {
             const cCartao = contas.find(c => c.tipo_conta === 'Cartão de Crédito');
             if (cCartao) contaSelecionadaId = cCartao.id;
         } else {
-            const cCorrente = contas.find(c => c.tipo_conta !== 'Cartão de Crédito');
+            const cCorrente = contas.find(c => c.tipo_conta !== 'Cartão de Crédito' && c.tipo_conta !== 'Cartão Alimentação');
             if (cCorrente) contaSelecionadaId = cCorrente.id;
         }
         if (!contaSelecionadaId && contas.length > 0) {
@@ -1018,7 +1044,7 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
                 opt.dataset.tipo = c.tipo_conta;
                 opt.dataset.saldo = c.saldo_atual || 0;
                 opt.dataset.limite = c.limite_cartao || 0;
-                const icone = c.tipo_conta === 'Cartão de Crédito' ? '💳' : '🏦';
+                const icone = c.tipo_conta === 'Cartão de Crédito' ? '💳' : (c.tipo_conta === 'Cartão Alimentação' ? '🍽️' : '🏦');
                 const titInfo = c.titular ? ` [👤 ${c.titular}]` : '';
                 const detalhe = c.tipo_conta === 'Cartão de Crédito' ? `(Limite: ${formatBRL(c.limite_cartao || 0)})` : `(Saldo: ${formatBRL(c.saldo_atual || 0)})`;
                 opt.innerText = `${icone} ${c.nome_conta}${titInfo} ${detalhe}`;
@@ -1064,7 +1090,13 @@ async function atualizarImpactoSaldoExpresso() {
 
     const val = dados.valor || 0;
 
-    if (conta.tipo_conta === 'Cartão de Crédito' || dados.tipoGasto === 'Cartão de Crédito') {
+    if (conta.tipo_conta === 'Cartão Alimentação' || dados.tipoGasto === 'Cartão Alimentação') {
+        const saldoAtual = parseFloat(conta.saldo_atual) || 0;
+        const novoSaldo = saldoAtual - val;
+        box.innerHTML = `🍽️ <strong>Cartão Alimentação:</strong> Saldo do benefício <strong>${conta.nome_conta}</strong> será subtraído de ${formatBRL(saldoAtual)} para <strong style="color: #F97316;">${formatBRL(novoSaldo)}</strong> (-${formatBRL(val)}). <em>Não deduz do orçamento em dinheiro.</em>`;
+        box.style.color = '#F97316';
+        box.style.background = 'rgba(249, 115, 22, 0.12)';
+    } else if (conta.tipo_conta === 'Cartão de Crédito' || dados.tipoGasto === 'Cartão de Crédito') {
         const limTotal = parseFloat(conta.limite_cartao) || 0;
         const parcTxt = dados.totalParcelas > 1 ? ` (${dados.totalParcelas}x parcelado)` : '';
         box.innerHTML = `💳 <strong>Cartão de Crédito${parcTxt}:</strong> Adicionado à fatura. Limite: ${formatBRL(limTotal)}`;
@@ -1097,6 +1129,15 @@ async function confirmarLancamentoAutomaticoExpresso() {
 
     const sel = document.getElementById('selectContaExpresso');
     const contaIdFinal = sel ? sel.value : (dados.contaId || '1');
+    let contaAlvo = null;
+    if (contaIdFinal && typeof dbLocal !== 'undefined' && dbLocal.contas_bancarias) {
+        contaAlvo = await dbLocal.contas_bancarias.get(contaIdFinal);
+    }
+    let tipoGastoFinal = dados.tipoGasto;
+    if (contaAlvo && contaAlvo.tipo_conta === 'Cartão Alimentação') {
+        tipoGastoFinal = 'Cartão Alimentação';
+    }
+
     const ts = Date.now();
     const totalParc = dados.totalParcelas || 1;
     const isParc = totalParc > 1;
@@ -1128,7 +1169,7 @@ async function confirmarLancamentoAutomaticoExpresso() {
         }
 
         const descFinal = isParc ? `${dados.descricao} (${i + 1}/${totalParc})` : dados.descricao;
-        const statusFinal = (dados.tipoGasto === 'Cartão de Crédito') 
+        const statusFinal = (tipoGastoFinal === 'Cartão de Crédito') 
             ? 'Pendente' 
             : (isParc ? (i === 0 ? 'Pago' : 'Pendente') : 'Pago');
         const valorRealizadoFinal = (statusFinal === 'Pago') ? valorPorParcela : 0;
@@ -1139,7 +1180,7 @@ async function confirmarLancamentoAutomaticoExpresso() {
             valor_total: valorPorParcela,
             valor_realizado: valorRealizadoFinal,
             data_lancamento: dataParcela,
-            tipo_gasto: dados.tipoGasto,
+            tipo_gasto: tipoGastoFinal,
             status: statusFinal,
             conta_id: contaIdFinal || '1',
             parcelado: isParc ? 'Sim' : 'Não',

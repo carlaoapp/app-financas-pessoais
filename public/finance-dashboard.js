@@ -320,6 +320,43 @@ async function carregarPlanejamento() {
         syncFinanceWithServer();
     }
 
+    // Autocorreção transparente de Cartão Alimentação e Comprovante Ticket
+    let houveAutocorrecaoAlim = false;
+    let contasCadastradas = [];
+    try {
+        contasCadastradas = await dbLocal.contas_bancarias.toArray();
+    } catch(e) {}
+    const contasMap = new Map(contasCadastradas.map(c => [String(c.id), c]));
+
+    for (const m of movs) {
+        let mudou = false;
+        const cAlvo = m.conta_id ? contasMap.get(String(m.conta_id)) : null;
+        const isContaAlimentacao = cAlvo && cAlvo.tipo_conta === 'Cartão Alimentação';
+
+        // Corrige texto de OCR corrompido de comprovante do Ticket Alimentação
+        if (m.descricao && (/acesso\s+enera/i.test(m.descricao) || /enera\s+o\s+vuv/i.test(m.descricao))) {
+            m.descricao = 'Supermercado / Alimentação (Ticket)';
+            m.tipo_gasto = 'Cartão Alimentação';
+            mudou = true;
+        }
+
+        // Se o lançamento estiver vinculado a uma conta de Cartão Alimentação, garante que o tipo seja 'Cartão Alimentação'
+        if (isContaAlimentacao && m.tipo_gasto !== 'Cartão Alimentação') {
+            m.tipo_gasto = 'Cartão Alimentação';
+            mudou = true;
+        }
+
+        if (mudou) {
+            m.sync_status = 'pending_update';
+            m.updated_at = Date.now();
+            dbLocal.movimentacoes.put(m).catch(e => console.warn('Erro ao autocorrigir alim:', e));
+            houveAutocorrecaoAlim = true;
+        }
+    }
+    if (houveAutocorrecaoAlim && typeof syncFinanceWithServer === 'function') {
+        syncFinanceWithServer();
+    }
+
     const itensDoMes = [];
     const gruposFisicosNoMes = new Set();
 
@@ -416,6 +453,7 @@ async function carregarPlanejamento() {
     itensDoMes.forEach(item => {
         if (item.status === 'Cancelado') return;
         if (item.tipo_gasto === 'Transferência Interna' || item.tipo_gasto === 'Transferência') return;
+        if (item.tipo_gasto === 'Cartão Alimentação') return; // Benefício isolado: debita apenas do saldo do cartão alimentação, nunca do orçamento/salário
 
         const vOrcado = parseFloat(item.valor_total) || 0;
         const vRealizado = parseFloat(item.valor_realizado) || 0;
@@ -2316,6 +2354,9 @@ async function salvarLancamento(event) {
             if (contaAlvo && contaAlvo.tipo_conta === 'Cartão de Crédito' && tipoGasto !== 'Cartão de Crédito') {
                 tipoGasto = 'Cartão de Crédito';
             }
+            if (contaAlvo && contaAlvo.tipo_conta === 'Cartão Alimentação' && tipoGasto !== 'Cartão Alimentação') {
+                tipoGasto = 'Cartão Alimentação';
+            }
 
             const updateData = {
                 descricao: descricao,
@@ -2411,6 +2452,10 @@ async function salvarLancamento(event) {
             const isCartaoCredito = (tipoGasto === 'Cartão de Crédito') || (contaAlvo && contaAlvo.tipo_conta === 'Cartão de Crédito');
             if (isCartaoCredito && tipoGasto !== 'Cartão de Crédito') {
                 tipoGasto = 'Cartão de Crédito';
+            }
+            const isCartaoAlimentacao = (tipoGasto === 'Cartão Alimentação') || (contaAlvo && contaAlvo.tipo_conta === 'Cartão Alimentação');
+            if (isCartaoAlimentacao && tipoGasto !== 'Cartão Alimentação') {
+                tipoGasto = 'Cartão Alimentação';
             }
 
             let diaFechamento = null;
@@ -4893,6 +4938,11 @@ function renderizarExtratoCompleto() {
             iconCat = '🔄';
             corValor = '#38BDF8';
             sinalValor = '⇄ ';
+        } else if (item.tipo_gasto === 'Cartão Alimentação') {
+            borderLeftColor = '#F97316';
+            iconCat = '🍽️';
+            corValor = '#FB923C';
+            sinalValor = '-';
         } else if (isReserva) {
             borderLeftColor = '#F59E0B';
             iconCat = '🛡️';
@@ -4911,6 +4961,14 @@ function renderizarExtratoCompleto() {
         div.style.alignItems = 'flex-start';
         div.style.borderLeft = '5px solid ' + borderLeftColor;
 
+        const subInfoTipo = (item.tipo_gasto === 'Cartão Alimentação') 
+            ? '<span style="color:#FB923C; font-weight:700;">🍽️ Cartão Alimentação (Benefício)</span>' 
+            : (item.tipo_gasto || 'Geral');
+
+        const labelPrevisto = (item.tipo_gasto === 'Cartão Alimentação')
+            ? `Previsto: R$ ${vOrcado} (Saldo do Cartão)`
+            : `Previsto: R$ ${vOrcado}`;
+
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
                 <div class="card-details">
@@ -4919,14 +4977,14 @@ function renderizarExtratoCompleto() {
                         ${item.descricao} ${tagCancelado} ${tagStatus} ${tagComprovante}
                     </h4>
                     <p style="color:var(--text-secondary); font-size:0.82rem; margin-top:3px; font-weight:500;">
-                        ${dataBr} • ${item.tipo_gasto || 'Geral'} &nbsp; ${tagParcela}
+                        ${dataBr} • ${subInfoTipo} &nbsp; ${tagParcela}
                     </p>
                 </div>
                 <div class="card-value" style="text-align: right; ${item.status === 'Cancelado' ? 'text-decoration: line-through; opacity:0.6;' : ''}">
                     <div style="font-size:1.05rem; font-weight:800; color:${corValor};">
                         ${sinalValor} R$ ${vRealizado !== '0,00' ? vRealizado : vOrcado}
                     </div>
-                    <div class="card-value-previsto" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">Previsto: R$ ${vOrcado}</div>
+                    <div class="card-value-previsto" style="font-size:0.75rem; color:var(--text-muted); font-weight:600;">${labelPrevisto}</div>
                 </div>
             </div>
             ${btnActions}
