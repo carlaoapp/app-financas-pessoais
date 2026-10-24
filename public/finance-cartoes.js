@@ -332,6 +332,32 @@ async function carregarCartoesEContas() {
                 `;
                 cartoesGrid.appendChild(cardEl);
             });
+
+            // Card de Adicionar Novo Cartão / Ler Print ao final da lista
+            const cardAddEl = document.createElement('div');
+            cardAddEl.style.cssText = `
+                border: 2px dashed #334155;
+                border-radius: 16px;
+                padding: 18px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 10px;
+                background: rgba(15, 23, 42, 0.4);
+                text-align: center;
+                min-height: 180px;
+            `;
+            cardAddEl.innerHTML = `
+                <div style="font-size: 1.8rem;">💳</div>
+                <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão de Crédito')" style="background: #2563EB; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    ➕ Novo Cartão
+                </button>
+                <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 7px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    📷 Ler Notificação / Print
+                </button>
+            `;
+            cartoesGrid.appendChild(cardAddEl);
         }
     }
 
@@ -402,6 +428,32 @@ async function carregarCartoesEContas() {
                 `;
                 alimGrid.appendChild(cardA);
             });
+
+            // Card de Adicionar Novo Cartão Alimentação / Ler Print ao final da lista
+            const addAlimEl = document.createElement('div');
+            addAlimEl.style.cssText = `
+                border: 2px dashed #334155;
+                border-radius: 14px;
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                background: rgba(15, 23, 42, 0.4);
+                text-align: center;
+                min-height: 150px;
+            `;
+            addAlimEl.innerHTML = `
+                <div style="font-size: 1.6rem;">🍽️</div>
+                <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão Alimentação')" style="background: linear-gradient(135deg, #EA580C, #F97316); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    ➕ Novo Cartão Alimentação
+                </button>
+                <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    📷 Ler Notificação / Print
+                </button>
+            `;
+            alimGrid.appendChild(addAlimEl);
         }
     }
 
@@ -462,6 +514,29 @@ async function carregarCartoesEContas() {
                 `;
                 contasGrid.appendChild(cardC);
             });
+
+            // Card de Adicionar Nova Conta Bancária ao final da lista
+            const addContaEl = document.createElement('div');
+            addContaEl.style.cssText = `
+                border: 2px dashed #334155;
+                border-radius: 14px;
+                padding: 16px;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                gap: 8px;
+                background: rgba(15, 23, 42, 0.4);
+                text-align: center;
+                min-height: 130px;
+            `;
+            addContaEl.innerHTML = `
+                <div style="font-size: 1.6rem;">🏦</div>
+                <button type="button" onclick="abrirModalGerenciarConta('novo', 'Conta Corrente')" style="background: #10B981; color: #0F172A; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    ➕ Nova Conta
+                </button>
+            `;
+            contasGrid.appendChild(addContaEl);
         }
     }
 
