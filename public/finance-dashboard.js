@@ -1938,6 +1938,9 @@ async function executarConfirmacaoExclusao() {
             sync_status: 'pending_update',
             updated_at: timestamp
         });
+        if (typeof aplicarAjusteSaldoBancario === 'function') {
+            await aplicarAjusteSaldoBancario(alvo, null, timestamp);
+        }
     }
 
     const msg = alvos.length > 1 ? 
@@ -2051,6 +2054,9 @@ async function executarConfirmacaoEdicao() {
     try {
         // 1. Atualiza o lançamento atual
         await dbLocal.movimentacoes.update(idAtual, updateData);
+        if (typeof aplicarAjusteSaldoBancario === 'function') {
+            await aplicarAjusteSaldoBancario(itemOriginal, updateData, timestamp);
+        }
 
         // 2. Se escolheu atualizar todas as repetições
         if (modoEdicaoSelecionado === 'todos' && Array.isArray(irmaosFuturos) && irmaosFuturos.length > 0) {
@@ -2133,6 +2139,63 @@ window.aoMudarOpcaoEdicao = aoMudarOpcaoEdicao;
 window.fecharModalConfirmarEdicao = fecharModalConfirmarEdicao;
 window.executarConfirmacaoEdicao = executarConfirmacaoEdicao;
 
+// Ajusta o saldo físico de contas bancárias (Sicredi, etc.)
+// REGRA: Lançamentos pendentes/orçados NUNCA alteram o saldo bancário.
+// Somente transações efetivamente Pagas debitam ou creditam a conta!
+async function aplicarAjusteSaldoBancario(itemOriginal, itemNovo, timestamp) {
+    if (!itemNovo && !itemOriginal) return;
+    try {
+        const idOrig = itemOriginal ? itemOriginal.conta_id : null;
+        const idNovo = itemNovo ? itemNovo.conta_id : null;
+        const tipoOrig = itemOriginal ? itemOriginal.tipo_gasto : null;
+        const tipoNovo = itemNovo ? itemNovo.tipo_gasto : null;
+        const statusOrig = itemOriginal ? itemOriginal.status : null;
+        const statusNovo = itemNovo ? itemNovo.status : null;
+        const valOrig = (itemOriginal && statusOrig === 'Pago') ? (parseFloat(itemOriginal.valor_realizado) || 0) : 0;
+        const valNovo = (itemNovo && statusNovo === 'Pago') ? (parseFloat(itemNovo.valor_realizado) || 0) : 0;
+
+        // Se nada mudou em relação ao status de pagamento, valor pago ou conta, não altera o saldo
+        if (idOrig === idNovo && statusOrig === statusNovo && valOrig === valNovo && tipoOrig === tipoNovo) {
+            return;
+        }
+
+        // 1. Reverter impacto anterior se antes já estava marcado como Pago
+        if (idOrig && valOrig > 0 && statusOrig === 'Pago') {
+            const contaOrig = await dbLocal.contas_bancarias.get(idOrig);
+            if (contaOrig && contaOrig.tipo_conta !== 'Cartão de Crédito') {
+                const saldoAtual = parseFloat(contaOrig.saldo_atual) || 0;
+                // Se antes era Receita, estornar subtrai. Se antes era Despesa, estornar soma de volta.
+                const saldoEstornado = (tipoOrig === 'Receita') ? (saldoAtual - valOrig) : (saldoAtual + valOrig);
+                await dbLocal.contas_bancarias.update(idOrig, {
+                    saldo_atual: saldoEstornado,
+                    sync_status: 'pending_update',
+                    updated_at: timestamp
+                });
+                console.log(`[SALDO ESTORNO] Conta '${contaOrig.nome_conta}' revertida: ${saldoAtual} -> ${saldoEstornado}`);
+            }
+        }
+
+        // 2. Aplicar novo impacto se agora a movimentação está com status Pago
+        if (idNovo && valNovo > 0 && statusNovo === 'Pago') {
+            const contaNova = await dbLocal.contas_bancarias.get(idNovo);
+            if (contaNova && contaNova.tipo_conta !== 'Cartão de Crédito') {
+                const saldoAtual = parseFloat(contaNova.saldo_atual) || 0;
+                // Se agora é Receita, soma. Se é Despesa/Gasto, subtrai.
+                const saldoAplicado = (tipoNovo === 'Receita') ? (saldoAtual + valNovo) : (saldoAtual - valNovo);
+                await dbLocal.contas_bancarias.update(idNovo, {
+                    saldo_atual: saldoAplicado,
+                    sync_status: 'pending_update',
+                    updated_at: timestamp
+                });
+                console.log(`[SALDO APLICADO] Conta '${contaNova.nome_conta}' atualizada: ${saldoAtual} -> ${saldoAplicado}`);
+            }
+        }
+    } catch(e) {
+        console.warn('Erro ao ajustar saldo bancário:', e);
+    }
+}
+window.aplicarAjusteSaldoBancario = aplicarAjusteSaldoBancario;
+
 async function salvarLancamento(event) {
     if (event && typeof event.preventDefault === 'function') {
         event.preventDefault();
@@ -2202,7 +2265,7 @@ async function salvarLancamento(event) {
         }
 
         const valorOrcado = desformatarMoedaInput(document.getElementById('inputValor').value);
-        const valorRealizado = desformatarMoedaInput(document.getElementById('inputValorRealizado').value);
+        let valorRealizado = desformatarMoedaInput(document.getElementById('inputValorRealizado').value);
 
         if (valorOrcado <= 0) {
             alert("Por favor, digite um valor orçado maior que zero!");
@@ -2211,6 +2274,9 @@ async function salvarLancamento(event) {
         }
         const data = document.getElementById('inputData').value;
         const status = document.getElementById('inputStatus').value || 'Pendente';
+        if (status === 'Pago' && valorRealizado <= 0) {
+            valorRealizado = valorOrcado;
+        }
         const isParcelado = document.getElementById('inputParcelado').checked;
         const totalParcelas = isParcelado ? (parseInt(document.getElementById('inputTotalParcelas').value) || 1) : 1;
         
@@ -2312,6 +2378,7 @@ async function salvarLancamento(event) {
             }
 
             await dbLocal.movimentacoes.update(idAtual, updateData);
+            await aplicarAjusteSaldoBancario(itemOriginal, updateData, timestamp);
             console.log('Lançamento atualizado localmente:', idAtual);
             showToast('Lançamento atualizado!');
         } else {
@@ -2443,23 +2510,18 @@ async function salvarLancamento(event) {
             }
             console.log(`Foram salvos ${qtdCriar} lançamentos localmente.`);
 
-            // Subtração ou Adição Automática em Conta Corrente se vinculada
-            if (contaId) {
-                try {
-                    const contaAlvo = await dbLocal.contas_bancarias.get(contaId);
-                    if (contaAlvo && contaAlvo.tipo_conta !== 'Cartão de Crédito') {
-                        let saldoAnt = parseFloat(contaAlvo.saldo_atual) || 0;
-                        let valDelta = parseFloat(valorRealizado) || parseFloat(valorOrcado) || 0;
-                        let novoSaldo = (tipoGasto === 'Receita') ? (saldoAnt + valDelta) : (saldoAnt - valDelta);
-                        await dbLocal.contas_bancarias.update(contaId, {
-                            saldo_atual: novoSaldo,
-                            sync_status: 'pending_update',
-                            updated_at: timestamp
-                        });
-                        console.log(`[SUBTRAÇÃO/ADIÇÃO AUTO] Conta '${contaAlvo.nome_conta}' atualizada: ${saldoAnt} -> ${novoSaldo}`);
-                    }
-                } catch(errConta) {
-                    console.warn('Erro ao atualizar saldo da conta vinculada:', errConta);
+            // Subtração ou Adição Automática em Conta Bancária se vinculada
+            // REGRA: Somente debita/credita do saldo real do banco se a movimentação for REALMENTE PAGA!
+            // Lançamentos pendentes/orçados NUNCA alteram o saldo bancário físico.
+            if (contaId && status === 'Pago') {
+                const valReal = isParcelado ? (parseFloat(valorRealizadoPorParcela) || 0) : (parseFloat(valorRealizado) || 0);
+                if (valReal > 0) {
+                    await aplicarAjusteSaldoBancario(null, {
+                        conta_id: contaId,
+                        tipo_gasto: tipoGasto,
+                        status: 'Pago',
+                        valor_realizado: valReal
+                    }, timestamp);
                 }
             }
 
@@ -4602,9 +4664,49 @@ function fecharModalFatura() {
 }
 
 async function pagarFaturaCompleta() {
-    if (!confirm('Deseja pagar a fatura atual? Isso marcará todos os itens do cartão deste mês como Pagos.')) return;
-    
+    if (!window.currentFaturaItens || window.currentFaturaItens.length === 0) {
+        showToast('Nenhum item pendente na fatura encontrado.');
+        return;
+    }
+
+    const totalFatura = window.currentFaturaTotal || 0;
+    const formatBRL = (v) => 'R$ ' + (parseFloat(v) || 0).toFixed(2).replace('.', ',');
+
+    const contasCorrentes = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta !== 'Cartão de Crédito' && c.tipo_conta !== 'Cartão Alimentação').toArray();
+
+    let contaDebito = null;
+    if (contasCorrentes.length > 0) {
+        let mensagemPrompt = `💳 PAGAMENTO DE FATURA - ${window.currentFaturaMes || 'Mês Atual'}\n\n`;
+        mensagemPrompt += `Valor Total da Fatura: ${formatBRL(totalFatura)}\n\n`;
+        mensagemPrompt += `Escolha qual conta bancária debitará o pagamento:\n`;
+        contasCorrentes.forEach((cc, idx) => {
+            mensagemPrompt += `${idx + 1} - ${cc.nome_conta} (Saldo: ${formatBRL(cc.saldo_atual || 0)})\n`;
+        });
+        mensagemPrompt += `\nDigite o número da conta (ou deixe em branco para pagar sem debitar de conta):`;
+
+        const escolha = prompt(mensagemPrompt, "1");
+        if (escolha === null) return; // Cancelou
+
+        const idxEscolhido = parseInt(escolha.trim(), 10) - 1;
+        if (!isNaN(idxEscolhido) && idxEscolhido >= 0 && idxEscolhido < contasCorrentes.length) {
+            contaDebito = contasCorrentes[idxEscolhido];
+        }
+    } else {
+        if (!confirm(`Deseja pagar a fatura de ${formatBRL(totalFatura)}? Isso marcará todos os itens do cartão como Pagos.`)) return;
+    }
+
     const timestamp = Date.now();
+
+    if (contaDebito) {
+        const novoSaldo = (parseFloat(contaDebito.saldo_atual) || 0) - totalFatura;
+        await dbLocal.contas_bancarias.update(contaDebito.id, {
+            saldo_atual: novoSaldo,
+            sync_status: 'pending_update',
+            updated_at: timestamp
+        });
+        console.log(`[PAGAR FATURA COMPLETA] Debitado ${totalFatura} de ${contaDebito.nome_conta}. Novo saldo: ${novoSaldo}`);
+    }
+
     for (let item of window.currentFaturaItens) {
         if (item.status !== 'Pago') {
             await dbLocal.movimentacoes.update(item.id, {
@@ -4615,10 +4717,12 @@ async function pagarFaturaCompleta() {
             });
         }
     }
-    showToast('Fatura paga com sucesso!');
+
+    showToast(`✓ Fatura de ${formatBRL(totalFatura)} paga com sucesso!`);
     fecharModalFatura();
+    if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
     carregarPlanejamento();
-    if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
 }
 
 // Carregar Dados da Tela Inicial
