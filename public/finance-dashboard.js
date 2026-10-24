@@ -1340,9 +1340,12 @@ window.renderizarSelectTiposGasto = renderizarSelectTiposGasto;
 function desformatarMoedaInput(valorStr) {
     if (typeof valorStr === 'number') return isNaN(valorStr) ? 0 : valorStr;
     if (!valorStr) return 0;
-    const digitos = String(valorStr).replace(/\D/g, '');
+    const str = String(valorStr);
+    const isNeg = str.includes('-');
+    const digitos = str.replace(/\D/g, '');
     if (!digitos) return 0;
-    return parseInt(digitos, 10) / 100;
+    const val = parseInt(digitos, 10) / 100;
+    return isNeg ? -val : val;
 }
 
 function setarValorMoedaInput(input, valorNum) {
@@ -1356,7 +1359,16 @@ function setarValorMoedaInput(input, valorNum) {
         input.value = '';
         return;
     }
-    input.value = 'R$ ' + num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    const isNeg = num < 0;
+    const absVal = Math.abs(num);
+    input.value = (isNeg ? '-R$ ' : 'R$ ') + absVal.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    if (input.id === 'contaSaldo') {
+        input.dataset.sinalNegativo = isNeg ? 'true' : 'false';
+        input.style.color = isNeg ? '#EF4444' : '#10B981';
+        if (typeof atualizarBotoesSinalSaldo === 'function') {
+            atualizarBotoesSinalSaldo(isNeg);
+        }
+    }
 }
 
 function aplicarMascaraMoedaEmElemento(input) {
@@ -1364,6 +1376,9 @@ function aplicarMascaraMoedaEmElemento(input) {
     input.dataset.maskMoedaAtiva = 'true';
 
     input.addEventListener('input', () => {
+        const permiteNegativo = input.id === 'contaSaldo';
+        let isNeg = permiteNegativo && (input.dataset.sinalNegativo === 'true' || input.value.includes('-'));
+
         let digitos = input.value.replace(/\D/g, '');
         if (!digitos) {
             input.value = '';
@@ -1371,14 +1386,28 @@ function aplicarMascaraMoedaEmElemento(input) {
         }
         let centavos = parseInt(digitos, 10);
         if (centavos === 0) {
-            input.value = 'R$ 0,00';
+            input.value = isNeg ? '-R$ 0,00' : 'R$ 0,00';
             return;
         }
         let val = centavos / 100;
-        input.value = 'R$ ' + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        input.value = (isNeg ? '-R$ ' : 'R$ ') + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        if (permiteNegativo) {
+            input.dataset.sinalNegativo = isNeg ? 'true' : 'false';
+            input.style.color = isNeg ? '#EF4444' : '#10B981';
+            if (typeof atualizarBotoesSinalSaldo === 'function') {
+                atualizarBotoesSinalSaldo(isNeg);
+            }
+        }
     });
 
     input.addEventListener('keydown', (e) => {
+        if (input.id === 'contaSaldo' && (e.key === '-' || e.key === 'Subtract')) {
+            e.preventDefault();
+            if (typeof alternarSinalSaldoConta === 'function') {
+                alternarSinalSaldoConta();
+            }
+            return;
+        }
         if (e.key === 'Backspace') {
             const digitos = input.value.replace(/\D/g, '');
             if (digitos.length <= 1 || digitos === '00' || digitos === '0') {
@@ -1390,7 +1419,9 @@ function aplicarMascaraMoedaEmElemento(input) {
 
     input.addEventListener('focus', () => {
         if (!input.value || input.value.trim() === '') {
-            input.value = 'R$ 0,00';
+            const permiteNegativo = input.id === 'contaSaldo';
+            const isNeg = permiteNegativo && input.dataset.sinalNegativo === 'true';
+            input.value = isNeg ? '-R$ 0,00' : 'R$ 0,00';
             setTimeout(() => {
                 input.setSelectionRange(input.value.length, input.value.length);
             }, 10);
@@ -1398,14 +1429,14 @@ function aplicarMascaraMoedaEmElemento(input) {
     });
 
     input.addEventListener('blur', () => {
-        if (input.value === 'R$ 0,00' && !input.required) {
+        if ((input.value === 'R$ 0,00' || input.value === '-R$ 0,00') && !input.required) {
             input.value = '';
         }
     });
 }
 
 function inicializarMascarasMoeda() {
-    const ids = ['inputValor', 'inputValorRealizado', 'novaContaValor', 'novoDesejoValor', 'inputRendaExtraValor'];
+    const ids = ['inputValor', 'inputValorRealizado', 'novaContaValor', 'novoDesejoValor', 'inputRendaExtraValor', 'contaLimite', 'contaSaldo'];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) aplicarMascaraMoedaEmElemento(el);

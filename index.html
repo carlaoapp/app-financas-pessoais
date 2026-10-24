@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.8.20">
+    <meta name="app-build-version" content="1.8.21">
     <script>
-        window.APP_BUILD_VERSION = '1.8.20';
+        window.APP_BUILD_VERSION = '1.8.21';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -1502,34 +1502,67 @@
             <form id="formGerenciarConta" onsubmit="salvarContaBancariaSubmit(event)">
                 <input type="hidden" id="contaBancariaId" value="">
 
+                <!-- 1. BANCO / INSTITUIÇÃO -->
                 <div class="form-group" style="margin-bottom: 12px;">
-                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Nome do Cartão ou Conta</label>
-                    <input type="text" id="contaNome" placeholder="Ex: Sicredi Visa Gold, Nubank, Itaú Corrente" required style="width: 100%; height: 42px; padding: 0 12px; font-weight: 600; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
-                </div>
-
-                <div class="form-group" style="margin-bottom: 12px;">
-                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Tipo</label>
-                    <select id="contaTipo" onchange="aoMudarTipoContaForm()" required style="width: 100%; height: 42px; padding: 0 10px; font-weight: 600; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
-                        <option value="Cartão de Crédito">Cartão de Crédito</option>
-                        <option value="Cartão de Débito">Cartão de Débito</option>
-                        <option value="Cartão Alimentação">Cartão Alimentação / Benefício</option>
-                        <option value="Conta Corrente">Conta Corrente</option>
-                        <option value="Conta Poupança">Conta Poupança</option>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label style="margin: 0; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">🏦 Banco / Instituição</label>
+                        <button type="button" onclick="cadastrarNovoBancoPrompt()" style="background: rgba(37, 99, 235, 0.15); border: 1px solid #3B82F6; color: #93C5FD; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Cadastrar um novo banco">
+                            <span>➕</span> Novo Banco
+                        </button>
+                    </div>
+                    <select id="contaBanco" onchange="aoSelecionarBancoForm()" style="width: 100%; height: 42px; padding: 0 10px; font-weight: 600; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                        <option value="">🏦 Selecione o Banco...</option>
                     </select>
                 </div>
 
+                <!-- 2. NOME DO CARTÃO OU CONTA -->
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Nome do Cartão ou Conta</label>
+                    <input type="text" id="contaNome" placeholder="Ex: Sicredi Corrente, Nubank Crédito, Poupança Caixa" required style="width: 100%; height: 42px; padding: 0 12px; font-weight: 600; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                </div>
+
+                <!-- 3. TIPO DE CONTA -->
+                <div class="form-group" style="margin-bottom: 12px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;">
+                        <label style="margin: 0; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">📂 Tipo de Conta / Cartão</label>
+                        <button type="button" onclick="cadastrarNovoTipoPrompt()" style="background: rgba(139, 92, 246, 0.15); border: 1px solid #8B5CF6; color: #C084FC; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Cadastrar um novo tipo de conta">
+                            <span>➕</span> Novo Tipo
+                        </button>
+                    </div>
+                    <select id="contaTipo" onchange="aoMudarTipoContaForm()" required style="width: 100%; height: 42px; padding: 0 10px; font-weight: 600; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                        <option value="Conta Corrente">Conta Corrente</option>
+                        <option value="Conta Poupança">Conta Poupança</option>
+                        <option value="Conta Salário">Conta Salário</option>
+                        <option value="Cartão de Crédito">Cartão de Crédito</option>
+                        <option value="Cartão de Débito">Cartão de Débito</option>
+                        <option value="Cartão Alimentação">Cartão Alimentação / Benefício</option>
+                        <option value="Conta Investimento">Conta Investimento</option>
+                    </select>
+                </div>
+
+                <!-- 4. VALORES: LIMITE (CARTÃO OU CHEQUE ESPECIAL) E SALDO ATUAL (COM SUPORTE A SALDO NEGATIVO) -->
                 <div class="form-group-row" style="display: flex; gap: 8px; margin-bottom: 12px;">
                     <div class="form-group" style="flex: 1; margin-bottom: 0;" id="grpContaLimite">
-                        <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Limite do Cartão</label>
+                        <label id="lblContaLimite" style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">🛡️ Limite Cheque Especial</label>
                         <input type="text" inputmode="numeric" id="contaLimite" class="input-money-mask" placeholder="R$ 0,00" style="width: 100%; height: 42px; padding: 0 8px; text-align: center; font-weight: 700; color: #A78BFA; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
                     </div>
                     <div class="form-group" style="flex: 1; margin-bottom: 0;" id="grpContaSaldo">
                         <label id="lblContaSaldo" style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Saldo Atual em Conta</label>
                         <input type="text" inputmode="numeric" id="contaSaldo" class="input-money-mask" placeholder="R$ 0,00" value="R$ 0,00" style="width: 100%; height: 42px; padding: 0 8px; text-align: center; font-weight: 700; color: #10B981; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
+                        <!-- Seletor de Sinal para Saldo Negativo (Cheque Especial) -->
+                        <div style="display: flex; gap: 4px; margin-top: 5px;">
+                            <button type="button" id="btnSaldoPositivo" onclick="alternarSinalSaldoConta(false)" style="flex: 1; height: 26px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; border: 1.5px solid #10B981; background: rgba(16, 185, 129, 0.25); color: #6EE7B7; cursor: pointer; transition: all 0.2s;" title="Saldo positivo">
+                                + Positivo
+                            </button>
+                            <button type="button" id="btnSaldoNegativo" onclick="alternarSinalSaldoConta(true)" style="flex: 1; height: 26px; font-size: 0.72rem; font-weight: 700; border-radius: 6px; border: 1.5px solid #334155; background: #1E293B; color: #94A3B8; cursor: pointer; transition: all 0.2s;" title="Saldo negativo (utilizando cheque especial)">
+                                - Negativo
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <div class="form-group-row" id="grpPrazosFatura" style="display: flex; gap: 8px; margin-bottom: 12px;">
+                <!-- 5. DATAS DE FATURA (EXCLUSIVO PARA CARTÃO DE CRÉDITO - OCULTO PARA CONTA CORRENTE) -->
+                <div class="form-group-row" id="grpPrazosFatura" style="display: none; gap: 8px; margin-bottom: 12px;">
                     <div class="form-group" style="flex: 1; margin-bottom: 0;">
                         <label style="display: block; font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 5px;">Dia Fechamento</label>
                         <input type="number" id="contaDiaFechamento" min="1" max="31" value="1" style="width: 100%; height: 42px; padding: 0 8px; text-align: center; font-weight: 700; color: #FFFFFF; font-size: 0.92rem; border: 1.5px solid #334155; border-radius: 10px; background: #1E293B; box-sizing: border-box;">
@@ -2286,14 +2319,14 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.20"></script>
-    <script src="finance-db.js?v=1.8.20"></script>
-    <script src="finance-sync.js?v=1.8.20"></script>
-    <script src="finance-powerbi.js?v=1.8.20"></script>
-    <script src="finance-dashboard.js?v=1.8.20"></script>
-    <script src="finance-cartoes.js?v=1.8.20"></script>
-    <script src="auth.js?v=1.8.20"></script>
-    <script src="auto-update.js?v=1.8.20"></script>
+    <script src="finance-ocr.js?v=1.8.21"></script>
+    <script src="finance-db.js?v=1.8.21"></script>
+    <script src="finance-sync.js?v=1.8.21"></script>
+    <script src="finance-powerbi.js?v=1.8.21"></script>
+    <script src="finance-dashboard.js?v=1.8.21"></script>
+    <script src="finance-cartoes.js?v=1.8.21"></script>
+    <script src="auth.js?v=1.8.21"></script>
+    <script src="auto-update.js?v=1.8.21"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

@@ -478,15 +478,18 @@ async function carregarCartoesEContas() {
         } else {
             contasCorrentesList.forEach(c => {
                 const sal = parseFloat(c.saldo_atual) || 0;
+                const limCheque = parseFloat(c.limite_cartao) || 0;
+                const isNeg = sal < 0;
                 const cardC = document.createElement('div');
                 cardC.style.cssText = `
                     background: #1E293B;
-                    border: 1.5px solid #334155;
+                    border: 1.5px solid ${isNeg ? '#EF4444' : '#334155'};
                     border-radius: 14px;
                     padding: 16px;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
+                    box-shadow: ${isNeg ? '0 4px 15px rgba(239, 68, 68, 0.15)' : 'none'};
                 `;
                 cardC.innerHTML = `
                     <div>
@@ -494,13 +497,24 @@ async function carregarCartoesEContas() {
                             <div style="font-weight: 800; color: #FFFFFF; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
                                 <span>🏦</span> ${c.nome_conta}
                             </div>
-                            <span style="font-size: 0.72rem; color: #94A3B8; background: #0F172A; padding: 2px 7px; border-radius: 6px; font-weight: 600;">${c.tipo_conta}</span>
+                            <div style="display: flex; gap: 4px; align-items: center;">
+                                ${c.banco && c.banco !== c.nome_conta ? `<span style="font-size: 0.7rem; color: #60A5FA; background: rgba(37,99,235,0.18); border: 1px solid rgba(59,130,246,0.3); padding: 2px 6px; border-radius: 6px; font-weight: 700;">${c.banco}</span>` : ''}
+                                <span style="font-size: 0.72rem; color: #94A3B8; background: #0F172A; padding: 2px 7px; border-radius: 6px; font-weight: 600;">${c.tipo_conta}</span>
+                            </div>
                         </div>
-                        <div style="margin-bottom: 14px;">
-                            <span style="font-size: 0.72rem; color: #94A3B8; font-weight: 600; text-transform: uppercase;">Saldo Atual em Conta</span>
+                        <div style="margin-bottom: 12px;">
+                            <span style="font-size: 0.72rem; color: ${isNeg ? '#FCA5A5' : '#94A3B8'}; font-weight: 700; text-transform: uppercase;">
+                                ${isNeg ? '⚠️ Saldo Negativo (Cheque Especial)' : 'Saldo Atual em Conta'}
+                            </span>
                             <div style="font-size: 1.4rem; font-weight: 900; color: ${sal >= 0 ? '#10B981' : '#EF4444'}; margin-top: 2px;">
                                 ${formatBRL(sal)}
                             </div>
+                            ${limCheque > 0 ? `
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #94A3B8; margin-top: 6px; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 6px;">
+                                    <span>🛡️ Cheque Especial: <strong style="color: #A78BFA;">${formatBRL(limCheque)}</strong></span>
+                                    <span>Disp: <strong style="color: ${sal + limCheque >= 0 ? '#60A5FA' : '#EF4444'};">${formatBRL(sal + limCheque)}</strong></span>
+                                </div>
+                            ` : ''}
                         </div>
                     </div>
                     <div style="display: flex; gap: 8px;">
@@ -729,13 +743,210 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
 }
 window.renderizarComprasCartoes = renderizarComprasCartoes;
 
+// ============================================================================
+// GESTÃO DE BANCOS E TIPOS DE CONTA CUSTOMIZÁVEIS
+// ============================================================================
+const BANCOS_PADRAO = [
+    'Sicredi',
+    'Nubank',
+    'Banco do Brasil',
+    'Itaú',
+    'Bradesco',
+    'Santander',
+    'Caixa Econômica',
+    'Banco Inter',
+    'C6 Bank',
+    'BTG Pactual',
+    'PagBank',
+    'Mercado Pago',
+    'PicPay',
+    'Sicoob',
+    'Banrisul',
+    'Safra'
+];
+
+function obterBancosCadastrados() {
+    try {
+        const salvos = localStorage.getItem('financas_bancos_cadastrados');
+        if (salvos) {
+            const lista = JSON.parse(salvos);
+            if (Array.isArray(lista) && lista.length > 0) return lista;
+        }
+    } catch(e) {}
+    return [...BANCOS_PADRAO];
+}
+
+function salvarBancosCadastrados(lista) {
+    try {
+        localStorage.setItem('financas_bancos_cadastrados', JSON.stringify(lista));
+    } catch(e) {}
+}
+
+function popularSelectBancos(bancoSelecionado = '') {
+    const sel = document.getElementById('contaBanco');
+    if (!sel) return;
+    const bancos = obterBancosCadastrados();
+    sel.innerHTML = '<option value="">🏦 Selecione o Banco...</option>';
+    bancos.forEach(b => {
+        const opt = document.createElement('option');
+        opt.value = b;
+        opt.innerText = b;
+        if (bancoSelecionado && b.toLowerCase() === bancoSelecionado.toLowerCase()) {
+            opt.selected = true;
+        }
+        sel.appendChild(opt);
+    });
+    const optNovo = document.createElement('option');
+    optNovo.value = '__NOVO_BANCO__';
+    optNovo.innerText = '➕ Cadastrar Novo Banco...';
+    sel.appendChild(optNovo);
+}
+window.popularSelectBancos = popularSelectBancos;
+
+function aoSelecionarBancoForm() {
+    const sel = document.getElementById('contaBanco');
+    if (!sel) return;
+    if (sel.value === '__NOVO_BANCO__') {
+        cadastrarNovoBancoPrompt();
+        return;
+    }
+    const inpNome = document.getElementById('contaNome');
+    if (inpNome && !inpNome.value.trim() && sel.value) {
+        const tipo = document.getElementById('contaTipo')?.value || '';
+        inpNome.value = `${sel.value} ${tipo}`.trim();
+    }
+}
+window.aoSelecionarBancoForm = aoSelecionarBancoForm;
+
+function cadastrarNovoBancoPrompt() {
+    const novo = prompt('Digite o nome do novo banco para cadastrar (Ex: Sicredi, Nubank, Itaú):');
+    if (novo && novo.trim()) {
+        const nomeBanco = novo.trim();
+        const lista = obterBancosCadastrados();
+        if (!lista.some(b => b.toLowerCase() === nomeBanco.toLowerCase())) {
+            lista.push(nomeBanco);
+            salvarBancosCadastrados(lista);
+        }
+        popularSelectBancos(nomeBanco);
+        const inpNome = document.getElementById('contaNome');
+        if (inpNome && !inpNome.value.trim()) {
+            const tipo = document.getElementById('contaTipo')?.value || '';
+            inpNome.value = `${nomeBanco} ${tipo}`.trim();
+        }
+    }
+}
+window.cadastrarNovoBancoPrompt = cadastrarNovoBancoPrompt;
+
+const TIPOS_CONTA_PADRAO = [
+    'Conta Corrente',
+    'Conta Poupança',
+    'Conta Salário',
+    'Cartão de Crédito',
+    'Cartão de Débito',
+    'Cartão Alimentação',
+    'Conta Investimento'
+];
+
+function obterTiposContaCadastrados() {
+    try {
+        const salvos = localStorage.getItem('financas_tipos_conta_cadastrados');
+        if (salvos) {
+            const lista = JSON.parse(salvos);
+            if (Array.isArray(lista) && lista.length > 0) return lista;
+        }
+    } catch(e) {}
+    return [...TIPOS_CONTA_PADRAO];
+}
+
+function salvarTiposContaCadastrados(lista) {
+    try {
+        localStorage.setItem('financas_tipos_conta_cadastrados', JSON.stringify(lista));
+    } catch(e) {}
+}
+
+function popularSelectTiposConta(tipoSelecionado = 'Conta Corrente') {
+    const sel = document.getElementById('contaTipo');
+    if (!sel) return;
+    const tipos = obterTiposContaCadastrados();
+    sel.innerHTML = '';
+    tipos.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t;
+        let label = t;
+        if (t === 'Cartão Alimentação') label = 'Cartão Alimentação / Benefício';
+        opt.innerText = label;
+        if (t === tipoSelecionado) opt.selected = true;
+        sel.appendChild(opt);
+    });
+    const optNovo = document.createElement('option');
+    optNovo.value = '__NOVO_TIPO__';
+    optNovo.innerText = '➕ Cadastrar Novo Tipo de Conta...';
+    sel.appendChild(optNovo);
+}
+window.popularSelectTiposConta = popularSelectTiposConta;
+
+function cadastrarNovoTipoPrompt() {
+    const novo = prompt('Digite o nome do novo tipo de conta para cadastrar (Ex: Conta Salário, Poupança, Carteira Digital, Conta PJ):');
+    if (novo && novo.trim()) {
+        const nomeTipo = novo.trim();
+        const lista = obterTiposContaCadastrados();
+        if (!lista.some(t => t.toLowerCase() === nomeTipo.toLowerCase())) {
+            lista.push(nomeTipo);
+            salvarTiposContaCadastrados(lista);
+        }
+        popularSelectTiposConta(nomeTipo);
+        aoMudarTipoContaForm();
+    }
+}
+window.cadastrarNovoTipoPrompt = cadastrarNovoTipoPrompt;
+
+// Alternância de Sinal Positivo / Negativo para Saldo em Conta Corrente
+function alternarSinalSaldoConta(forcarNegativo = null) {
+    const inp = document.getElementById('contaSaldo');
+    if (!inp) return;
+    let isNeg = forcarNegativo !== null ? forcarNegativo : (inp.dataset.sinalNegativo !== 'true');
+    inp.dataset.sinalNegativo = isNeg ? 'true' : 'false';
+
+    let digitos = inp.value.replace(/\D/g, '');
+    let centavos = digitos ? parseInt(digitos, 10) : 0;
+    let val = centavos / 100;
+    inp.value = (isNeg ? '-R$ ' : 'R$ ') + val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    inp.style.color = isNeg ? '#EF4444' : '#10B981';
+    atualizarBotoesSinalSaldo(isNeg);
+}
+window.alternarSinalSaldoConta = alternarSinalSaldoConta;
+
+function atualizarBotoesSinalSaldo(isNeg) {
+    const btnPos = document.getElementById('btnSaldoPositivo');
+    const btnNeg = document.getElementById('btnSaldoNegativo');
+    if (btnPos && btnNeg) {
+        if (isNeg) {
+            btnNeg.style.background = 'rgba(239, 68, 68, 0.25)';
+            btnNeg.style.borderColor = '#EF4444';
+            btnNeg.style.color = '#FCA5A5';
+            btnPos.style.background = '#1E293B';
+            btnPos.style.borderColor = '#334155';
+            btnPos.style.color = '#94A3B8';
+        } else {
+            btnPos.style.background = 'rgba(16, 185, 129, 0.25)';
+            btnPos.style.borderColor = '#10B981';
+            btnPos.style.color = '#6EE7B7';
+            btnNeg.style.background = '#1E293B';
+            btnNeg.style.borderColor = '#334155';
+            btnNeg.style.color = '#94A3B8';
+        }
+    }
+}
+window.atualizarBotoesSinalSaldo = atualizarBotoesSinalSaldo;
+
 // Abre o modal de cadastro/edição de conta ou cartão
-async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Cartão de Crédito') {
+async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Conta Corrente') {
     window.cartaoEmEdicaoId = null;
     const m = document.getElementById('modalGerenciarContaBancaria');
     if (!m) return;
 
     const inpId = document.getElementById('contaBancariaId');
+    const selBanco = document.getElementById('contaBanco');
     const inpNome = document.getElementById('contaNome');
     const selTipo = document.getElementById('contaTipo');
     const inpLim = document.getElementById('contaLimite');
@@ -759,10 +970,20 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Cartão de Cré
 
         const conta = await dbLocal.contas_bancarias.get(id);
         if (conta) {
+            popularSelectBancos(conta.banco || '');
+            popularSelectTiposConta(conta.tipo_conta || 'Conta Corrente');
             if (inpNome) inpNome.value = conta.nome_conta || '';
-            if (selTipo) selTipo.value = conta.tipo_conta || 'Cartão de Crédito';
+            if (selTipo) selTipo.value = conta.tipo_conta || 'Conta Corrente';
             if (inpLim && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inpLim, conta.limite_cartao || 0);
-            if (inpSal && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inpSal, conta.saldo_atual || 0);
+            if (inpSal && typeof setarValorMoedaInput === 'function') {
+                const s = parseFloat(conta.saldo_atual) || 0;
+                setarValorMoedaInput(inpSal, s);
+                if (inpSal) {
+                    inpSal.dataset.sinalNegativo = s < 0 ? 'true' : 'false';
+                    inpSal.style.color = s < 0 ? '#EF4444' : '#10B981';
+                }
+                atualizarBotoesSinalSaldo(s < 0);
+            }
             if (inpFec) inpFec.value = conta.dia_fechamento || 1;
             if (inpVen) inpVen.value = conta.dia_vencimento || 10;
             if (inpCor) inpCor.value = conta.cor_cartao || (conta.tipo_conta === 'Cartão Alimentação' ? '#F97316' : '#2563EB');
@@ -772,12 +993,21 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Cartão de Cré
             selecionarCorCartaoForm(conta.cor_cartao || (conta.tipo_conta === 'Cartão Alimentação' ? '#F97316' : '#2563EB'));
         }
     } else {
+        popularSelectBancos('');
+        popularSelectTiposConta(tipoPadrao);
         const corPadrao = (tipoPadrao === 'Cartão Alimentação') ? '#F97316' : '#2563EB';
         if (inpId) inpId.value = '';
         if (inpNome) inpNome.value = '';
         if (selTipo) selTipo.value = tipoPadrao;
         if (inpLim && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inpLim, tipoPadrao === 'Cartão de Crédito' ? 2000 : 0);
-        if (inpSal && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inpSal, 0);
+        if (inpSal && typeof setarValorMoedaInput === 'function') {
+            setarValorMoedaInput(inpSal, 0);
+            if (inpSal) {
+                inpSal.dataset.sinalNegativo = 'false';
+                inpSal.style.color = '#10B981';
+            }
+            atualizarBotoesSinalSaldo(false);
+        }
         if (inpFec) inpFec.value = 1;
         if (inpVen) inpVen.value = 10;
         if (inpCor) inpCor.value = corPadrao;
@@ -788,7 +1018,7 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Cartão de Cré
             if (tipoPadrao === 'Cartão Alimentação') tit.innerText = "Cadastrar Cartão Alimentação";
             else if (tipoPadrao === 'Cartão de Crédito') tit.innerText = "Cadastrar Cartão de Crédito";
             else if (tipoPadrao === 'Cartão de Débito') tit.innerText = "Cadastrar Cartão de Débito";
-            else tit.innerText = "Cadastrar Conta Bancária";
+            else tit.innerText = `Cadastrar ${tipoPadrao}`;
         }
         if (btnExcluir) {
             btnExcluir.disabled = true;
@@ -812,38 +1042,63 @@ function fecharModalGerenciarConta() {
 }
 window.fecharModalGerenciarConta = fecharModalGerenciarConta;
 
-// Alterna campos visíveis dependendo do tipo da conta (Cartão de Crédito vs Débito vs Cartão Alimentação vs Conta Corrente)
+// Alterna campos visíveis dependendo do tipo da conta:
+// Cartão de Crédito: exibe limite e prazos de fatura (fechamento/vencimento)
+// Conta Corrente: exibe saldo atual (com suporte a negativo) e limite de cheque especial (NÃO exibe dia de vencimento/fechamento!)
+// Outras contas: exibe saldo atual e oculta prazos de fatura
 function aoMudarTipoContaForm() {
-    const tipo = document.getElementById('contaTipo')?.value;
+    const selTipo = document.getElementById('contaTipo');
+    if (!selTipo) return;
+    if (selTipo.value === '__NOVO_TIPO__') {
+        cadastrarNovoTipoPrompt();
+        return;
+    }
+    const tipo = selTipo.value;
     const grpLimite = document.getElementById('grpContaLimite');
+    const lblLimite = document.getElementById('lblContaLimite');
     const grpSaldo = document.getElementById('grpContaSaldo');
     const grpPrazos = document.getElementById('grpPrazosFatura');
     const ico = document.getElementById('iconeModalConta');
     const lblSaldo = document.getElementById('lblContaSaldo');
+    const tit = document.getElementById('tituloModalConta');
 
     if (tipo === 'Cartão de Crédito') {
         if (grpLimite) grpLimite.style.display = 'block';
+        if (lblLimite) lblLimite.innerText = '💳 Limite do Cartão';
         if (grpSaldo) grpSaldo.style.display = 'none';
         if (grpPrazos) grpPrazos.style.display = 'flex';
         if (ico) ico.innerText = '💳';
-    } else if (tipo === 'Cartão de Débito') {
-        if (grpLimite) grpLimite.style.display = 'none';
+        if (tit && !window.cartaoEmEdicaoId) tit.innerText = "Cadastrar Cartão de Crédito";
+    } else if (tipo === 'Conta Corrente') {
+        if (grpLimite) grpLimite.style.display = 'block';
+        if (lblLimite) lblLimite.innerText = '🛡️ Limite Cheque Especial';
         if (grpSaldo) grpSaldo.style.display = 'block';
         if (grpPrazos) grpPrazos.style.display = 'none';
-        if (lblSaldo) lblSaldo.innerText = 'Saldo Disponível no Cartão';
-        if (ico) ico.innerText = '💳';
-    } else if (tipo === 'Cartão Alimentação') {
-        if (grpLimite) grpLimite.style.display = 'none';
-        if (grpSaldo) grpSaldo.style.display = 'block';
-        if (grpPrazos) grpPrazos.style.display = 'none';
-        if (lblSaldo) lblSaldo.innerText = 'Saldo Disponível no Cartão';
-        if (ico) ico.innerText = '🍽️';
-    } else {
+        if (lblSaldo) lblSaldo.innerText = 'Saldo Atual em Conta';
+        if (ico) ico.innerText = '🏦';
+        if (tit && !window.cartaoEmEdicaoId) tit.innerText = "Cadastrar Conta Corrente";
+    } else if (tipo === 'Conta Poupança' || tipo === 'Conta Salário') {
         if (grpLimite) grpLimite.style.display = 'none';
         if (grpSaldo) grpSaldo.style.display = 'block';
         if (grpPrazos) grpPrazos.style.display = 'none';
         if (lblSaldo) lblSaldo.innerText = 'Saldo Atual em Conta';
         if (ico) ico.innerText = '🏦';
+        if (tit && !window.cartaoEmEdicaoId) tit.innerText = `Cadastrar ${tipo}`;
+    } else if (tipo === 'Cartão Alimentação' || tipo === 'Cartão de Débito') {
+        if (grpLimite) grpLimite.style.display = 'none';
+        if (grpSaldo) grpSaldo.style.display = 'block';
+        if (grpPrazos) grpPrazos.style.display = 'none';
+        if (lblSaldo) lblSaldo.innerText = 'Saldo Disponível no Cartão';
+        if (ico) ico.innerText = (tipo === 'Cartão Alimentação') ? '🍽️' : '💳';
+        if (tit && !window.cartaoEmEdicaoId) tit.innerText = (tipo === 'Cartão Alimentação') ? "Cadastrar Cartão Alimentação" : "Cadastrar Cartão de Débito";
+    } else {
+        // Outros tipos customizados
+        if (grpLimite) grpLimite.style.display = 'none';
+        if (grpSaldo) grpSaldo.style.display = 'block';
+        if (grpPrazos) grpPrazos.style.display = 'none';
+        if (lblSaldo) lblSaldo.innerText = 'Saldo Atual em Conta';
+        if (ico) ico.innerText = '🏦';
+        if (tit && !window.cartaoEmEdicaoId) tit.innerText = `Cadastrar ${tipo}`;
     }
 }
 window.aoMudarTipoContaForm = aoMudarTipoContaForm;
@@ -871,7 +1126,8 @@ async function salvarContaBancariaSubmit(event) {
 
     const id = document.getElementById('contaBancariaId')?.value || generateUUID();
     const nome = document.getElementById('contaNome')?.value.trim();
-    const tipo = document.getElementById('contaTipo')?.value || 'Cartão de Crédito';
+    const banco = document.getElementById('contaBanco')?.value.trim() || '';
+    const tipo = document.getElementById('contaTipo')?.value || 'Conta Corrente';
     const limite = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('contaLimite')?.value) : 0;
     const saldo = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('contaSaldo')?.value) : 0;
     const fechamento = parseInt(document.getElementById('contaDiaFechamento')?.value, 10) || 1;
@@ -893,10 +1149,10 @@ async function salvarContaBancariaSubmit(event) {
         tipo_conta: tipo,
         limite_cartao: parseFloat(limite) || 0,
         saldo_atual: parseFloat(saldo) || 0,
-        dia_fechamento: fechamento,
-        dia_vencimento: vencimento,
+        dia_fechamento: (tipo === 'Cartão de Crédito') ? fechamento : null,
+        dia_vencimento: (tipo === 'Cartão de Crédito') ? vencimento : null,
         cor_cartao: cor,
-        banco: nome,
+        banco: banco || nome,
         user_id: currentUserId,
         deleted: 0,
         sync_status: window.cartaoEmEdicaoId ? 'pending_update' : 'pending_insert',
@@ -944,15 +1200,17 @@ async function ajustarSaldoConta(contaId) {
     if (!conta) return;
 
     const saldoAtualFmt = formatBRL(conta.saldo_atual || 0);
-    const novoValorStr = prompt(`Ajustar saldo da conta '${conta.nome_conta}':\n\nSaldo atual: ${saldoAtualFmt}\n\nDigite o novo saldo (Ex: 1500,00):`);
+    const novoValorStr = prompt(`Ajustar saldo da conta '${conta.nome_conta}':\n\nSaldo atual: ${saldoAtualFmt}\n\nDigite o novo saldo (Ex: 1500,00 ou -250,00 para saldo negativo no cheque especial):`);
     if (novoValorStr === null) return;
 
-    const valLimpo = novoValorStr.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '');
-    const novoSaldo = parseFloat(valLimpo);
-    if (isNaN(novoSaldo)) {
+    const isNeg = novoValorStr.trim().startsWith('-');
+    const valLimpo = novoValorStr.replace(/\./g, '').replace(',', '.').replace(/[^\d.]/g, '');
+    const num = parseFloat(valLimpo);
+    if (isNaN(num)) {
         alert("Valor inválido.");
         return;
     }
+    const novoSaldo = isNeg ? -num : num;
 
     await dbLocal.contas_bancarias.update(contaId, {
         saldo_atual: novoSaldo,
