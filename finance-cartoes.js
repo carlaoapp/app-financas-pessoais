@@ -246,6 +246,23 @@ async function carregarCartoesEContas() {
         return;
     }
 
+    // Auto-sanitização dos nomes das contas bancárias para corrigir conflitos (ex: "Banco do Brasil Conta Corrente" com tipo "Conta Salário")
+    for (let c of contas) {
+        if (c.tipo_conta && c.tipo_conta !== 'Conta Corrente' && c.nome_conta && c.nome_conta.toLowerCase().includes('conta corrente')) {
+            const novoNome = c.nome_conta.replace(/\s+Conta\s+Corrente/gi, '').trim();
+            if (novoNome) {
+                c.nome_conta = novoNome;
+                try {
+                    await dbLocal.contas_bancarias.update(c.id, {
+                        nome_conta: novoNome,
+                        sync_status: 'pending_update',
+                        updated_at: Date.now()
+                    });
+                } catch(e) {}
+            }
+        }
+    }
+
     // Filtra compras do mês alvo
     const movsDoMes = movs.filter(m => {
         if (!m.data_lancamento) return false;
@@ -637,41 +654,99 @@ async function carregarCartoesEContas() {
                 const limCheque = parseFloat(c.limite_cartao) || 0;
                 const isNeg = sal < 0;
                 const movsConta = lancamentosPorConta[c.id] || [];
+
+                // Determina o nome limpo e sem duplicações do tipo
+                let nomeLimpo = (c.nome_conta || c.banco || 'Conta').trim();
+                const tiposSufixos = ['Conta Corrente', 'Conta Salário', 'Conta Poupança', 'Cartão de Débito', 'Conta Investimento'];
+                tiposSufixos.forEach(t => {
+                    if (nomeLimpo.toLowerCase().endsWith(t.toLowerCase())) {
+                        const sem = nomeLimpo.slice(0, nomeLimpo.length - t.length).trim();
+                        if (sem.length > 0) nomeLimpo = sem;
+                    }
+                });
+
+                const isSicredi = (nomeLimpo + ' ' + (c.banco || '')).toLowerCase().includes('sicredi');
+
+                // Visual específico e elegante para a única tag do tipo escolhido pelo usuário
+                let bgBadgeTipo = '#0F172A';
+                let corBadgeTipo = '#94A3B8';
+                let borderBadgeTipo = '#334155';
+                let iconeConta = '🏦';
+
+                if (c.tipo_conta === 'Conta Salário') {
+                    bgBadgeTipo = 'rgba(14, 165, 233, 0.15)';
+                    corBadgeTipo = '#38BDF8';
+                    borderBadgeTipo = '#0284C7';
+                    iconeConta = '💼';
+                } else if (c.tipo_conta === 'Conta Poupança') {
+                    bgBadgeTipo = 'rgba(168, 85, 247, 0.15)';
+                    corBadgeTipo = '#C084FC';
+                    borderBadgeTipo = '#7C3AED';
+                    iconeConta = '🐷';
+                } else if (c.tipo_conta === 'Conta Corrente') {
+                    bgBadgeTipo = 'rgba(16, 185, 129, 0.15)';
+                    corBadgeTipo = '#6EE7B7';
+                    borderBadgeTipo = '#059669';
+                    iconeConta = '🏦';
+                } else if (c.tipo_conta === 'Cartão de Débito') {
+                    bgBadgeTipo = 'rgba(245, 158, 11, 0.15)';
+                    corBadgeTipo = '#FCD34D';
+                    borderBadgeTipo = '#D97706';
+                    iconeConta = '💳';
+                } else if (c.tipo_conta === 'Conta Investimento') {
+                    bgBadgeTipo = 'rgba(236, 72, 153, 0.15)';
+                    corBadgeTipo = '#F472B6';
+                    borderBadgeTipo = '#DB2777';
+                    iconeConta = '📈';
+                }
+
                 const cardC = document.createElement('div');
                 cardC.style.cssText = `
                     background: #1E293B;
                     border: 1.5px solid ${isNeg ? '#EF4444' : '#334155'};
-                    border-radius: 14px;
-                    padding: 16px;
+                    border-radius: 16px;
+                    padding: 18px;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
-                    box-shadow: ${isNeg ? '0 4px 15px rgba(239, 68, 68, 0.15)' : 'none'};
+                    box-shadow: ${isNeg ? '0 4px 18px rgba(239, 68, 68, 0.18)' : '0 4px 12px rgba(0,0,0,0.25)'};
+                    transition: all 0.2s;
                 `;
                 cardC.innerHTML = `
                     <div>
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <div style="font-weight: 800; color: #FFFFFF; font-size: 0.98rem; display: flex; align-items: center; gap: 6px;">
-                                <span>🏦</span>
-                                <div>
-                                    <div>${c.nome_conta}</div>
-                                    ${c.titular ? `<div style="font-size: 0.72rem; color: #94A3B8; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 1px;"><span>👤</span> ${c.titular}</div>` : ''}
+                        <!-- Cabeçalho Organizado: Nome da Conta + Única Tag do Tipo Escolhido -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px;">
+                            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+                                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); border: 1.5px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+                                    ${iconeConta}
+                                </div>
+                                <div style="min-width: 0;">
+                                    <div style="font-weight: 800; color: #FFFFFF; font-size: 1.05rem; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${nomeLimpo}">
+                                        ${nomeLimpo}
+                                    </div>
+                                    ${c.titular ? `<div style="font-size: 0.74rem; color: #94A3B8; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px;"><span>👤</span> ${c.titular}</div>` : ''}
                                 </div>
                             </div>
-                            <div style="display: flex; gap: 4px; align-items: center;">
-                                ${c.banco && c.banco !== c.nome_conta ? `<span style="font-size: 0.7rem; color: #60A5FA; background: rgba(37,99,235,0.18); border: 1px solid rgba(59,130,246,0.3); padding: 2px 6px; border-radius: 6px; font-weight: 700;">${c.banco}</span>` : ''}
-                                <span style="font-size: 0.72rem; color: #94A3B8; background: #0F172A; padding: 2px 7px; border-radius: 6px; font-weight: 600;">${c.tipo_conta}</span>
+                            <div style="flex-shrink: 0;">
+                                <span style="font-size: 0.74rem; color: ${corBadgeTipo}; background: ${bgBadgeTipo}; border: 1.5px solid ${borderBadgeTipo}; padding: 3px 9px; border-radius: 7px; font-weight: 700; white-space: nowrap;">
+                                    ${c.tipo_conta}
+                                </span>
                             </div>
                         </div>
-                        <div style="margin-bottom: 12px;">
-                            <span style="font-size: 0.72rem; color: ${isNeg ? '#FCA5A5' : '#94A3B8'}; font-weight: 700; text-transform: uppercase;">
-                                ${isNeg ? '⚠️ Saldo Negativo (Cheque Especial)' : 'Saldo Atual em Conta'}
-                            </span>
-                            <div style="font-size: 1.4rem; font-weight: 900; color: ${sal >= 0 ? '#10B981' : '#EF4444'}; margin-top: 2px;">
+
+                        <!-- Caixa de Saldo Ampla e Destacada -->
+                        <div style="background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="font-size: 0.72rem; color: ${isNeg ? '#FCA5A5' : '#94A3B8'}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;">
+                                    ${isNeg ? '⚠️ Saldo Negativo (Cheque Especial)' : 'Saldo Atual em Conta'}
+                                </span>
+                                ${isSicredi ? '<span style="font-size: 0.68rem; background: rgba(16,185,129,0.18); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.3); padding: 1px 6px; border-radius: 5px; font-weight: 700;">Principal</span>' : ''}
+                            </div>
+                            <div style="font-size: 1.55rem; font-weight: 900; color: ${sal >= 0 ? '#10B981' : '#EF4444'}; margin-top: 4px; letter-spacing: -0.5px;">
                                 ${formatBRL(sal)}
                             </div>
                             ${limCheque > 0 ? `
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.75rem; color: #94A3B8; margin-top: 6px; background: rgba(0,0,0,0.25); padding: 4px 8px; border-radius: 6px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; color: #94A3B8; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.08);">
                                     <span>🛡️ Cheque Especial: <strong style="color: #A78BFA;">${formatBRL(limCheque)}</strong></span>
                                     <span>Disp: <strong style="color: ${sal + limCheque >= 0 ? '#60A5FA' : '#EF4444'};">${formatBRL(sal + limCheque)}</strong></span>
                                 </div>
@@ -679,19 +754,20 @@ async function carregarCartoesEContas() {
                         </div>
 
                         <!-- Lista de Lançamentos da Conta -->
-                        <div style="margin-bottom: 14px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; font-weight: 700; color: #E2E8F0; margin-bottom: 6px;">
-                                <span>📋 Lançamentos do Mês (${movsConta.length})</span>
+                        <div style="margin-bottom: 14px; background: rgba(15, 23, 42, 0.35); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; font-weight: 700; color: #94A3B8; margin-bottom: ${movsConta.length > 0 ? '6px' : '0'};">
+                                <span>📋 Lançamentos do Mês</span>
+                                <span style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 10px; font-size: 0.7rem; color: #CBD5E1;">${movsConta.length}</span>
                             </div>
                             ${movsConta.length === 0 ? `
-                                <div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 4px 0;">Nenhuma movimentação neste mês</div>
+                                <div style="font-size: 0.72rem; color: #64748B; text-align: center; padding: 4px 0;">Nenhuma movimentação neste mês</div>
                             ` : `
                                 <div style="display: flex; flex-direction: column; gap: 5px; max-height: 110px; overflow-y: auto;">
                                     ${movsConta.map(item => `
                                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.04); padding: 4px 8px; border-radius: 6px;">
-                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${item.descricao}">${item.descricao}</span>
-                                            <span style="color: ${item.tipo_gasto === 'Receita' ? '#10B981' : '#F87171'}; font-weight: 800; white-space: nowrap;">
-                                                ${item.tipo_gasto === 'Receita' ? '+ ' : '- '}${formatBRL(item.valor_total)}
+                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${item.descricao}">${item.descricao}</span>
+                                            <span style="color: ${item.tipo_gasto === 'Receita' ? '#10B981' : (item.tipo_gasto === 'Transferência Interna' ? '#38BDF8' : '#F87171')}; font-weight: 800; white-space: nowrap;">
+                                                ${item.tipo_gasto === 'Receita' ? '+ ' : (item.tipo_gasto === 'Transferência Interna' ? '⇄ ' : '- ')}${formatBRL(item.valor_total)}
                                             </span>
                                         </div>
                                     `).join('')}
@@ -718,21 +794,21 @@ async function carregarCartoesEContas() {
             const addContaEl = document.createElement('div');
             addContaEl.style.cssText = `
                 border: 2px dashed #334155;
-                border-radius: 14px;
-                padding: 16px;
+                border-radius: 16px;
+                padding: 18px;
                 display: flex;
                 flex-direction: column;
                 align-items: center;
                 justify-content: center;
-                gap: 8px;
+                gap: 10px;
                 background: rgba(15, 23, 42, 0.4);
                 text-align: center;
-                min-height: 130px;
+                min-height: 180px;
             `;
             addContaEl.innerHTML = `
-                <div style="font-size: 1.6rem;">🏦</div>
-                <button type="button" onclick="abrirModalGerenciarConta('novo', 'Conta Corrente')" style="background: #10B981; color: #0F172A; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                    ➕ Nova Conta
+                <div style="font-size: 2rem;">🏦</div>
+                <button type="button" onclick="abrirModalGerenciarConta('novo', 'Conta Corrente')" style="background: #10B981; color: #0F172A; border: none; padding: 9px 18px; border-radius: 9px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                    ➕ Nova Conta Bancária
                 </button>
             `;
             contasGrid.appendChild(addContaEl);
@@ -996,9 +1072,8 @@ function aoSelecionarBancoForm() {
         return;
     }
     const inpNome = document.getElementById('contaNome');
-    if (inpNome && !inpNome.value.trim() && sel.value) {
-        const tipo = document.getElementById('contaTipo')?.value || '';
-        inpNome.value = `${sel.value} ${tipo}`.trim();
+    if (inpNome && sel.value) {
+        inpNome.value = sel.value;
     }
 }
 window.aoSelecionarBancoForm = aoSelecionarBancoForm;
@@ -1425,10 +1500,15 @@ async function salvarContaBancariaSubmit(event) {
     if (event && typeof event.preventDefault === 'function') event.preventDefault();
 
     const id = document.getElementById('contaBancariaId')?.value || generateUUID();
-    const nome = document.getElementById('contaNome')?.value.trim();
+    let nome = document.getElementById('contaNome')?.value.trim() || '';
     const banco = document.getElementById('contaBanco')?.value.trim() || '';
     const titular = document.getElementById('contaTitular')?.value.trim() || '';
     const tipo = document.getElementById('contaTipo')?.value || 'Conta Corrente';
+
+    // Se o usuário selecionou outro tipo (ex: Conta Salário, Poupança), remove "Conta Corrente" residual do nome
+    if (tipo !== 'Conta Corrente') {
+        nome = nome.replace(/\s+Conta\s+Corrente$/i, '').trim();
+    }
     const limite = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('contaLimite')?.value) : 0;
     const saldo = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('contaSaldo')?.value) : 0;
     const fechamento = parseInt(document.getElementById('contaDiaFechamento')?.value, 10) || 1;
