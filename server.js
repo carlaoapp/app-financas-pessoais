@@ -574,7 +574,7 @@ const localIp = getLocalNetworkIp();
 
 // Keep-Alive Anti-Sleep do Render (Mantém o servidor desperto a cada 7 segundos para resposta instantânea)
 const KEEP_ALIVE_INTERVAL_SEC = parseInt(process.env.KEEP_ALIVE_INTERVAL || '7', 10);
-const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL || 'https://app-financas-pessoais.onrender.com';
+const RENDER_EXTERNAL_URL = process.env.RENDER_EXTERNAL_URL || 'https://app-financas-pessoais-knrp.onrender.com';
 
 function startRenderKeepAlive() {
     const delayMs = Math.max(3, KEEP_ALIVE_INTERVAL_SEC) * 1000;

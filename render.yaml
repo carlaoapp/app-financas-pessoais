@@ -16,4 +16,4 @@ services:
       - key: KEEP_ALIVE_INTERVAL
         value: "7"
       - key: RENDER_EXTERNAL_URL
-        value: https://app-financas-pessoais.onrender.com
+        value: https://app-financas-pessoais-knrp.onrender.com
