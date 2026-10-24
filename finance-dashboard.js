@@ -321,6 +321,7 @@ async function carregarPlanejamento() {
     }
 
     const itensDoMes = [];
+    const gruposFisicosNoMes = new Set();
 
     const targetYear = currentViewDate.getFullYear();
     const targetMonth = currentViewDate.getMonth();
@@ -329,6 +330,7 @@ async function carregarPlanejamento() {
     let reservaOrcadoTotal = 0;
     let reservaRealizadoTotal = 0;
 
+    // 1ª Passagem: lançamentos físicos pertencentes ao mês atual
     movs.forEach(m => {
         // Regra especial para "Lista de Desejos": Se estiver Pendente, só aparece na Aba Desejos.
         if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
@@ -345,19 +347,12 @@ async function carregarPlanejamento() {
         const [year, month, day] = m.data_lancamento.split('-');
         const launchDate = new Date(year, parseInt(month) - 1, day);
         
-        let effectiveMonth = launchDate.getMonth();
-        let effectiveYear = launchDate.getFullYear();
-        if (m.tipo_gasto === 'Cartão de Crédito' && parseInt(day) > 25) {
-            effectiveMonth++;
-            if (effectiveMonth > 11) {
-                effectiveMonth = 0;
-                effectiveYear++;
-            }
-        }
+        const effectiveMonth = launchDate.getMonth();
+        const effectiveYear = launchDate.getFullYear();
         
         const diffMonths = (targetYear - effectiveYear) * 12 + (targetMonth - effectiveMonth);
 
-        // Calcula o Saldo Acumulado da Reserva (Tudo que aconteceu ATÃ‰ o mês atual)
+        // Calcula o Saldo Acumulado da Reserva (Tudo que aconteceu ATÉ o mês atual)
         if (m.status !== 'Cancelado' && diffMonths >= 0) {
             const histOrcado = parseFloat(m.valor_total) || 0;
             const histRealizado = parseFloat(m.valor_realizado) || 0;
@@ -376,21 +371,37 @@ async function carregarPlanejamento() {
 
         if (diffMonths === 0) {
             itensDoMes.push({ ...m, isVirtual: false });
-        } else if (diffMonths > 0) {
-            if (m.parcelado === 'Sim' && m.id_grupo) {
-                const novaParcela = parseInt(m.parcela_atual) + diffMonths;
-                if (novaParcela <= parseInt(m.total_parcelas)) {
-                    const projM = { ...m, isVirtual: true };
-                    projM.parcela_atual = novaParcela;
-                    if(projM.status !== 'Cancelado') {
-                        projM.status = 'Pendente'; 
-                        
-                        const virtualDate = new Date(launchDate);
-                        virtualDate.setMonth(virtualDate.getMonth() + diffMonths);
-                        projM.data_lancamento = virtualDate.toISOString().split('T')[0];
-                        
-                        itensDoMes.push(projM);
-                    }
+            if (m.id_grupo) gruposFisicosNoMes.add(m.id_grupo);
+        }
+    });
+
+    // 2ª Passagem: projeta parcelas virtuais apenas para grupos que não possuem registro físico no mês
+    movs.forEach(m => {
+        if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
+        if (m.tipo_gasto === 'Conta a Pagar') return;
+        if (m.tipo_gasto === 'Planejamento Renda Extra') return;
+        if (!m.data_lancamento) return;
+        if (m.parcelado !== 'Sim' || !m.id_grupo) return;
+        if (gruposFisicosNoMes.has(m.id_grupo)) return;
+
+        const [year, month, day] = m.data_lancamento.split('-');
+        const launchDate = new Date(year, parseInt(month) - 1, day);
+        const effectiveMonth = launchDate.getMonth();
+        const effectiveYear = launchDate.getFullYear();
+
+        const diffMonths = (targetYear - effectiveYear) * 12 + (targetMonth - effectiveMonth);
+        if (diffMonths > 0) {
+            const novaParcela = parseInt(m.parcela_atual) + diffMonths;
+            if (novaParcela <= parseInt(m.total_parcelas)) {
+                gruposFisicosNoMes.add(m.id_grupo);
+                const projM = { ...m, isVirtual: true };
+                projM.parcela_atual = novaParcela;
+                if (projM.status !== 'Cancelado') {
+                    projM.status = 'Pendente'; 
+                    const virtualDate = new Date(launchDate);
+                    virtualDate.setMonth(virtualDate.getMonth() + diffMonths);
+                    projM.data_lancamento = virtualDate.toISOString().split('T')[0];
+                    itensDoMes.push(projM);
                 }
             }
         }
@@ -2062,6 +2073,16 @@ async function salvarLancamento(event) {
 
         if (idAtual) {
             // UPDATE (Edição)
+            let contaAlvo = null;
+            if (contaId) {
+                try {
+                    contaAlvo = await dbLocal.contas_bancarias.get(contaId);
+                } catch(e) {}
+            }
+            if (contaAlvo && contaAlvo.tipo_conta === 'Cartão de Crédito' && tipoGasto !== 'Cartão de Crédito') {
+                tipoGasto = 'Cartão de Crédito';
+            }
+
             const updateData = {
                 descricao: descricao,
                 valor_total: valorOrcado,
@@ -2143,7 +2164,47 @@ async function salvarLancamento(event) {
             }
 
             const idGrupo = (isParcelado || qtdCriar > 1) ? 'GRP-' + generateUUID().split('-')[0].toUpperCase() : '';
-            const baseDate = data ? new Date(data + "T12:00:00") : null;
+
+            // Identificação de Cartão de Crédito e Regra de Fechamento de Fatura
+            let contaAlvo = null;
+            if (contaId) {
+                try {
+                    contaAlvo = await dbLocal.contas_bancarias.get(contaId);
+                } catch(e) {}
+            }
+            const isCartaoCredito = (tipoGasto === 'Cartão de Crédito') || (contaAlvo && contaAlvo.tipo_conta === 'Cartão de Crédito');
+            if (isCartaoCredito && tipoGasto !== 'Cartão de Crédito') {
+                tipoGasto = 'Cartão de Crédito';
+            }
+
+            let diaFechamento = null;
+            if (contaAlvo && contaAlvo.tipo_conta === 'Cartão de Crédito' && contaAlvo.dia_fechamento) {
+                diaFechamento = parseInt(contaAlvo.dia_fechamento, 10);
+            } else if (isCartaoCredito) {
+                try {
+                    const cartoes = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão de Crédito').toArray();
+                    if (cartoes.length > 0 && cartoes[0].dia_fechamento) {
+                        diaFechamento = parseInt(cartoes[0].dia_fechamento, 10);
+                    }
+                } catch(e) {}
+            }
+
+            let diaCompra = 1;
+            let mesCompraZero = 0;
+            let anoCompra = 2026;
+            let offsetMesCartao = 0;
+
+            if (data) {
+                const parts = data.split('-');
+                anoCompra = parseInt(parts[0], 10);
+                mesCompraZero = parseInt(parts[1], 10) - 1;
+                diaCompra = parseInt(parts[2], 10);
+
+                // Se a compra for feita a partir do dia de fechamento do cartão, entra na fatura do mês seguinte!
+                if (isCartaoCredito && diaFechamento && diaCompra >= diaFechamento) {
+                    offsetMesCartao = 1;
+                }
+            }
 
             const valorFinalPorParcela = isParcelado ? (valorOrcado / totalParcelas) : valorOrcado;
             const valorRealizadoPorParcela = isParcelado ? (valorRealizado / totalParcelas) : valorRealizado;
@@ -2153,16 +2214,37 @@ async function salvarLancamento(event) {
 
             for (let i = 0; i < qtdCriar; i++) {
                 let nextDateStr = '';
-                if (baseDate) {
-                    let nextDate = new Date(baseDate.getFullYear(), baseDate.getMonth() + i, baseDate.getDate(), 12, 0, 0);
-                    nextDateStr = nextDate.toISOString().split('T')[0];
+                if (data) {
+                    const mesOffset = (isCartaoCredito ? offsetMesCartao : 0) + i;
+                    const tempDate = new Date(anoCompra, mesCompraZero + mesOffset, 1, 12, 0, 0);
+                    const anoReal = tempDate.getFullYear();
+                    const mesReal = tempDate.getMonth();
+                    const maxDiasNoMes = new Date(anoReal, mesReal + 1, 0).getDate();
+                    const diaReal = Math.min(diaCompra, maxDiasNoMes);
+                    const finalDate = new Date(anoReal, mesReal, diaReal, 12, 0, 0);
+                    const yStr = finalDate.getFullYear();
+                    const mStr = String(finalDate.getMonth() + 1).padStart(2, '0');
+                    const dStr = String(finalDate.getDate()).padStart(2, '0');
+                    nextDateStr = `${yStr}-${mStr}-${dStr}`;
                 }
                 
                 let desc = descricao;
                 if (isParcelado) desc = `${descricao} (${i + 1}/${totalParcelas})`;
                 
-                const l_valor_realizado = i === 0 ? valorRealizadoPorParcela : 0;
-                const l_status = (isParcelado && status === 'Pago') ? (i === 0 ? 'Pago' : 'Pendente') : status;
+                let l_valor_realizado = 0;
+                let l_status = status;
+                if (isCartaoCredito) {
+                    // Lançamentos no cartão de crédito entram na fatura como Pendente
+                    l_status = (status === 'Cancelado') ? 'Cancelado' : 'Pendente';
+                    l_valor_realizado = 0;
+                } else if (isParcelado) {
+                    l_valor_realizado = (i === 0 && status === 'Pago') ? valorRealizadoPorParcela : 0;
+                    l_status = (status === 'Pago') ? (i === 0 ? 'Pago' : 'Pendente') : status;
+                } else {
+                    l_valor_realizado = valorRealizado;
+                    l_status = status;
+                }
+
                 const authUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
                 const currentUserId = authUser ? authUser.id : (localStorage.getItem('financas_current_user_id') || null);
 

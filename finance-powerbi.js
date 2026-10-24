@@ -508,14 +508,6 @@ function obterItensDeAnoEMes(movsAtivas, targetYear, targetMonth) {
         let effectiveMonth = parseInt(month, 10) - 1;
         let effectiveYear = parseInt(year, 10);
 
-        if (m.tipo_gasto === 'Cartão de Crédito' && parseInt(day, 10) > 25) {
-            effectiveMonth++;
-            if (effectiveMonth > 11) {
-                effectiveMonth = 0;
-                effectiveYear++;
-            }
-        }
-
         if (effectiveYear === targetYear && effectiveMonth === targetMonth) {
             itens.push({ ...m, isVirtual: false });
             if (m.id_grupo) gruposFisicosNoMes.add(m.id_grupo);
@@ -535,14 +527,6 @@ function obterItensDeAnoEMes(movsAtivas, targetYear, targetMonth) {
         const launchDate = new Date(year, parseInt(month, 10) - 1, day);
         let effectiveMonth = launchDate.getMonth();
         let effectiveYear = launchDate.getFullYear();
-
-        if (m.tipo_gasto === 'Cartão de Crédito' && parseInt(day, 10) > 25) {
-            effectiveMonth++;
-            if (effectiveMonth > 11) {
-                effectiveMonth = 0;
-                effectiveYear++;
-            }
-        }
 
         const diffMonths = (targetYear - effectiveYear) * 12 + (targetMonth - effectiveMonth);
         if (diffMonths > 0) {
