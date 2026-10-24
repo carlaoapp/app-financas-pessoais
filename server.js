@@ -424,8 +424,8 @@ app.post('/api/sync/push', (req, res) => {
         // Contas Bancarias
         if (contas_bancarias.length > 0) {
             const stmtConta = db.prepare(`
-                INSERT INTO contas_bancarias (id, nome_conta, tipo_conta, titular, limite_cartao, saldo_atual, cor_cartao, banco, dia_fechamento, dia_vencimento, user_id, updated_at, deleted)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                INSERT INTO contas_bancarias (id, nome_conta, tipo_conta, titular, limite_cartao, saldo_atual, cor_cartao, banco, dia_fechamento, dia_vencimento, dia_recarga, valor_recarga, user_id, updated_at, deleted)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
                     nome_conta = excluded.nome_conta,
                     tipo_conta = excluded.tipo_conta,
@@ -436,6 +436,8 @@ app.post('/api/sync/push', (req, res) => {
                     banco = excluded.banco,
                     dia_fechamento = excluded.dia_fechamento,
                     dia_vencimento = excluded.dia_vencimento,
+                    dia_recarga = excluded.dia_recarga,
+                    valor_recarga = excluded.valor_recarga,
                     user_id = COALESCE(excluded.user_id, contas_bancarias.user_id),
                     updated_at = excluded.updated_at,
                     deleted = excluded.deleted
@@ -451,8 +453,10 @@ app.post('/api/sync/push', (req, res) => {
                     parseFloat(c.saldo_atual) || 0,
                     c.cor_cartao || '#2563EB',
                     c.banco || '',
-                    parseInt(c.dia_fechamento, 10) || 1,
-                    parseInt(c.dia_vencimento, 10) || 10,
+                    parseInt(c.dia_fechamento, 10) || null,
+                    parseInt(c.dia_vencimento, 10) || null,
+                    parseInt(c.dia_recarga, 10) || 1,
+                    parseFloat(c.valor_recarga) || 0,
                     c.user_id || headerUserId || null,
                     ts,
                     c.deleted ? 1 : 0

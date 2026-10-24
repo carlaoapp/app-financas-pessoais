@@ -2080,7 +2080,21 @@ async function salvarLancamento(event) {
     try {
         const idAtual = document.getElementById('inputIdMovimentacao').value;
         let tipoGasto = document.getElementById('inputTipoGasto').value;
-        const contaId = document.getElementById('inputContaId') ? document.getElementById('inputContaId').value : '';
+        let contaId = document.getElementById('inputContaId') ? document.getElementById('inputContaId').value : '';
+
+        // Auto-vinculação se o usuário lançar Cartão de Crédito ou Cartão Alimentação sem selecionar conta específica
+        if (!contaId || contaId === '1') {
+            try {
+                if (tipoGasto === 'Cartão de Crédito') {
+                    const cList = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão de Crédito').toArray();
+                    if (cList.length > 0) contaId = cList[0].id;
+                } else if (tipoGasto === 'Cartão Alimentação') {
+                    const aList = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão Alimentação').toArray();
+                    if (aList.length > 0) contaId = aList[0].id;
+                }
+            } catch(e) {}
+        }
+
         const selCat = document.getElementById('selectCategoriaPredefinida');
         const inpDesc = document.getElementById('inputDescricao');
         const inpCustom = document.getElementById('inputDescricaoPersonalizada');

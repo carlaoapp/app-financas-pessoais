@@ -116,7 +116,8 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
             opt.value = c.id;
             opt.dataset.tipo = c.tipo_conta;
             const lim = parseFloat(c.limite_cartao) || 0;
-            opt.innerText = `💳 ${c.nome_conta} (Limite: ${formatBRL(lim)})`;
+            const tit = c.titular ? ` [👤 ${c.titular}]` : '';
+            opt.innerText = `💳 ${c.nome_conta}${tit} (Limite: ${formatBRL(lim)})`;
             if (String(c.id) === String(contaIdSelecionada)) opt.selected = true;
             grp.appendChild(opt);
         });
@@ -131,7 +132,8 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
             opt.value = c.id;
             opt.dataset.tipo = c.tipo_conta;
             const sal = parseFloat(c.saldo_atual) || 0;
-            opt.innerText = `🍽️ ${c.nome_conta} (Saldo: ${formatBRL(sal)})`;
+            const tit = c.titular ? ` [👤 ${c.titular}]` : '';
+            opt.innerText = `🍽️ ${c.nome_conta}${tit} (Saldo: ${formatBRL(sal)})`;
             if (String(c.id) === String(contaIdSelecionada)) opt.selected = true;
             grp.appendChild(opt);
         });
@@ -146,7 +148,8 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
             opt.value = c.id;
             opt.dataset.tipo = c.tipo_conta;
             const sal = parseFloat(c.saldo_atual) || 0;
-            opt.innerText = `🏦 ${c.nome_conta} (Saldo: ${formatBRL(sal)})`;
+            const tit = c.titular ? ` [👤 ${c.titular}]` : '';
+            opt.innerText = `🏦 ${c.nome_conta}${tit} (Saldo: ${formatBRL(sal)})`;
             if (String(c.id) === String(contaIdSelecionada)) opt.selected = true;
             grp.appendChild(opt);
         });
@@ -155,12 +158,65 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
 }
 window.carregarSelectContasModal = carregarSelectContasModal;
 
+// Sincronização automática entre o seletor de contas e o tipo de gasto no modal de lançamento
+async function aoMudarContaLancamento(contaId) {
+    if (!contaId) return;
+    try {
+        const conta = await dbLocal.contas_bancarias.get(contaId);
+        if (!conta) return;
+        const selTipo = document.getElementById('inputTipoGasto');
+        if (selTipo) {
+            if (conta.tipo_conta === 'Cartão de Crédito') {
+                selTipo.value = 'Cartão de Crédito';
+            } else if (conta.tipo_conta === 'Cartão Alimentação') {
+                selTipo.value = 'Cartão Alimentação';
+            }
+            if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
+        }
+    } catch(e) {}
+}
+window.aoMudarContaLancamento = aoMudarContaLancamento;
+
+async function aoMudarTipoGastoLancamento(tipoGasto) {
+    if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
+    const selConta = document.getElementById('inputContaId');
+    if (!selConta) return;
+
+    try {
+        if (tipoGasto === 'Cartão de Crédito') {
+            const optAtual = selConta.selectedOptions[0];
+            if (optAtual && optAtual.dataset.tipo === 'Cartão de Crédito') return;
+            for (let i = 0; i < selConta.options.length; i++) {
+                if (selConta.options[i].dataset.tipo === 'Cartão de Crédito') {
+                    selConta.selectedIndex = i;
+                    break;
+                }
+            }
+        } else if (tipoGasto === 'Cartão Alimentação') {
+            const optAtual = selConta.selectedOptions[0];
+            if (optAtual && optAtual.dataset.tipo === 'Cartão Alimentação') return;
+            for (let i = 0; i < selConta.options.length; i++) {
+                if (selConta.options[i].dataset.tipo === 'Cartão Alimentação') {
+                    selConta.selectedIndex = i;
+                    break;
+                }
+            }
+        }
+    } catch(e) {}
+}
+window.aoMudarTipoGastoLancamento = aoMudarTipoGastoLancamento;
+
 // Carrega e renderiza a tela dedicada de Cartões e Contas
 async function carregarCartoesEContas() {
     if (typeof dbLocal === 'undefined' || !dbLocal) return;
 
-    const targetMonth = (typeof window.currentMonthIndex !== 'undefined') ? window.currentMonthIndex : (new Date()).getMonth();
-    const targetYear = (typeof window.selectedAno !== 'undefined') ? parseInt(window.selectedAno, 10) : (new Date()).getFullYear();
+    let targetMonth = (typeof currentViewDate !== 'undefined' && currentViewDate) ? currentViewDate.getMonth() : (new Date()).getMonth();
+    let targetYear = (typeof currentViewDate !== 'undefined' && currentViewDate) ? currentViewDate.getFullYear() : (new Date()).getFullYear();
+
+    const selMes = document.getElementById('mesBaseSelector');
+    if (selMes && selMes.value !== '') targetMonth = parseInt(selMes.value, 10);
+    const selAno = document.getElementById('anoBaseSelector');
+    if (selAno && selAno.value !== '') targetYear = parseInt(selAno.value, 10);
 
     let contas = [];
     let movs = [];
@@ -185,26 +241,51 @@ async function carregarCartoesEContas() {
     let limiteTotalCartoes = 0;
     let faturaTotalMes = 0;
     let faturasPorCartao = {};
+    let lancamentosPorCartao = {};
+    let lancamentosPorConta = {};
 
     contas.forEach(c => {
+        lancamentosPorConta[c.id] = [];
         if (c.tipo_conta === 'Cartão de Crédito') {
             limiteTotalCartoes += (parseFloat(c.limite_cartao) || 0);
             faturasPorCartao[c.id] = 0;
+            lancamentosPorCartao[c.id] = [];
         } else if (c.tipo_conta === 'Cartão Alimentação') {
             saldoTotalAlimentacao += (parseFloat(c.saldo_atual) || 0);
+            lancamentosPorCartao[c.id] = [];
         } else {
             saldoTotalContas += (parseFloat(c.saldo_atual) || 0);
         }
     });
 
+    const cartoesCredito = contas.filter(c => c.tipo_conta === 'Cartão de Crédito');
+
     // Calcula faturas por cartão e total geral
     movsDoMes.forEach(m => {
+        const val = parseFloat(m.valor_total) || 0;
         if (m.tipo_gasto === 'Cartão de Crédito' && m.status !== 'Cancelado') {
-            const val = parseFloat(m.valor_total) || 0;
             faturaTotalMes += val;
             if (m.conta_id && faturasPorCartao.hasOwnProperty(m.conta_id)) {
                 faturasPorCartao[m.conta_id] += val;
+                lancamentosPorCartao[m.conta_id].push(m);
+            } else if (cartoesCredito.length === 1) {
+                faturasPorCartao[cartoesCredito[0].id] += val;
+                lancamentosPorCartao[cartoesCredito[0].id].push(m);
+            } else if (cartoesCredito.length > 0) {
+                faturasPorCartao[cartoesCredito[0].id] += val;
+                lancamentosPorCartao[cartoesCredito[0].id].push(m);
             }
+        }
+        if (m.tipo_gasto === 'Cartão Alimentação') {
+            const alimList = contas.filter(c => c.tipo_conta === 'Cartão Alimentação');
+            if (m.conta_id && lancamentosPorCartao[m.conta_id]) {
+                lancamentosPorCartao[m.conta_id].push(m);
+            } else if (alimList.length === 1) {
+                lancamentosPorCartao[alimList[0].id].push(m);
+            }
+        }
+        if (m.conta_id && lancamentosPorConta[m.conta_id]) {
+            lancamentosPorConta[m.conta_id].push(m);
         }
     });
 
@@ -259,6 +340,7 @@ async function carregarCartoesEContas() {
                 const percUsado = limTotal > 0 ? Math.min(100, Math.round((faturaAtual / limTotal) * 100)) : 0;
                 const cor = cartao.cor_cartao || (isDebito ? '#059669' : '#2563EB');
 
+                const comprasCard = lancamentosPorCartao[cartao.id] || [];
                 const cardEl = document.createElement('div');
                 cardEl.style.cssText = `
                     background: linear-gradient(135deg, ${cor}ee 0%, #0F172A 90%);
@@ -311,9 +393,29 @@ async function carregarCartoesEContas() {
                             </div>
                         </div>
 
-                        <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #CBD5E1; margin-bottom: 14px;">
+                        <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #CBD5E1; margin-bottom: 12px;">
                             <span>Fechamento: Dia ${cartao.dia_fechamento || 1}</span>
                             <span>Uso: ${percUsado}%</span>
+                        </div>
+
+                        <!-- Lista de Lançamentos da Fatura -->
+                        <div style="margin-bottom: 14px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; font-weight: 700; color: #E2E8F0; margin-bottom: 6px;">
+                                <span>📋 Compras nesta Fatura (${comprasCard.length})</span>
+                                <span style="color: #6EE7B7; font-weight: 800;">${formatBRL(faturaAtual)}</span>
+                            </div>
+                            ${comprasCard.length === 0 ? `
+                                <div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 4px 0;">Nenhuma compra nesta fatura</div>
+                            ` : `
+                                <div style="display: flex; flex-direction: column; gap: 5px; max-height: 110px; overflow-y: auto;">
+                                    ${comprasCard.map(item => `
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 6px;">
+                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${item.descricao}">${item.descricao}</span>
+                                            <span style="color: #F87171; font-weight: 800; white-space: nowrap;">- ${formatBRL(item.valor_total)}</span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
                         </div>
                         `}
                     </div>
@@ -392,6 +494,9 @@ async function carregarCartoesEContas() {
             alimList.forEach(c => {
                 const sal = parseFloat(c.saldo_atual) || 0;
                 const cor = c.cor_cartao || '#F97316';
+                const diaRecarga = c.dia_recarga || 1;
+                const valRecarga = parseFloat(c.valor_recarga) || 0;
+                const gastosAlim = lancamentosPorCartao[c.id] || [];
                 const cardA = document.createElement('div');
                 cardA.style.cssText = `
                     background: linear-gradient(135deg, ${cor}dd 0%, #0F172A 85%);
@@ -416,11 +521,38 @@ async function carregarCartoesEContas() {
                             </div>
                             <span style="font-size: 0.72rem; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.2); padding: 2px 7px; border-radius: 6px; font-weight: 700;">Benefício</span>
                         </div>
-                        <div style="margin-bottom: 14px;">
+                        <div style="margin-bottom: 12px;">
                             <span style="font-size: 0.72rem; color: #E2E8F0; font-weight: 600; text-transform: uppercase;">Saldo Disponível no Cartão</span>
                             <div style="font-size: 1.45rem; font-weight: 900; color: #FFFFFF; margin-top: 2px;">
                                 ${formatBRL(sal)}
                             </div>
+                        </div>
+
+                        <!-- Informações de Recarga Programada -->
+                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.12); padding: 6px 10px; border-radius: 8px; margin-bottom: 12px; color: #FED7AA;">
+                            <span>📅 Recarga: Todo dia <strong>${diaRecarga}</strong></span>
+                            ${valRecarga > 0 ? `<span>Valor: <strong style="color: #6EE7B7;">${formatBRL(valRecarga)}</strong></span>` : ''}
+                        </div>
+
+                        <!-- Lista de Lançamentos do Cartão Alimentação -->
+                        <div style="margin-bottom: 14px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; font-weight: 700; color: #E2E8F0; margin-bottom: 6px;">
+                                <span>📋 Movimentações do Mês (${gastosAlim.length})</span>
+                            </div>
+                            ${gastosAlim.length === 0 ? `
+                                <div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 4px 0;">Nenhum gasto lançado neste mês</div>
+                            ` : `
+                                <div style="display: flex; flex-direction: column; gap: 5px; max-height: 110px; overflow-y: auto;">
+                                    ${gastosAlim.map(item => `
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 6px;">
+                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${item.descricao}">${item.descricao}</span>
+                                            <span style="color: ${item.tipo_gasto === 'Receita' ? '#10B981' : '#F87171'}; font-weight: 800; white-space: nowrap;">
+                                                ${item.tipo_gasto === 'Receita' ? '+ ' : '- '}${formatBRL(item.valor_total)}
+                                            </span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 12px;">
@@ -486,6 +618,7 @@ async function carregarCartoesEContas() {
                 const sal = parseFloat(c.saldo_atual) || 0;
                 const limCheque = parseFloat(c.limite_cartao) || 0;
                 const isNeg = sal < 0;
+                const movsConta = lancamentosPorConta[c.id] || [];
                 const cardC = document.createElement('div');
                 cardC.style.cssText = `
                     background: #1E293B;
@@ -525,6 +658,27 @@ async function carregarCartoesEContas() {
                                     <span>Disp: <strong style="color: ${sal + limCheque >= 0 ? '#60A5FA' : '#EF4444'};">${formatBRL(sal + limCheque)}</strong></span>
                                 </div>
                             ` : ''}
+                        </div>
+
+                        <!-- Lista de Lançamentos da Conta -->
+                        <div style="margin-bottom: 14px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 10px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; font-weight: 700; color: #E2E8F0; margin-bottom: 6px;">
+                                <span>📋 Lançamentos do Mês (${movsConta.length})</span>
+                            </div>
+                            ${movsConta.length === 0 ? `
+                                <div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 4px 0;">Nenhuma movimentação neste mês</div>
+                            ` : `
+                                <div style="display: flex; flex-direction: column; gap: 5px; max-height: 110px; overflow-y: auto;">
+                                    ${movsConta.map(item => `
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.04); padding: 4px 8px; border-radius: 6px;">
+                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${item.descricao}">${item.descricao}</span>
+                                            <span style="color: ${item.tipo_gasto === 'Receita' ? '#10B981' : '#F87171'}; font-weight: 800; white-space: nowrap;">
+                                                ${item.tipo_gasto === 'Receita' ? '+ ' : '- '}${formatBRL(item.valor_total)}
+                                            </span>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            `}
                         </div>
                     </div>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
@@ -1043,6 +1197,8 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Conta Corrente'
     const inpSal = document.getElementById('contaSaldo');
     const inpFec = document.getElementById('contaDiaFechamento');
     const inpVen = document.getElementById('contaDiaVencimento');
+    const inpRecDia = document.getElementById('contaDiaRecarga');
+    const inpRecVal = document.getElementById('contaValorRecarga');
     const inpCor = document.getElementById('contaCorCartao');
     const btnExcluir = document.getElementById('btnExcluirContaBancaria');
     const tit = document.getElementById('tituloModalConta');
@@ -1077,6 +1233,8 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Conta Corrente'
             }
             if (inpFec) inpFec.value = conta.dia_fechamento || 1;
             if (inpVen) inpVen.value = conta.dia_vencimento || 10;
+            if (inpRecDia) inpRecDia.value = conta.dia_recarga || 1;
+            if (inpRecVal && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inpRecVal, conta.valor_recarga || 0);
             if (inpCor) inpCor.value = conta.cor_cartao || (conta.tipo_conta === 'Cartão Alimentação' ? '#F97316' : '#2563EB');
             if (ico) {
                 ico.innerText = conta.tipo_conta === 'Cartão de Crédito' ? '💳' : (conta.tipo_conta === 'Cartão Alimentação' ? '🍽️' : '🏦');
@@ -1102,6 +1260,8 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Conta Corrente'
         }
         if (inpFec) inpFec.value = 1;
         if (inpVen) inpVen.value = 10;
+        if (inpRecDia) inpRecDia.value = 1;
+        if (inpRecVal && typeof setarValorMoedaInput === 'function') setarValorMoedaInput(inpRecVal, 0);
         if (inpCor) inpCor.value = corPadrao;
         if (ico) {
             ico.innerText = (tipoPadrao === 'Cartão de Crédito' || tipoPadrao === 'Cartão de Débito') ? '💳' : (tipoPadrao === 'Cartão Alimentação' ? '🍽️' : '🏦');
@@ -1137,6 +1297,7 @@ window.fecharModalGerenciarConta = fecharModalGerenciarConta;
 // Alterna campos visíveis dependendo do tipo da conta:
 // Cartão de Crédito: exibe limite e prazos de fatura (fechamento/vencimento)
 // Conta Corrente: exibe saldo atual (com suporte a negativo) e limite de cheque especial (NÃO exibe dia de vencimento/fechamento!)
+// Cartão Alimentação: exibe saldo disponível e dia/valor programado da recarga (NÃO tem vencimento nem fechamento nem saldo negativo!)
 // Outras contas: exibe saldo atual e oculta prazos de fatura
 function aoMudarTipoContaForm() {
     const selTipo = document.getElementById('contaTipo');
@@ -1150,6 +1311,8 @@ function aoMudarTipoContaForm() {
     const lblLimite = document.getElementById('lblContaLimite');
     const grpSaldo = document.getElementById('grpContaSaldo');
     const grpPrazos = document.getElementById('grpPrazosFatura');
+    const grpRecarga = document.getElementById('grpRecargaAlimentacao');
+    const grpSinalSaldo = document.getElementById('grpBotoesSinalSaldo');
     const ico = document.getElementById('iconeModalConta');
     const lblSaldo = document.getElementById('lblContaSaldo');
     const tit = document.getElementById('tituloModalConta');
@@ -1164,13 +1327,26 @@ function aoMudarTipoContaForm() {
         if (lblLimite) lblLimite.innerText = '💳 Limite do Cartão';
         setDisp(grpSaldo, 'none');
         setDisp(grpPrazos, 'flex');
+        setDisp(grpRecarga, 'none');
+        setDisp(grpSinalSaldo, 'none');
         if (ico) ico.innerText = '💳';
         if (tit && !window.cartaoEmEdicaoId) tit.innerText = "Cadastrar Cartão de Crédito";
+    } else if (tipo === 'Cartão Alimentação') {
+        setDisp(grpLimite, 'none');
+        setDisp(grpSaldo, 'block');
+        setDisp(grpPrazos, 'none');
+        setDisp(grpRecarga, 'flex');
+        setDisp(grpSinalSaldo, 'none');
+        if (lblSaldo) lblSaldo.innerText = 'Saldo Disponível no Cartão';
+        if (ico) ico.innerText = '🍽️';
+        if (tit && !window.cartaoEmEdicaoId) tit.innerText = "Cadastrar Cartão Alimentação";
     } else if (tipo === 'Conta Corrente') {
         setDisp(grpLimite, 'block');
         if (lblLimite) lblLimite.innerText = '🛡️ Limite Cheque Especial';
         setDisp(grpSaldo, 'block');
         setDisp(grpPrazos, 'none');
+        setDisp(grpRecarga, 'none');
+        setDisp(grpSinalSaldo, 'flex');
         if (lblSaldo) lblSaldo.innerText = 'Saldo Atual em Conta';
         if (ico) ico.innerText = '🏦';
         if (tit && !window.cartaoEmEdicaoId) tit.innerText = "Cadastrar Conta Corrente";
@@ -1178,21 +1354,27 @@ function aoMudarTipoContaForm() {
         setDisp(grpLimite, 'none');
         setDisp(grpSaldo, 'block');
         setDisp(grpPrazos, 'none');
+        setDisp(grpRecarga, 'none');
+        setDisp(grpSinalSaldo, 'none');
         if (lblSaldo) lblSaldo.innerText = 'Saldo Atual em Conta';
         if (ico) ico.innerText = '🏦';
         if (tit && !window.cartaoEmEdicaoId) tit.innerText = `Cadastrar ${tipo}`;
-    } else if (tipo === 'Cartão Alimentação' || tipo === 'Cartão de Débito') {
+    } else if (tipo === 'Cartão de Débito') {
         setDisp(grpLimite, 'none');
         setDisp(grpSaldo, 'block');
         setDisp(grpPrazos, 'none');
+        setDisp(grpRecarga, 'none');
+        setDisp(grpSinalSaldo, 'none');
         if (lblSaldo) lblSaldo.innerText = 'Saldo Disponível no Cartão';
-        if (ico) ico.innerText = (tipo === 'Cartão Alimentação') ? '🍽️' : '💳';
-        if (tit && !window.cartaoEmEdicaoId) tit.innerText = (tipo === 'Cartão Alimentação') ? "Cadastrar Cartão Alimentação" : "Cadastrar Cartão de Débito";
+        if (ico) ico.innerText = '💳';
+        if (tit && !window.cartaoEmEdicaoId) tit.innerText = "Cadastrar Cartão de Débito";
     } else {
         // Outros tipos customizados
         setDisp(grpLimite, 'none');
         setDisp(grpSaldo, 'block');
         setDisp(grpPrazos, 'none');
+        setDisp(grpRecarga, 'none');
+        setDisp(grpSinalSaldo, 'none');
         if (lblSaldo) lblSaldo.innerText = 'Saldo Atual em Conta';
         if (ico) ico.innerText = '🏦';
         if (tit && !window.cartaoEmEdicaoId) tit.innerText = `Cadastrar ${tipo}`;
@@ -1230,6 +1412,8 @@ async function salvarContaBancariaSubmit(event) {
     const saldo = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('contaSaldo')?.value) : 0;
     const fechamento = parseInt(document.getElementById('contaDiaFechamento')?.value, 10) || 1;
     const vencimento = parseInt(document.getElementById('contaDiaVencimento')?.value, 10) || 10;
+    const diaRecarga = parseInt(document.getElementById('contaDiaRecarga')?.value, 10) || 1;
+    const valorRecarga = (typeof desformatarMoedaInput === 'function') ? desformatarMoedaInput(document.getElementById('contaValorRecarga')?.value) : 0;
     const cor = document.getElementById('contaCorCartao')?.value || '#2563EB';
 
     if (!nome) {
@@ -1250,6 +1434,8 @@ async function salvarContaBancariaSubmit(event) {
         saldo_atual: parseFloat(saldo) || 0,
         dia_fechamento: (tipo === 'Cartão de Crédito') ? fechamento : null,
         dia_vencimento: (tipo === 'Cartão de Crédito') ? vencimento : null,
+        dia_recarga: (tipo === 'Cartão Alimentação') ? diaRecarga : null,
+        valor_recarga: (tipo === 'Cartão Alimentação') ? parseFloat(valorRecarga) || 0 : 0,
         cor_cartao: cor,
         banco: banco || nome,
         user_id: currentUserId,

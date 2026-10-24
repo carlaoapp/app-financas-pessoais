@@ -30,6 +30,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 banco TEXT DEFAULT '',
                 dia_fechamento INTEGER,
                 dia_vencimento INTEGER,
+                dia_recarga INTEGER DEFAULT 1,
+                valor_recarga REAL DEFAULT 0,
                 user_id TEXT,
                 updated_at INTEGER,
                 deleted INTEGER DEFAULT 0
@@ -70,6 +72,8 @@ const db = new sqlite3.Database(dbPath, (err) => {
             db.run("ALTER TABLE contas_bancarias ADD COLUMN cor_cartao TEXT DEFAULT '#2563EB'", () => {});
             db.run("ALTER TABLE contas_bancarias ADD COLUMN banco TEXT DEFAULT ''", () => {});
             db.run("ALTER TABLE contas_bancarias ADD COLUMN titular TEXT DEFAULT ''", () => {});
+            db.run("ALTER TABLE contas_bancarias ADD COLUMN dia_recarga INTEGER DEFAULT 1", () => {});
+            db.run("ALTER TABLE contas_bancarias ADD COLUMN valor_recarga REAL DEFAULT 0", () => {});
 
             // Índices para otimização de busca por usuário
             db.run("CREATE INDEX IF NOT EXISTS idx_mov_user ON movimentacoes(user_id)", () => {});
