@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.8.18">
+    <meta name="app-build-version" content="1.8.19">
     <script>
-        window.APP_BUILD_VERSION = '1.8.18';
+        window.APP_BUILD_VERSION = '1.8.19';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -231,9 +231,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.18" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.19" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.18</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.19</span>
                 </div>
             </div>
 
@@ -341,10 +341,6 @@
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
                 <span>Metas & Desejos</span>
             </button>
-            <button class="tab-pill" id="navRendaExtra" onclick="switchFinanceTab('RendaExtra')">
-                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-                <span>Planejamento de Rendas Extras</span>
-            </button>
             <div class="tab-pill" id="navTema" style="position: relative; cursor: pointer; display: inline-flex; align-items: center; gap: 8px;" title="Escolher Tema (Filtro)">
                 <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v18"></path><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"></path></svg>
                 <span>Tema</span>
@@ -358,6 +354,10 @@
                     <option value="claro">Claro</option>
                 </select>
             </div>
+            <button class="tab-pill" id="navRendaExtra" onclick="switchFinanceTab('RendaExtra')">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+                <span>Planejamento de Rendas Extras</span>
+            </button>
         </nav>
 
         <!-- 5. CONTEÚDO DAS ABAS -->
@@ -1223,10 +1223,6 @@
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12v10H4V12"></path><path d="M2 7h20v5H2z"></path><path d="M12 22V7"></path><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"></path><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"></path></svg>
             <span>Desejos</span>
         </button>
-        <button class="mobile-nav-item" id="mNavRendaExtra" onclick="switchFinanceTab('RendaExtra')" title="Renda Extra">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-            <span>Rendas</span>
-        </button>
         <div class="mobile-nav-item" id="mNavTema" style="position: relative; cursor: pointer;" title="Escolher Tema">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><path d="M12 3v18"></path><path d="M12 3a9 9 0 0 1 0 18z" fill="currentColor"></path></svg>
             <span>Tema</span>
@@ -1240,6 +1236,10 @@
                 <option value="claro">Claro</option>
             </select>
         </div>
+        <button class="mobile-nav-item" id="mNavRendaExtra" onclick="switchFinanceTab('RendaExtra')" title="Renda Extra">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+            <span>Rendas</span>
+        </button>
     </nav>
 
     <!-- BOTÃO FLUTUANTE DE NOVO LANÇAMENTO (FAB) -->
@@ -1670,7 +1670,7 @@
             </div>
             <h3 id="lblPerfilNome" style="color: white; font-size: 1.15rem; margin-bottom: 4px; font-weight: 800;">Minha Conta</h3>
             <p id="lblPerfilStatus" style="color: #94A3B8; font-size: 0.82rem; margin-bottom: 6px;">Modo Conectado</p>
-            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.18</div>
+            <div style="font-size: 0.75rem; color: #60A5FA; font-weight: 700; margin-bottom: 18px;">APP Finanças Pessoais • v1.8.19</div>
             <div style="display: flex; flex-direction: column; gap: 10px;">
                 <button id="btnAtualizarDesktopZip" onclick="atualizarDesktopPorZip()" style="display: none; padding: 12px; background: rgba(16, 185, 129, 0.15); color: #34D399; border: 1.5px solid #10B981; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 8px;">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -2286,14 +2286,14 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.18"></script>
-    <script src="finance-db.js?v=1.8.18"></script>
-    <script src="finance-sync.js?v=1.8.18"></script>
-    <script src="finance-powerbi.js?v=1.8.18"></script>
-    <script src="finance-dashboard.js?v=1.8.18"></script>
-    <script src="finance-cartoes.js?v=1.8.18"></script>
-    <script src="auth.js?v=1.8.18"></script>
-    <script src="auto-update.js?v=1.8.18"></script>
+    <script src="finance-ocr.js?v=1.8.19"></script>
+    <script src="finance-db.js?v=1.8.19"></script>
+    <script src="finance-sync.js?v=1.8.19"></script>
+    <script src="finance-powerbi.js?v=1.8.19"></script>
+    <script src="finance-dashboard.js?v=1.8.19"></script>
+    <script src="finance-cartoes.js?v=1.8.19"></script>
+    <script src="auth.js?v=1.8.19"></script>
+    <script src="auto-update.js?v=1.8.19"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
