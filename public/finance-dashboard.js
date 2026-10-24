@@ -75,10 +75,21 @@ function isDescricaoReceita(desc) {
     );
 }
 
-window.privacyMode = false;
+window.privacyMode = localStorage.getItem('financas_privacy_mode') === 'true';
+
+// Função global universal de formatação em BRL com suporte estrito a modo privacidade
+function formatBRL(value) {
+    if (window.privacyMode) return 'R$ •••••';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+}
+window.formatBRL = formatBRL;
 
 window.togglePrivacyMode = function() {
     window.privacyMode = !window.privacyMode;
+    try {
+        localStorage.setItem('financas_privacy_mode', window.privacyMode ? 'true' : 'false');
+    } catch(e) {}
+
     const iconOpen = document.getElementById('iconPrivacyOpen');
     const iconClosed = document.getElementById('iconPrivacyClosed');
     
@@ -87,25 +98,29 @@ window.togglePrivacyMode = function() {
     if(iconOpen) iconOpen.style.display = window.privacyMode ? 'none' : 'block';
     if(iconClosed) iconClosed.style.display = window.privacyMode ? 'block' : 'none';
     
-    carregarPlanejamento();
-    if(document.getElementById('tabAPagar') && document.getElementById('tabAPagar').style.display === 'block') {
-        if(typeof carregarContasAPagar === 'function') carregarContasAPagar();
-    }
-    if(document.getElementById('tabDesejos') && document.getElementById('tabDesejos').style.display === 'block') {
-        if(typeof carregarListaDesejos === 'function') carregarListaDesejos();
-    }
-    if(document.getElementById('tabRendaExtra') && document.getElementById('tabRendaExtra').style.display === 'block') {
-        if(typeof carregarPlanejamentoRendaExtra === 'function') carregarPlanejamentoRendaExtra();
-    }
-    if(document.getElementById('modalFatura') && document.getElementById('modalFatura').style.display === 'flex') {
+    // 1. Aba Lançamentos (Orçamento, Saldo Livre e Extrato)
+    if (typeof carregarPlanejamento === 'function') carregarPlanejamento();
+    if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+
+    // 2. Aba Cartões & Contas Bancárias (Crédito, Alimentação, Bancos e Todos)
+    if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
+
+    // 3. Aba Contas a Pagar (Gaveta de Boletos)
+    if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
+
+    // 4. Aba Metas & Lista de Desejos
+    if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
+
+    // 5. Aba Planejamento de Rendas Extras
+    if (typeof carregarPlanejamentoRendaExtra === 'function') carregarPlanejamentoRendaExtra();
+
+    // 6. Aba Demonstrativo (PowerBI, Gráficos e Metas)
+    if (typeof renderPowerBIDashboard === 'function') renderPowerBIDashboard();
+
+    // 7. Modal de Fatura se estiver aberto
+    if (document.getElementById('modalFatura') && document.getElementById('modalFatura').style.display === 'flex') {
         const mesAtualLabel = document.getElementById('lblFaturaTituloMes') ? document.getElementById('lblFaturaTituloMes').innerText : '';
-        abrirModalFatura(mesAtualLabel);
-    }
-    if(typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
-        renderPowerBIDashboard();
-    }
-    if(typeof renderizarExtratoCompleto === 'function') {
-        renderizarExtratoCompleto();
+        if (typeof abrirModalFatura === 'function') abrirModalFatura(mesAtualLabel);
     }
 };
 
@@ -133,6 +148,12 @@ function initHeader() {
         if (sel) sel.value = temaSalvo;
         if (typeof aplicarTema === 'function') aplicarTema(temaSalvo);
     }
+
+    // Sincroniza estado visual do botão Ocultar Valores conforme preferência salva
+    const iconOpen = document.getElementById('iconPrivacyOpen');
+    const iconClosed = document.getElementById('iconPrivacyClosed');
+    if (iconOpen) iconOpen.style.display = window.privacyMode ? 'none' : 'block';
+    if (iconClosed) iconClosed.style.display = window.privacyMode ? 'block' : 'none';
 
     // Força a remoção de qualquer card de saldo hero residual
     document.querySelectorAll('.hero-balance-card').forEach(el => el.remove());
@@ -1849,7 +1870,7 @@ async function iniciarExclusaoLancamento(id) {
     // Formata valor e data para exibição
     const [y, m, d] = (item.data_lancamento || '2026-01-01').split('-');
     const dataBr = `${d}/${m}/${y}`;
-    const valFormat = parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
+    const valFormat = window.privacyMode ? '•••••' : parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
 
     const infoEl = document.getElementById('modalExclusaoInfoLancamento');
     if (infoEl) {
@@ -2022,7 +2043,7 @@ function abrirModalConfirmarEdicao(itemOriginal, updateData, irmaosFuturos) {
 
     const [y, m, d] = (itemOriginal.data_lancamento || '2026-01-01').split('-');
     const dataBr = `${d}/${m}/${y}`;
-    const valorFmt = parseFloat(updateData.valor_total || 0).toFixed(2).replace('.', ',');
+    const valorFmt = window.privacyMode ? '•••••' : parseFloat(updateData.valor_total || 0).toFixed(2).replace('.', ',');
 
     if (info) {
         info.innerHTML = `
@@ -4007,7 +4028,7 @@ async function carregarPlanejamentoRendaExtra() {
 
                 <!-- Barra de Progresso do Saldo -->
                 <div style="width: 100%; height: 8px; background: #0F172A; border-radius: 999px; overflow: hidden; margin-bottom: 12px; border: 1px solid #1E293B;">
-                    <div style="width: ${percentualGasto}%; height: 100%; background: ${corBarra}; transition: width 0.3s ease;"></div>
+                    <div style="width: ${window.privacyMode ? 0 : percentualGasto}%; height: 100%; background: ${corBarra}; transition: width 0.3s ease;"></div>
                 </div>
 
                 <!-- Sub-formulário para Lançar / Editar o que vai ser gasto nesta Renda Extra -->
@@ -5216,6 +5237,13 @@ async function exportarBackupFinancasDireto(opcao) {
         if (typeof XLSX !== 'undefined') {
             const wb = XLSX.utils.book_new();
 
+            // Função de segurança para garantir que nenhum texto de célula ultrapasse o limite de 32767 caracteres do Excel
+            const safeExcelStr = (val) => {
+                if (val === null || val === undefined) return '';
+                const s = String(val);
+                return s.length > 32700 ? s.slice(0, 32700) : s;
+            };
+
             // 1. Aba Lançamentos
             const rowsLancamentos = movsFiltradas.map(m => {
                 let dataFmt = m.data_lancamento || '';
@@ -5225,19 +5253,19 @@ async function exportarBackupFinancasDireto(opcao) {
                 }
 
                 return {
-                    'ID': m.id || '',
-                    'Data': dataFmt,
-                    'Descrição': m.descricao || '',
-                    'Categoria / Tipo': m.tipo_gasto || '',
+                    'ID': safeExcelStr(m.id),
+                    'Data': safeExcelStr(dataFmt),
+                    'Descrição': safeExcelStr(m.descricao),
+                    'Categoria / Tipo': safeExcelStr(m.tipo_gasto),
                     'Valor Orçado (R$)': parseFloat(m.valor_total || 0),
                     'Valor Realizado (R$)': parseFloat(m.valor_realizado || 0),
-                    'Status': m.status || 'Pendente',
-                    'Parcelado': m.parcelado || 'Não',
+                    'Status': safeExcelStr(m.status || 'Pendente'),
+                    'Parcelado': safeExcelStr(m.parcelado || 'Não'),
                     'Parcela Atual': m.parcela_atual || 1,
                     'Total Parcelas': m.total_parcelas || 1,
-                    'Grupo': m.id_grupo || '',
-                    'Link da Fonte': m.link_url || '',
-                    'Tipo de Mídia': m.midia_tipo || ''
+                    'Grupo': safeExcelStr(m.id_grupo),
+                    'Link da Fonte': safeExcelStr(m.link_url),
+                    'Tipo de Mídia': safeExcelStr(m.midia_tipo)
                 };
             });
 
@@ -5274,7 +5302,7 @@ async function exportarBackupFinancasDireto(opcao) {
             });
 
             const rowsResumo = [
-                { 'Indicador Financeiro': 'Período do Backup', 'Valor (R$) / Info': periodoDesc },
+                { 'Indicador Financeiro': 'Período do Backup', 'Valor (R$) / Info': safeExcelStr(periodoDesc) },
                 { 'Indicador Financeiro': 'Data e Hora da Exportação', 'Valor (R$) / Info': `${dataStr} às ${horaStr}` },
                 { 'Indicador Financeiro': 'Total de Lançamentos Exportados', 'Valor (R$) / Info': movsFiltradas.length },
                 { 'Indicador Financeiro': 'Total de Receitas Lançadas', 'Valor (R$) / Info': totReceitas },
@@ -5290,10 +5318,10 @@ async function exportarBackupFinancasDireto(opcao) {
             wsResumo['!cols'] = [{ wch: 38 }, { wch: 30 }];
             XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Geral');
 
-            // 3. Aba de Dados Técnicos para restauração 100% perfeita
+            // 3. Aba de Dados Técnicos dividida em blocos de até 30.000 caracteres (limite do Excel é 32.767)
             const backupPayload = {
                 app: "Finanças Pessoais",
-                versao: "1.4.0",
+                versao: "1.8.32",
                 periodo: periodoDesc,
                 data_exportacao: new Date().toISOString(),
                 total_lancamentos: movsFiltradas.length,
@@ -5301,9 +5329,18 @@ async function exportarBackupFinancasDireto(opcao) {
                 contas_bancarias: (opcao === 'todos') ? contas : [],
                 origens_renda: (opcao === 'todos') ? origens : []
             };
-            const wsRaw = XLSX.utils.json_to_sheet([
-                { 'METADADOS_SISTEMA': JSON.stringify(backupPayload) }
-            ]);
+
+            const jsonStr = JSON.stringify(backupPayload);
+            const CHUNK_SIZE = 30000;
+            const rowsChunks = [];
+            for (let i = 0; i < jsonStr.length; i += CHUNK_SIZE) {
+                rowsChunks.push({
+                    'PARTE': rowsChunks.length + 1,
+                    'DADOS': jsonStr.slice(i, i + CHUNK_SIZE)
+                });
+            }
+
+            const wsRaw = XLSX.utils.json_to_sheet(rowsChunks);
             XLSX.utils.book_append_sheet(wb, wsRaw, 'Backup_Dados_Sistema');
 
             // Gera binário XLSX e dispara download
@@ -5386,8 +5423,14 @@ async function importarBackupFinancas(event) {
             if (wb.Sheets['Backup_Dados_Sistema']) {
                 try {
                     const rawRows = XLSX.utils.sheet_to_json(wb.Sheets['Backup_Dados_Sistema']);
-                    if (rawRows.length > 0 && rawRows[0]['METADADOS_SISTEMA']) {
-                        const payload = JSON.parse(rawRows[0]['METADADOS_SISTEMA']);
+                    let jsonStr = '';
+                    if (rawRows.length > 0 && rawRows[0]['DADOS']) {
+                        jsonStr = rawRows.map(r => r['DADOS'] || '').join('');
+                    } else if (rawRows.length > 0 && rawRows[0]['METADADOS_SISTEMA']) {
+                        jsonStr = rawRows[0]['METADADOS_SISTEMA'];
+                    }
+                    if (jsonStr) {
+                        const payload = JSON.parse(jsonStr);
                         if (Array.isArray(payload.movimentacoes)) movsParaImportar = payload.movimentacoes;
                         if (Array.isArray(payload.contas_bancarias)) contasParaImportar = payload.contas_bancarias;
                         if (Array.isArray(payload.origens_renda)) origensParaImportar = payload.origens_renda;

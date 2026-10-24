@@ -3,6 +3,13 @@
  * APP Finanças Pessoais
  */
 
+// Função universal de formatação em BRL com suporte estrito a modo privacidade
+function formatBRL(value) {
+    if (window.privacyMode) return 'R$ •••••';
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+}
+window.formatBRL = formatBRL;
+
 // Estado local da tela de cartões
 window.cartaoEmEdicaoId = null;
 window.subAbaCartoesAtiva = localStorage.getItem('financas_subaba_cartoes') || 'credito';
@@ -424,13 +431,13 @@ async function carregarCartoesEContas() {
                                 <span>Limite: ${formatBRL(limTotal)}</span>
                             </div>
                             <div style="width: 100%; height: 8px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15);">
-                                <div style="width: ${percUsado}%; height: 100%; background: ${percUsado > 85 ? '#EF4444' : (percUsado > 50 ? '#F59E0B' : '#10B981')}; border-radius: 4px; transition: width 0.3s;"></div>
+                                <div style="width: ${window.privacyMode ? 0 : percUsado}%; height: 100%; background: ${percUsado > 85 ? '#EF4444' : (percUsado > 50 ? '#F59E0B' : '#10B981')}; border-radius: 4px; transition: width 0.3s;"></div>
                             </div>
                         </div>
 
                         <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #CBD5E1; margin-bottom: 12px;">
                             <span>Fechamento: Dia ${cartao.dia_fechamento || 1}</span>
-                            <span>Uso: ${percUsado}%</span>
+                            <span>Uso: ${window.privacyMode ? '•••%' : percUsado + '%'}</span>
                         </div>
 
                         <!-- Lista de Lançamentos da Fatura -->

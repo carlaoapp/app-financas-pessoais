@@ -7,7 +7,7 @@ function getCurrentRunningVersion() {
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
     const stored = localStorage.getItem('app_current_version');
     if (stored) return stored.trim();
-    return '1.8.31';
+    return '1.8.32';
 }
 
 function isNewerVersion(serverVer, currentVer) {

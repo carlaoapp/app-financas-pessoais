@@ -301,6 +301,7 @@ function formatBRL(value) {
     if (window.privacyMode) return 'R$ •••••';
     return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
 }
+window.formatBRL = formatBRL;
 
 // Estado das opções ativas no demonstrativo
 let filtrosAtivosDemo = {
@@ -1099,10 +1100,10 @@ async function renderPowerBIDashboard() {
                 elResumoInv.innerHTML = `📈 <strong>Total Investido (Realizado):</strong> ${formatBRL(totalInvestimentosAcumulado)} &bull; <strong>Meta Orçada:</strong> ${formatBRL(metaInvFinal)}`;
             }
             if (barraProgressoInv) {
-                barraProgressoInv.style.width = `${percInv}%`;
+                barraProgressoInv.style.width = `${window.privacyMode ? 0 : percInv}%`;
             }
             if (lblPercInv) {
-                lblPercInv.innerText = `${percInv}% (${formatBRL(totalInvestimentosAcumulado)} / ${formatBRL(metaInvFinal)})`;
+                lblPercInv.innerText = window.privacyMode ? '•••% (Meta Oculta)' : `${percInv}% (${formatBRL(totalInvestimentosAcumulado)} / ${formatBRL(metaInvFinal)})`;
             }
 
             if (elPeriodoMetaInv) {
@@ -1172,10 +1173,10 @@ async function renderPowerBIDashboard() {
                                 </div>
                                 <div style="display: flex; justify-content: space-between; font-size: 0.76rem; color: #94A3B8; font-weight: 600;">
                                     <span>Meta Prevista: <strong style="color: #E2E8F0;">${formatBRL(metaItem)}</strong></span>
-                                    <span style="color: #C084FC; font-weight: 700;">${percItem}%</span>
+                                    <span style="color: #C084FC; font-weight: 700;">${window.privacyMode ? '•••%' : percItem + '%'}</span>
                                 </div>
                                 <div style="width: 100%; height: 6px; background: #0F172A; border-radius: 4px; overflow: hidden; border: 1px solid #334155;">
-                                    <div style="width: ${percItem}%; height: 100%; background: linear-gradient(90deg, #8B5CF6, #A855F7); border-radius: 4px;"></div>
+                                    <div style="width: ${window.privacyMode ? 0 : percItem}%; height: 100%; background: linear-gradient(90deg, #8B5CF6, #A855F7); border-radius: 4px;"></div>
                                 </div>
                                 <div style="font-size: 0.75rem; color: #93C5FD; font-weight: 700; margin-top: 2px;">
                                     ${prazoTexto}
