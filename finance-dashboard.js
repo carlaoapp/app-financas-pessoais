@@ -460,31 +460,81 @@ async function carregarPlanejamento() {
     const saldoRealizado = recRealizado - despRealizado - invRealizado - resMesRealizado;
     const saldoOrcado = recOrcado - despOrcado - invOrcado - resMesOrcado;
     
-    const formatCurrencyDiff = (val) => {
+    // Formatação monetária com exibição explícita do sinal negativo "- R$ X,XX"
+    const formatCurrencySigned = (val) => {
         if (window.privacyMode) return '•••••';
-        return 'R$ ' + Math.abs(val).toFixed(2).replace('.', ',');
+        const num = Number(val) || 0;
+        if (num < -0.005) {
+            return '- R$ ' + Math.abs(num).toFixed(2).replace('.', ',');
+        }
+        return 'R$ ' + Math.abs(num).toFixed(2).replace('.', ',');
     };
     
+    // Identifica se há déficit / saldo negativo no mês:
+    // 1) Se as despesas já realizadas superam as receitas: saldoRealizado < 0
+    // 2) Se há despesas orçadas mas nenhuma receita (ou receitas insuficientes): saldoRealizado <= 0 e saldoOrcado < 0
+    const isNegativo = (saldoRealizado < -0.005) || (saldoRealizado <= 0.005 && saldoOrcado < -0.005);
+
+    // Atualiza o Rótulo Dinâmico: "Saldo Negativo" se houver déficit, ou "Saldo Livre" se positivo
+    const elLblSaldo = document.getElementById('lblSaldoResumo') || document.querySelector('.saldo-livre-label');
+    if (elLblSaldo) {
+        if (isNegativo) {
+            elLblSaldo.innerText = 'Saldo Negativo';
+            elLblSaldo.classList.add('is-negativo');
+            elLblSaldo.classList.remove('is-positivo');
+            elLblSaldo.style.setProperty('color', '#EF4444', 'important');
+        } else if (saldoRealizado > 0.005) {
+            elLblSaldo.innerText = 'Saldo Livre';
+            elLblSaldo.classList.add('is-positivo');
+            elLblSaldo.classList.remove('is-negativo');
+            elLblSaldo.style.setProperty('color', '#10B981', 'important');
+        } else {
+            elLblSaldo.innerText = 'Saldo Livre';
+            elLblSaldo.classList.remove('is-negativo', 'is-positivo');
+            elLblSaldo.style.setProperty('color', 'var(--color-brand, #3B82F6)', 'important');
+        }
+    }
+
     // Orçado
-    const colorOrcado = saldoOrcado >= 0 ? '#10B981' : '#EF4444';
     const elOrcado = document.getElementById('valSaldoOrcado');
-    if(elOrcado) {
-        elOrcado.innerText = formatCurrencyDiff(saldoOrcado);
-        elOrcado.style.color = colorOrcado;
+    if (elOrcado) {
+        elOrcado.innerText = formatCurrencySigned(saldoOrcado);
+        if (saldoOrcado < -0.005) {
+            elOrcado.classList.add('is-negativo');
+            elOrcado.classList.remove('is-positivo');
+            elOrcado.style.setProperty('color', '#EF4444', 'important');
+        } else if (saldoOrcado > 0.005) {
+            elOrcado.classList.add('is-positivo');
+            elOrcado.classList.remove('is-negativo');
+            elOrcado.style.setProperty('color', '#10B981', 'important');
+        } else {
+            elOrcado.classList.remove('is-negativo', 'is-positivo');
+            elOrcado.style.setProperty('color', 'var(--text-secondary, #94A3B8)', 'important');
+        }
     }
 
     // Realizado
-    const colorRealizado = saldoRealizado >= 0 ? '#10B981' : '#EF4444';
     const elRealizado = document.getElementById('valSaldoRealizado');
-    if(elRealizado) {
-        elRealizado.innerText = formatCurrencyDiff(saldoRealizado);
-        elRealizado.style.color = colorRealizado;
+    if (elRealizado) {
+        elRealizado.innerText = formatCurrencySigned(saldoRealizado);
+        if (saldoRealizado < -0.005) {
+            elRealizado.classList.add('is-negativo');
+            elRealizado.classList.remove('is-positivo');
+            elRealizado.style.setProperty('color', '#EF4444', 'important');
+        } else if (saldoRealizado > 0.005) {
+            elRealizado.classList.add('is-positivo');
+            elRealizado.classList.remove('is-negativo');
+            elRealizado.style.setProperty('color', '#10B981', 'important');
+        } else {
+            elRealizado.classList.remove('is-negativo', 'is-positivo');
+            elRealizado.style.setProperty('color', 'var(--text-secondary, #94A3B8)', 'important');
+        }
     }
 
     const elHero = document.getElementById('valSaldoHero');
-    if(elHero) {
-        elHero.innerText = (saldoRealizado < 0 ? '- ' : '') + formatCurrencyDiff(saldoRealizado);
-        elHero.style.color = colorRealizado;
+    if (elHero) {
+        elHero.innerText = formatCurrencySigned(saldoRealizado);
+        elHero.style.setProperty('color', saldoRealizado < -0.005 ? '#EF4444' : (saldoRealizado > 0.005 ? '#10B981' : 'var(--text-secondary, #94A3B8)'), 'important');
     }
 
     // Atualiza KPIs no Hero Card

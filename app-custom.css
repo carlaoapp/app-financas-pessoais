@@ -2585,20 +2585,47 @@ body.theme-claro .mobile-nav-item.active svg {
 }
 
 .saldo-livre-label {
-    color: var(--color-brand) !important;
+    color: var(--color-brand);
     font-weight: 700;
+    transition: color 0.2s ease;
+}
+
+.saldo-livre-label.is-negativo {
+    color: #EF4444 !important;
+}
+
+.saldo-livre-label.is-positivo {
+    color: #10B981 !important;
 }
 
 .val-saldo-orcado {
     text-align: right;
     font-weight: bold;
-    color: var(--color-brand-light, var(--color-brand)) !important;
+    color: var(--color-brand-light, var(--color-brand));
+    transition: color 0.2s ease;
+}
+
+.val-saldo-orcado.is-negativo {
+    color: #EF4444 !important;
+}
+
+.val-saldo-orcado.is-positivo {
+    color: #10B981 !important;
 }
 
 .val-saldo-realizado {
     text-align: right;
     font-weight: 800;
-    color: var(--color-brand) !important;
+    color: var(--color-brand);
+    transition: color 0.2s ease;
+}
+
+.val-saldo-realizado.is-negativo {
+    color: #EF4444 !important;
+}
+
+.val-saldo-realizado.is-positivo {
+    color: #10B981 !important;
 }
 
 /* Filtros do Extrato Conectados ao Tema Ativo */
@@ -2861,16 +2888,16 @@ body.theme-claro .mobile-nav-item.active svg {
     color: #0F172A !important;
 }
 
-[data-theme="claro"] .saldo-livre-label {
-    color: #2563EB !important;
+[data-theme="claro"] .saldo-livre-label:not(.is-negativo):not(.is-positivo) {
+    color: #2563EB;
 }
 
-[data-theme="claro"] .val-saldo-orcado {
-    color: #3B82F6 !important;
+[data-theme="claro"] .val-saldo-orcado:not(.is-negativo):not(.is-positivo) {
+    color: #3B82F6;
 }
 
-[data-theme="claro"] .val-saldo-realizado {
-    color: #1D4ED8 !important;
+[data-theme="claro"] .val-saldo-realizado:not(.is-negativo):not(.is-positivo) {
+    color: #1D4ED8;
 }
 
 [data-theme="claro"] #demoSaldoTitulo {
