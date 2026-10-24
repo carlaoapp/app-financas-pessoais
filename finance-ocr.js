@@ -167,6 +167,168 @@ function interpretarTextoComprovante(texto, origem) {
     ocultarStatusOcr();
     if (!texto) return;
 
+// Normaliza string para número float considerando pontos e vírgulas de impressoras térmicas
+function normalizarValorNumero(str) {
+    if (!str) return 0;
+    let s = str.trim().replace(/^R?\$?\s*/i, '');
+    // Se tem tanto ponto quanto vírgula (ex: 1.234,56 ou 1,234.56)
+    if (s.includes('.') && s.includes(',')) {
+        if (s.lastIndexOf(',') > s.lastIndexOf('.')) {
+            // Padrão brasileiro: 1.234,56
+            s = s.replace(/\./g, '').replace(',', '.');
+        } else {
+            // Padrão americano: 1,234.56
+            s = s.replace(/,/g, '');
+        }
+    } else if (s.includes(',')) {
+        // Ex: 37,35
+        s = s.replace(',', '.');
+    } else if (s.includes('.')) {
+        // Ex: 37.35 ou 1000.00
+        const partes = s.split('.');
+        if (partes[partes.length - 1].length === 2) {
+            // Duas casas decimais térmicas: 37.35
+            s = partes.slice(0, -1).join('') + '.' + partes[partes.length - 1];
+        } else {
+            s = s.replace(/\./g, '');
+        }
+    }
+    const n = parseFloat(s);
+    return isNaN(n) ? 0 : n;
+}
+
+function formatarValorParaInput(val) {
+    return val.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+// Extração robusta do valor total da compra em cupons fiscais, TEF e comprovantes
+function extrairValorComprovante(texto) {
+    if (!texto) return null;
+
+    const linhas = texto.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+
+    // Palavras que indicam TRIBUTOS, TROCO ou DESCONTOS - JAMAIS devem ser pegas como valor da compra!
+    const palavrasIgnorar = /\b(FEDERAL|ESTADUAL|MUNICIPAL|TRIBUTOS?|IMPOSTOS?|ICMS|ISS|PIS|COFINS|TROCO|DESCONTO|ABATIMENTO|DEVOLUCAO|VALOR\s+UNIT|VL\s+UNIT|UNITARIO)\b/i;
+
+    // 1. PRIORIDADE MÁXIMA: Rótulos explícitos de Total a Pagar e Compra
+    const regexTotalPrioritario = [
+        /(?:VALOR\s*A\s*PAGAR|TOTAL\s*A\s*PAGAR)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:VALOR\s*TOTAL|TOTAL\s*LIQUIDO|VALOR\s*LIQUIDO)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:VALOR\s*PAGO|TOTAL\s*PAGO)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:COMPRA:?.*?VALOR:?|VALOR:?.*?COMPRA)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:CARTAO\s+DEBITO|CARTAO\s+CREDITO|TICKET|ALIMENTACAO|VOUCHER)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /\bTOTAL[\s:]+R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i
+    ];
+
+    for (const regex of regexTotalPrioritario) {
+        for (const linha of linhas) {
+            if (palavrasIgnorar.test(linha)) continue;
+            const m = linha.match(regex);
+            if (m && m[1]) {
+                const val = normalizarValorNumero(m[1]);
+                if (val > 0) return { formatado: formatarValorParaInput(val), numero: val };
+            }
+        }
+    }
+
+    for (const regex of regexTotalPrioritario) {
+        const m = texto.match(regex);
+        if (m && m[1]) {
+            const idx = m.index || 0;
+            const trecho = texto.substring(Math.max(0, idx - 40), Math.min(texto.length, idx + 40));
+            if (!palavrasIgnorar.test(trecho)) {
+                const val = normalizarValorNumero(m[1]);
+                if (val > 0) return { formatado: formatarValorParaInput(val), numero: val };
+            }
+        }
+    }
+
+    // 2. PRIORIDADE MÉDIA: "VALOR:", "VALOR DA TRANSACAO", "VALOR PIX", "VALOR COBRADO"
+    const regexSecundario = [
+        /(?:VALOR\s*(?:DA\s*TRANSACAO|PIX|COBRADO|RECEBIDO|PRINCIPAL|FINAL)?|PAGO|COMPRA)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /R\$\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i
+    ];
+
+    for (const regex of regexSecundario) {
+        for (const linha of linhas) {
+            if (palavrasIgnorar.test(linha)) continue;
+            if (/\b(SALDO|SALDO\s+DISP|DISPONIVEL)\b/i.test(linha)) continue;
+            const m = linha.match(regex);
+            if (m && m[1]) {
+                const val = normalizarValorNumero(m[1]);
+                if (val > 0) return { formatado: formatarValorParaInput(val), numero: val };
+            }
+        }
+    }
+
+    return null;
+}
+
+function limparNomeEstabelecimento(str) {
+    if (!str) return '';
+    return str
+        .replace(/\b(LTDA|EIRELI|S\/?A|S\.A\.|M\.?E\.?|EPP|MEI)\b/gi, '')
+        .replace(/^[:\-\s\.\*]+|[:\-\s\.\*]+$/g, '')
+        .replace(/\s+/g, ' ')
+        .split(' ')
+        .filter(Boolean)
+        .map(w => w.length > 2 ? (w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()) : w.toUpperCase())
+        .join(' ')
+        .trim();
+}
+
+// Extrai o nome real do estabelecimento (mercado, loja, posto) de cupons fiscais e recibos
+function extrairEstabelecimentoComprovante(texto, textoLimpo) {
+    if (!texto) return '';
+
+    const linhas = texto.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+
+    // 1. Procura nas primeiras 6 linhas (cabeçalho de cupom fiscal NFC-e / SAT / ECF)
+    for (let i = 0; i < Math.min(linhas.length, 6); i++) {
+        let l = linhas[i].trim();
+        if (/^(CNPJ|CPF|IE|IM|AV|AVENIDA|RUA|RODOVIA|TRAVESSA|PRACA|CEP|FONE|TEL|DOCUMENTO|DANFE|EXTRATO|NOTA\s+FISCAL|NFC-?E|SAT|SISTEMA)/i.test(l)) continue;
+        if (l.length < 3 || l.length > 50) continue;
+
+        if (/\b(LTDA|EIRELI|S\/?A|M\.?E\.?|EPP|SUPERMERCADO|MERCADO|POSTO|PADARIA|FARMACIA|DROGARIA|LANCHONETE|RESTAURANTE|COMERCIO|DISTRIBUIDORA|CONVENIENCIA)\b/i.test(l)) {
+            return limparNomeEstabelecimento(l);
+        }
+        if (i + 1 < linhas.length && /CNPJ/i.test(linhas[i + 1])) {
+            return limparNomeEstabelecimento(l);
+        }
+    }
+
+    // 2. Procura no comprovante TEF (frequentemente "NOME ESTABELECIMENTO DD/MM/AAAA HH:MM")
+    for (const linha of linhas) {
+        if (/^(REDE|AUTORIZACAO|TRANSACAO|CARTAO|COMPRA|SALDO|VALOR|VIA|CLIENTE)/i.test(linha)) continue;
+        const matchDataHora = linha.match(/^([A-Za-z0-9\s\.\-_&]{3,40}?)\s+[0-3]?[0-9][\/\.-][0-1]?[0-9][\/\.-]20[2-3][0-9]/i);
+        if (matchDataHora && matchDataHora[1] && matchDataHora[1].trim().length > 3) {
+            return limparNomeEstabelecimento(matchDataHora[1]);
+        }
+    }
+
+    // 3. Notificações de Celular (Nubank, Sicredi, Itaú, etc.): "em Loja X", "para Fulano"
+    const matchNotif = texto.match(/\b(?:em|na|no|para|de)\s+([A-Za-z0-9\s\.\-_&]{3,35})(?:[\.\-,]|$)/i);
+    if (matchNotif && matchNotif[1]) {
+        const cand = matchNotif[1].trim();
+        if (!/^(NUBANK|CART[AÃ]O|SICREDI|ITA[UÚ]|BRADESCO|SANTANDER|INTER|BANCO|OUROCARD|CAIXA|C6|DEBITO|CREDITO|CONTA)\b/i.test(cand)) {
+            return limparNomeEstabelecimento(cand);
+        }
+    }
+
+    // 4. Comprovantes com rótulos clássicos
+    const matchRotulo = texto.match(/(?:ESTABELECIMENTO|RAZAO\s+SOCIAL|NOME\s+FANTASIA|BENEFICIARIO|DESTINATARIO|EMPRESA)[\s:]+([^\n\r,]+)/i);
+    if (matchRotulo && matchRotulo[1] && matchRotulo[1].trim().length > 2) {
+        return limparNomeEstabelecimento(matchRotulo[1]);
+    }
+
+    return '';
+}
+
+// Interpreta texto de comprovantes brasileiros (Pix, Boletos, Cartões, Maquininhas, Cupons e Notificações de Celular)
+function interpretarTextoComprovante(texto, origem) {
+    ocultarStatusOcr();
+    if (!texto) return;
+
     const textoLimpo = ocrNormalizarTexto(texto);
     console.log("=== TEXTO OCR IDENTIFICADO ===", texto);
 
@@ -178,29 +340,10 @@ function interpretarTextoComprovante(texto, origem) {
     let isStatusPago = true;
     let parcelasDetectadas = 1;
 
-    // 1. EXTRAÇÃO DE VALOR (R$)
-    const regexValores = [
-        /(?:VALOR\s*PAGO|VALOR\s*TOTAL|TOTAL\s*A\s*PAGAR|TOTAL|VALOR\s*DA\s*TRANSACAO|VALOR\s*LIQUIDO|VALOR\s*PRINCIPAL|VALOR\s*COBRADO|VALOR\s*RECEBIDO|VALOR\s*PIX|VALOR)[\s:]*R?\$?\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i,
-        /(?:COMPRA\s+(?:APROVADA\s+)?(?:NO\s+VALOR\s+DE\s+|DE\s+)?|PAGO\s+|PIX\s+DE\s+|TRANSFERENCIA\s+DE\s+|DEBITADO\s+|CREDITADO\s+)R?\$?\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i,
-        /R\$\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i,
-        /([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})\s*(?:BRL|REAIS)/i,
-        /(?:VALOR|TOTAL)[\s:]*R?\$?\s*([0-9]+,[0-9]{2})/i,
-        /R\$\s*([0-9]+,[0-9]{2})/i
-    ];
-
-    for (let r of regexValores) {
-        const match = texto.match(r);
-        if (match && match[1]) {
-            valorEncontrado = match[1];
-            break;
-        }
-    }
-
-    if (!valorEncontrado) {
-        const matchPonto = texto.match(/(?:TOTAL|VALOR|R\$)[\s:]*([0-9]+\.[0-9]{2})/i);
-        if (matchPonto && matchPonto[1]) {
-            valorEncontrado = matchPonto[1].replace('.', ',');
-        }
+    // 1. EXTRAÇÃO ROBUSTA DE VALOR (Total a Pagar / Gasto Total)
+    const resValor = extrairValorComprovante(texto);
+    if (resValor) {
+        valorEncontrado = resValor.formatado;
     }
 
     // 2. EXTRAÇÃO DE DATA E HORA
@@ -235,7 +378,6 @@ function interpretarTextoComprovante(texto, origem) {
         }
     }
 
-    // Se ainda não encontrou data, usa a data atual (comum em notificações push de celular)
     if (!dataEncontrada) {
         dataEncontrada = (new Date()).toISOString().split('T')[0];
     }
@@ -255,7 +397,6 @@ function interpretarTextoComprovante(texto, origem) {
     const matchXSolto = texto.match(/\b([2-9]|1[0-9]|2[0-4])\s*X\b/i);
 
     if (matchParcFracao && matchParcFracao[2]) {
-        // Ex: PARC 01/03 -> Total é 3!
         parcelasDetectadas = parseInt(matchParcFracao[2], 10);
     } else if (matchParcSimples && matchParcSimples[1]) {
         parcelasDetectadas = parseInt(matchParcSimples[1], 10);
@@ -272,8 +413,8 @@ function interpretarTextoComprovante(texto, origem) {
     // 4. DETECÇÃO DE BANCOS, CARTÕES E BANDEIRAS
     let cartaoBancoDetectado = "";
     const bancosCartoesRegex = [
+        { nome: "Ticket", regex: /\bTICKET(?:\s+ALIMENTACAO|\s+FLEX|\s+REFEICAO)?\b/i },
         { nome: "Alelo", regex: /\bALELO\b/i },
-        { nome: "Ticket", regex: /\bTICKET\b/i },
         { nome: "Sodexo / Pluxee", regex: /\b(SODEXO|PLUXEE)\b/i },
         { nome: "VR Benefícios", regex: /\bVR(?:\s+(?:BENEFICIOS|ALIMENTACAO|REFEICAO))?\b/i },
         { nome: "Flash", regex: /\bFLASH\b/i },
@@ -339,65 +480,8 @@ function interpretarTextoComprovante(texto, origem) {
         isStatusPago = true;
     }
 
-    // 5. ESTABELECIMENTO / BENEFICIÁRIO / DESCRIÇÃO
-    // Notificações de Celular (Nubank, Sicredi, Itaú, Inter, etc.)
-    // Padrão: "em Mercado X", "no Posto Y", "na Loja Z", "para Fulano de Tal"
-    const matchNotifParaDe = texto.match(/\b(?:para|de)\s+([A-Za-z0-9\s\.\-_&]{3,40})(?:[\.\-,]|$)/i);
-    const matchNotifEm = texto.match(/\b(?:em|na|no)\s+([A-Za-z0-9\s\.\-_&]{3,40})(?:[\.\-,]|$)/i);
-    
-    // Comprovante Sicredi (ex: 20/10 SATSOM COMPONENTES ELE Paranavai BR R$ 4,50)
-    const matchSicredi = texto.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|SP|PR|RJ|BR|R\$|-|\d{4}))/i);
-    if (matchSicredi && matchSicredi[1]) {
-        descricaoEncontrada = matchSicredi[1].trim();
-    }
-
-    if (!descricaoEncontrada && matchNotifEm && matchNotifEm[1]) {
-        const cand = matchNotifEm[1].trim();
-        if (!/^(NUBANK|CART[AÃ]O|SICREDI|ITA[UÚ]|BRADESCO|SANTANDER|INTER|BANCO|OUROCARD|CAIXA|C6|DEBITO|CREDITO|CONTA)\b/i.test(cand)) {
-            descricaoEncontrada = cand;
-        }
-    }
-
-    if (!descricaoEncontrada && matchNotifParaDe && matchNotifParaDe[1]) {
-        const cand = matchNotifParaDe[1].trim();
-        if (!/^(NUBANK|CART[AÃ]O|SICREDI|ITA[UÚ]|BRADESCO|SANTANDER|INTER|BANCO|OUROCARD|CAIXA|C6)\b/i.test(cand)) {
-            descricaoEncontrada = cand;
-        }
-    }
-
-    const regexFavorecido = [
-        /(?:DESTINATARIO|RECEBEDOR|NOME DO BENEFICIARIO|BENEFICIARIO|PAGO A|PARA|ESTABELECIMENTO|RAZAO SOCIAL|NOME FANTASIA)[\s:]*([^\n\r,]+)/i,
-        /(?:DEBITADO DE|CONTA ORIGEM|EMPRESA)[\s:]*([^\n\r,]+)/i
-    ];
-
-    if (!descricaoEncontrada) {
-        for (let r of regexFavorecido) {
-            const match = texto.match(r);
-            if (match && match[1] && match[1].trim().length > 2) {
-                descricaoEncontrada = match[1].trim().replace(/^[:\-\s]+/, '');
-                break;
-            }
-        }
-    }
-
-    // Estabelecimentos populares brasileiros
-    if (!descricaoEncontrada) {
-        const estabelecimentosComuns = [
-            'MERCADO LIVRE', 'SUPERMERCADO', 'POSTO', 'SHELL', 'IPIRANGA', 'PETROBRAS',
-            'FARMACIA', 'DROGASIL', 'DROGA RAIA', 'PAGUE MENOS', 'PADARIA', 'RESTAURANTE',
-            'UBER', 'IFOOD', 'NETFLIX', 'SPOTIFY', 'AMAZON', 'ENEL', 'SABESP', 'COPASA',
-            'COPEL', 'SANEPAR', 'VIVO', 'CLARO', 'TIM', 'PAGSEGURO', 'PICPAY'
-        ];
-        for (let est of estabelecimentosComuns) {
-            if (textoLimpo.includes(est)) {
-                descricaoEncontrada = est.charAt(0) + est.slice(1).toLowerCase();
-                break;
-            }
-        }
-    }
-
-    // Limpeza de ruídos no estabelecimento
-    if (descricaoEncontrada) {
+    // 5. ESTABELECIMENTO / BENEFICIÁRIO / DESCRIÇÃO REAL
+    descricaoEncontrada = extrairEstabelecimentoComprovante(texto, textoLimpo);
         descricaoEncontrada = descricaoEncontrada.replace(/^(COMPRA|D[EÉ]BITO|CR[EÉ]DITO|APROVADA|CART[AÃ]O|VISA|MASTERCARD)\s+/i, '');
         descricaoEncontrada = descricaoEncontrada.replace(/\s+(BR|PARANAVAI|CURITIBA|MARINGA|SP|RJ|PR)$/i, '');
         descricaoEncontrada = descricaoEncontrada.split(' ')
@@ -511,37 +595,34 @@ function interpretarTextoComprovante(texto, origem) {
     const inpDescOculto = document.getElementById('inputDescricao');
     const btnCustom = document.getElementById('btnAlternarNomeCustom');
 
-    if (selCat) {
-        let encontrouCat = false;
-        const descUpper = ocrNormalizarTexto(descricaoEncontrada || textoLimpo);
-        
-        for (let i = 0; i < selCat.options.length; i++) {
-            const optVal = selCat.options[i].value;
-            if (!optVal) continue;
-            const optNorm = ocrNormalizarTexto(optVal);
-            if (descUpper.includes(optNorm) || (descricaoEncontrada && optNorm.includes(descUpper))) {
-                selCat.selectedIndex = i;
-                encontrouCat = true;
-                if (typeof aoSelecionarCategoriaPredefinida === 'function') {
-                    aoSelecionarCategoriaPredefinida(optVal);
-                }
-                camposPreenchidos.push("Categoria: " + optVal);
-                break;
-            }
+    if (descricaoEncontrada) {
+        // Prioriza o nome real do estabelecimento preenchido diretamente no campo de descrição
+        if (inpDescCustom) {
+            inpDescCustom.value = descricaoEncontrada;
+            inpDescCustom.style.display = 'block';
         }
+        if (inpDescOculto) inpDescOculto.value = descricaoEncontrada;
+        if (selCat) selCat.style.display = 'none';
+        if (btnCustom) btnCustom.innerHTML = '<span>📋</span> Usar Lista';
+        camposPreenchidos.push("Nome: " + descricaoEncontrada);
 
-        // Se não casou na lista predefinida mas encontrou o nome do estabelecimento,
-        // exibe no campo de digitação personalizada com destaque
-        if (!encontrouCat && descricaoEncontrada) {
-            if (inpDescCustom) {
-                inpDescCustom.value = descricaoEncontrada;
-                inpDescCustom.style.display = 'block';
+        // Se houver categoria compatível (ex: Supermercado para Supermercado Guguy), seleciona a categoria
+        if (selCat) {
+            const descNorm = ocrNormalizarTexto(descricaoEncontrada);
+            for (let i = 0; i < selCat.options.length; i++) {
+                const optVal = selCat.options[i].value;
+                if (!optVal) continue;
+                const optNorm = ocrNormalizarTexto(optVal);
+                if (optNorm.length >= 4 && (descNorm.includes(optNorm) || optNorm.includes(descNorm))) {
+                    selCat.selectedIndex = i;
+                    break;
+                }
             }
-            if (selCat) selCat.style.display = 'none';
-            if (btnCustom) btnCustom.innerHTML = '<span>📋</span> Usar Lista';
-            if (inpDescOculto) inpDescOculto.value = descricaoEncontrada;
-            camposPreenchidos.push("Nome: " + descricaoEncontrada);
         }
+    } else if (selCat) {
+        // Sem estabelecimento detectado, mantém lista limpa sem escolher termos aleatórios
+        if (inpDescCustom) inpDescCustom.value = '';
+        if (inpDescOculto) inpDescOculto.value = '';
     }
 
     // Casamento de Conta Bancária ou Cartão de Crédito
@@ -711,28 +792,13 @@ window.processarArquivoComprovanteExpresso = processarArquivoComprovanteExpresso
 async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', origem = '') {
     const textoLimpo = ocrNormalizarTexto(texto);
 
-    // 1. EXTRAÇÃO DE VALOR
+    // 1. EXTRAÇÃO DE VALOR ROBUSTA
     let valorNum = 0;
     let valorFmt = "R$ 0,00";
-    const regexValores = [
-        /(?:VALOR\s*PAGO|VALOR\s*TOTAL|TOTAL\s*A\s*PAGAR|TOTAL|VALOR\s*DA\s*TRANSACAO|VALOR\s*LIQUIDO|VALOR)[\s:]*R?\$?\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i,
-        /R\$\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i,
-        /([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})\s*(?:BRL|REAIS)/i,
-        /R\$\s*([0-9]+,[0-9]{2})/i,
-        /(?:TOTAL|VALOR|R\$)[\s:]*([0-9]+\.[0-9]{2})/i
-    ];
-
-    for (let r of regexValores) {
-        const m = texto.match(r);
-        if (m && m[1]) {
-            let s = m[1].replace(/\./g, '').replace(',', '.');
-            let v = parseFloat(s);
-            if (!isNaN(v) && v > 0) {
-                valorNum = v;
-                valorFmt = formatBRL(v);
-                break;
-            }
-        }
+    const resVal = extrairValorComprovante(texto);
+    if (resVal) {
+        valorNum = resVal.numero;
+        valorFmt = formatBRL(valorNum);
     }
 
     // 2. EXTRAÇÃO DE DATA E HORA
@@ -797,6 +863,7 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
     const obsTextoFinal = dadosComprovanteArr.join(' • ');
 
     // 3. OPERAÇÃO E TIPO DE GASTO
+    const isAlimentacao = /\b(ALELO|SODEXO|PLUXEE|TICKET|VR|FLASH|CAJU|SWILE|VALE\s+ALIMENTACAO|VALE\s+REFEICAO|ALIMENTACAO|REFEICAO)\b/i.test(textoLimpo);
     const isDebito = /\b(DEBITO|COMPRA\s+DEBITO|NO\s+DEBITO|CARTAO\s+DE\s+DEBITO)\b/i.test(textoLimpo);
     const isCredito = (parcelasDetectadas > 1) || /\b(CREDITO|COMPRA\s+CREDITO|NO\s+CREDITO|CARTAO\s+DE\s+CREDITO|FATURA|PARCELADO)\b/i.test(textoLimpo);
     const isBoleto = /\b(BOLETO|PAGAMENTO\s+DE\s+CONTA|CODIGO\s+DE\s+BARRAS|LINHA\s+DIGITAVEL)\b/i.test(textoLimpo);
@@ -807,7 +874,11 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
     let badgeTitulo = "Débito em Conta";
     let badgeCor = "#10B981";
 
-    if (isCredito) {
+    if (isAlimentacao) {
+        tipoGasto = "Cartão Alimentação";
+        badgeTitulo = "Cartão Alimentação";
+        badgeCor = "#F97316";
+    } else if (isCredito) {
         tipoGasto = "Cartão de Crédito";
         badgeTitulo = "Cartão de Crédito";
         badgeCor = "#A78BFA";
@@ -826,45 +897,9 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
     }
 
     // 4. ESTABELECIMENTO / BENEFICIÁRIO
-    let estabelecimento = "";
-    const matchSicredi = texto.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|SP|PR|RJ|BR|R\$|-|\d{4}))/i);
-    if (matchSicredi && matchSicredi[1]) {
-        estabelecimento = matchSicredi[1].trim();
-    }
-
+    let estabelecimento = extrairEstabelecimentoComprovante(texto, textoLimpo);
     if (!estabelecimento) {
-        const matchEm = texto.match(/\bem\s+([A-Za-z0-9\s\.\-_&]{3,35})(?:[\.\-,]|$)/i) || texto.match(/\b(?:em|na|no)\s+([A-Za-z0-9\s\.\-_&]{3,35})(?:[\.\-,]|$)/i);
-        if (matchEm && matchEm[1]) {
-            const cand = matchEm[1].trim();
-            if (!/^(NUBANK|CART[AÃ]O|SICREDI|ITA[UÚ]|BRADESCO|SANTANDER|INTER|BANCO|OUROCARD|CAIXA|C6)\b/i.test(cand)) {
-                estabelecimento = cand;
-            }
-        }
-    }
-
-    if (!estabelecimento) {
-        const regexFav = [
-            /(?:DESTINATARIO|RECEBEDOR|NOME DO BENEFICIARIO|BENEFICIARIO|PAGO A|PARA|ESTABELECIMENTO|RAZAO SOCIAL|NOME FANTASIA)[\s:]*([^\n\r,]+)/i,
-            /(?:DEBITADO DE|CONTA ORIGEM|EMPRESA)[\s:]*([^\n\r,]+)/i
-        ];
-        for (let r of regexFav) {
-            const m = texto.match(r);
-            if (m && m[1] && m[1].trim().length > 2) {
-                estabelecimento = m[1].trim().replace(/^[:\-\s]+/, '');
-                break;
-            }
-        }
-    }
-
-    if (estabelecimento) {
-        estabelecimento = estabelecimento.replace(/^(COMPRA|D[EÉ]BITO|CR[EÉ]DITO|APROVADA|CART[AÃ]O|VISA|MASTERCARD)\s+/i, '');
-        estabelecimento = estabelecimento.replace(/\s+(BR|PARANAVAI|CURITIBA|SP|RJ|PR)$/i, '');
-        estabelecimento = estabelecimento.split(' ')
-            .filter(Boolean)
-            .map(p => p.length > 2 ? (p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()) : p.toUpperCase())
-            .join(' ');
-    } else {
-        estabelecimento = isCredito ? "Compra no Cartão" : (isBoleto ? "Pagamento de Boleto" : "Pagamento / Compra");
+        estabelecimento = isAlimentacao ? "Compra Alimentação" : (isCredito ? "Compra no Cartão" : (isBoleto ? "Pagamento de Boleto" : "Pagamento / Compra"));
     }
 
     // 5. BANCO OU CARTÃO

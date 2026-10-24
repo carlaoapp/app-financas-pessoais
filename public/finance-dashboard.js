@@ -1181,34 +1181,41 @@ window.renderizarSelectCategorias = renderizarSelectCategorias;
 // GERENCIADOR DE TIPOS DE MOVIMENTAÇÃO (CUSTOMIZÁVEIS PELO USUÁRIO)
 // ==================================================================
 const TIPOS_GASTO_PADRAO_SISTEMA = [
+    // Despesas
     "Despesa Variável",
     "Despesa Fixa",
-    "Conta a Pagar (Gaveta)",
-    "Receita",
-    "Investimento",
-    "Reserva de Emergência (Guardar)",
-    "Resgate de Reserva (Usar)",
     "Cartão de Crédito",
+    "Cartão Alimentação",
+    "Conta a Pagar",
     "Empréstimo",
-    "Lista de Desejos"
+    "Lista de Desejos",
+    // Receitas
+    "Receita",
+    "Planejamento Renda Extra",
+    "Resgate de Reserva",
+    // Investimentos & Reservas
+    "Investimento",
+    "Reserva de Emergência"
 ];
 
 let indiceTipoGastoEmEdicao = -1;
 
 function obterTiposGastoCustomizados() {
+    let lista = [...TIPOS_GASTO_PADRAO_SISTEMA];
     try {
         const salvas = localStorage.getItem('finance_tipos_gasto_custom');
         if (salvas) {
             const parsed = JSON.parse(salvas);
-            if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+            if (Array.isArray(parsed) && parsed.length > 0) {
+                const setTipos = new Set(parsed);
+                TIPOS_GASTO_PADRAO_SISTEMA.forEach(t => setTipos.add(t));
+                lista = Array.from(setTipos);
+            }
         }
     } catch (e) {
         console.error('Erro ao ler tipos de movimentação do localStorage:', e);
     }
-    try {
-        localStorage.setItem('finance_tipos_gasto_custom', JSON.stringify(TIPOS_GASTO_PADRAO_SISTEMA));
-    } catch (e) {}
-    return [...TIPOS_GASTO_PADRAO_SISTEMA];
+    return lista;
 }
 
 function salvarTiposGastoCustomizados(lista) {
@@ -1226,7 +1233,60 @@ function renderizarSelectTiposGasto() {
     if (!sel) return;
     const lista = obterTiposGastoCustomizados();
     const valAtual = sel.value;
-    sel.innerHTML = lista.map(tipo => `<option value="${tipo}">${tipo}</option>`).join('');
+
+    const grupos = {
+        '💸 Despesas': [
+            'Despesa Variável', 'Despesa Fixa', 'Cartão de Crédito', 
+            'Cartão Alimentação', 'Conta a Pagar', 'Conta a Pagar (Gaveta)', 
+            'Empréstimo', 'Lista de Desejos'
+        ],
+        '💰 Receitas': [
+            'Receita', 'Planejamento Renda Extra', 'Renda Extra', 
+            'Resgate de Reserva', 'Resgate de Reserva (Usar)'
+        ],
+        '📈 Investimentos & Reservas': [
+            'Investimento', 'Reserva de Emergência', 'Reserva de Emergência (Guardar)'
+        ]
+    };
+
+    let html = '';
+    const tiposAlocados = new Set();
+
+    for (const [nomeGrupo, itensGrupo] of Object.entries(grupos)) {
+        const itensPresentes = lista.filter(t => itensGrupo.includes(t));
+        if (itensPresentes.length > 0) {
+            html += `<optgroup label="${nomeGrupo}">`;
+            itensPresentes.forEach(t => {
+                tiposAlocados.add(t);
+                let label = t;
+                if (t === 'Cartão Alimentação') label = '🍽️ Cartão Alimentação / Benefício';
+                else if (t === 'Cartão de Crédito') label = '💳 Cartão de Crédito';
+                else if (t === 'Conta a Pagar' || t === 'Conta a Pagar (Gaveta)') label = '📂 Conta a Pagar (Gaveta)';
+                else if (t === 'Planejamento Renda Extra') label = '⚡ Planejamento Renda Extra';
+                else if (t === 'Resgate de Reserva' || t === 'Resgate de Reserva (Usar)') label = '🔓 Resgate de Reserva (Usar)';
+                else if (t === 'Reserva de Emergência' || t === 'Reserva de Emergência (Guardar)') label = '🛡️ Reserva de Emergência (Guardar)';
+                else if (t === 'Investimento') label = '📈 Investimento';
+                else if (t === 'Receita') label = '💰 Receita';
+                else if (t === 'Despesa Fixa') label = '📌 Despesa Fixa';
+                else if (t === 'Despesa Variável') label = '🛒 Despesa Variável';
+                else if (t === 'Empréstimo') label = '🤝 Empréstimo';
+                else if (t === 'Lista de Desejos') label = '🎁 Lista de Desejos';
+                html += `<option value="${t}">${label}</option>`;
+            });
+            html += `</optgroup>`;
+        }
+    }
+
+    const outros = lista.filter(t => !tiposAlocados.has(t));
+    if (outros.length > 0) {
+        html += `<optgroup label="✨ Outros Tipos Customizados">`;
+        outros.forEach(t => {
+            html += `<option value="${t}">${t}</option>`;
+        });
+        html += `</optgroup>`;
+    }
+
+    sel.innerHTML = html;
     if (valAtual && lista.includes(valAtual)) {
         sel.value = valAtual;
     } else if (lista.length > 0) {

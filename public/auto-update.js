@@ -1,11 +1,13 @@
 // auto-update.js - Notificação e Aplicação Automática de Atualização Confiável
 
-// Identifica a versão REAL atualmente executada e renderizada no navegador (NUNCA usa localStorage como fallback)
+// Identifica a versão REAL atualmente executada e renderizada no navegador
 function getCurrentRunningVersion() {
     const meta = document.querySelector('meta[name="app-build-version"]');
     if (meta && meta.content) return meta.content.trim();
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
-    return '1.8.0';
+    const stored = localStorage.getItem('app_current_version');
+    if (stored) return stored.trim();
+    return '1.8.27';
 }
 
 function isNewerVersion(serverVer, currentVer) {
@@ -64,9 +66,9 @@ async function checkAppVersion(isManual = false) {
         return;
     }
 
-    // Trava anti-loop: se acabou de atualizar há menos de 12 segundos, aguarda estabilizar
+    // Trava anti-loop: se acabou de atualizar há menos de 15 segundos, aguarda estabilizar
     const lastApplied = parseInt(sessionStorage.getItem('update_applied_at') || '0', 10);
-    if (!isManual && (Date.now() - lastApplied < 12000)) {
+    if (!isManual && (Date.now() - lastApplied < 15000)) {
         return;
     }
 
@@ -100,19 +102,22 @@ async function checkAppVersion(isManual = false) {
         if (isNewerVersion(serverVersion, currentVersion)) {
             // Sinaliza na badge do cabeçalho de forma discreta
             atualizarBadgeVersao(currentVersion, true, serverVersion);
-            // Exibe o banner apenas se não foi dispensado
-            if (isManual || !sessionStorage.getItem('banner_dismissed_' + serverVersion)) {
+            // Exibe o banner apenas se não foi dispensado nesta sessão e não está no processo de update
+            const dismissed = sessionStorage.getItem('banner_dismissed_' + serverVersion);
+            const updatingTo = sessionStorage.getItem('updating_to_' + serverVersion);
+            if (isManual || (!dismissed && !updatingTo)) {
                 showUpdateBanner(serverVersion, currentVersion);
             }
         } else {
-            // Versão atualizada - limpa travas antigas de sessão
+            // Versão atualizada - sincroniza no storage e limpa banners
+            localStorage.setItem('app_current_version', serverVersion);
             sessionStorage.removeItem('updating_to_' + currentVersion);
             sessionStorage.removeItem('banner_dismissed_' + currentVersion);
             sessionStorage.removeItem('updating_app');
-            atualizarBadgeVersao(currentVersion, false);
+            atualizarBadgeVersao(serverVersion, false);
             dismissUpdateBanner();
             if (isManual && typeof showToast === 'function') {
-                showToast(`✅ Você já está utilizando a versão mais recente (v${currentVersion})!`);
+                showToast(`✅ Você já está utilizando a versão mais recente (v${serverVersion})!`);
             }
         }
     } catch (error) {
@@ -194,7 +199,9 @@ function showUpdateBanner(newVersion, currentVersion) {
 async function applyAppUpdate(newVersion) {
     sessionStorage.setItem('update_applied_at', String(Date.now()));
     if (newVersion) {
+        localStorage.setItem('app_current_version', newVersion);
         sessionStorage.setItem('updating_to_' + newVersion, 'true');
+        sessionStorage.setItem('banner_dismissed_' + newVersion, 'true');
         sessionStorage.setItem('just_updated', newVersion);
     }
     sessionStorage.setItem('updating_app', 'true');
@@ -314,8 +321,8 @@ window.addEventListener('DOMContentLoaded', () => {
     // 4. Checa versão no servidor logo no início
     setTimeout(() => checkAppVersion(false), 800);
 
-    // 5. Checa a cada 10 segundos
-    setInterval(() => checkAppVersion(false), 10000);
+    // 5. Checa a cada 5 minutos (evita sobrecarga e popups repetitivos)
+    setInterval(() => checkAppVersion(false), 300000);
 
     // 6. Checa ao retornar à aba / focar
     document.addEventListener('visibilitychange', () => {

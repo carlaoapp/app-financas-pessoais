@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>APP Finanças Pessoais</title>
-    <meta name="app-build-version" content="1.8.21">
+    <meta name="app-build-version" content="1.8.27">
     <script>
-        window.APP_BUILD_VERSION = '1.8.21';
+        window.APP_BUILD_VERSION = '1.8.27';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -1319,17 +1318,24 @@
                         </button>
                     </div>
                     <select id="inputTipoGasto" required onchange="aoMudarTipoGastoLancamento(this.value)" style="width: 100%; height: 44px; background: #1E293B; border: 1.5px solid #3B82F6; color: #FFFFFF; font-weight: 600; padding: 0 12px; border-radius: 10px; font-size: 0.92rem; box-sizing: border-box;">
-                        <option value="Despesa Variável">Despesa Variável</option>
-                        <option value="Despesa Fixa">Despesa Fixa</option>
-                        <option value="Conta a Pagar">Conta a Pagar (Gaveta)</option>
-                        <option value="Receita">Receita</option>
-                        <option value="Investimento">Investimento</option>
-                        <option value="Reserva de Emergência">Reserva de Emergência (Guardar)</option>
-                        <option value="Resgate de Reserva">Resgate de Reserva (Usar)</option>
-                        <option value="Cartão de Crédito">Cartão de Crédito</option>
-                        <option value="Cartão Alimentação">Cartão Alimentação / Benefício</option>
-                        <option value="Empréstimo">Empréstimo</option>
-                        <option value="Lista de Desejos">Lista de Desejos</option>
+                        <optgroup label="💸 Despesas">
+                            <option value="Despesa Variável">🛒 Despesa Variável</option>
+                            <option value="Despesa Fixa">📌 Despesa Fixa</option>
+                            <option value="Cartão de Crédito">💳 Cartão de Crédito</option>
+                            <option value="Cartão Alimentação">🍽️ Cartão Alimentação / Benefício</option>
+                            <option value="Conta a Pagar">📂 Conta a Pagar (Gaveta)</option>
+                            <option value="Empréstimo">🤝 Empréstimo</option>
+                            <option value="Lista de Desejos">🎁 Lista de Desejos</option>
+                        </optgroup>
+                        <optgroup label="💰 Receitas">
+                            <option value="Receita">💰 Receita</option>
+                            <option value="Planejamento Renda Extra">⚡ Planejamento Renda Extra</option>
+                            <option value="Resgate de Reserva">🔓 Resgate de Reserva (Usar)</option>
+                        </optgroup>
+                        <optgroup label="📈 Investimentos & Reservas">
+                            <option value="Investimento">📈 Investimento</option>
+                            <option value="Reserva de Emergência">🛡️ Reserva de Emergência (Guardar)</option>
+                        </optgroup>
                     </select>
                 </div>
 
