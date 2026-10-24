@@ -315,18 +315,18 @@ async function carregarCartoesEContas() {
                         `}
                     </div>
 
-                    <div style="display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 12px;">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 12px;">
                         ${isDebito ? `
-                        <button type="button" onclick="ajustarSaldoConta('${cartao.id}')" style="flex: 2; height: 38px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <button type="button" onclick="ajustarSaldoConta('${cartao.id}')" style="height: 40px; background: linear-gradient(135deg, #2563EB, #1D4ED8); border: none; color: #FFFFFF; border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(37,99,235,0.35); transition: all 0.2s;">
                             <span>💰</span> Ajustar Saldo
                         </button>
                         ` : `
-                        <button type="button" onclick="pagarFaturaCartao('${cartao.id}')" style="flex: 2; height: 38px; background: #10B981; color: #0F172A; border: none; border-radius: 8px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
+                        <button type="button" onclick="pagarFaturaCartao('${cartao.id}')" style="height: 40px; background: linear-gradient(135deg, #10B981, #059669); color: #FFFFFF; border: none; border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(16,185,129,0.35); transition: all 0.2s;">
                             <span>💵</span> Pagar Fatura
                         </button>
                         `}
-                        <button type="button" onclick="abrirModalGerenciarConta('${cartao.id}')" style="flex: 1; height: 38px; background: rgba(255,255,255,0.15); color: white; border: 1px solid rgba(255,255,255,0.25); border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer;">
-                            ✏️ Editar
+                        <button type="button" onclick="abrirModalGerenciarConta('${cartao.id}')" style="height: 40px; background: rgba(255,255,255,0.12); color: #FFFFFF; border: 1.5px solid rgba(255,255,255,0.28); border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                            <span>✏️</span> Editar
                         </button>
                     </div>
                 `;
@@ -417,12 +417,12 @@ async function carregarCartoesEContas() {
                             </div>
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 10px;">
-                        <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="flex: 2; height: 36px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: #FFFFFF; border-radius: 8px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
-                            <span>💰</span> Recarga / Ajustar Saldo
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 12px;">
+                        <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="height: 40px; background: linear-gradient(135deg, #EA580C, #C2410C); color: #FFFFFF; border: none; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(234,88,12,0.35); transition: all 0.2s;">
+                            <span>💰</span> Ajustar Saldo
                         </button>
-                        <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="flex: 1; height: 36px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.2); color: #CBD5E1; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
-                            ✏️ Editar
+                        <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="height: 40px; background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.28); color: #FFFFFF; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                            <span>✏️</span> Editar
                         </button>
                     </div>
                 `;
@@ -517,12 +517,12 @@ async function carregarCartoesEContas() {
                             ` : ''}
                         </div>
                     </div>
-                    <div style="display: flex; gap: 8px;">
-                        <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="flex: 2; height: 34px; background: rgba(59, 130, 246, 0.15); border: 1px solid #3B82F6; color: #93C5FD; border-radius: 7px; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
-                            💰 Ajustar Saldo
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
+                        <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="height: 40px; background: rgba(59, 130, 246, 0.15); border: 1.5px solid #3B82F6; color: #93C5FD; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                            <span>💰</span> Ajustar Saldo
                         </button>
-                        <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="flex: 1; height: 34px; background: #0F172A; border: 1px solid #334155; color: #CBD5E1; border-radius: 7px; font-weight: 700; font-size: 0.78rem; cursor: pointer;">
-                            ✏️ Editar
+                        <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="height: 40px; background: rgba(255,255,255,0.06); border: 1.5px solid #334155; color: #E2E8F0; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                            <span>✏️</span> Editar
                         </button>
                     </div>
                 `;
@@ -1062,40 +1062,45 @@ function aoMudarTipoContaForm() {
     const lblSaldo = document.getElementById('lblContaSaldo');
     const tit = document.getElementById('tituloModalConta');
 
+    const setDisp = (el, val) => {
+        if (!el) return;
+        el.style.setProperty('display', val, 'important');
+    };
+
     if (tipo === 'Cartão de Crédito') {
-        if (grpLimite) grpLimite.style.display = 'block';
+        setDisp(grpLimite, 'block');
         if (lblLimite) lblLimite.innerText = '💳 Limite do Cartão';
-        if (grpSaldo) grpSaldo.style.display = 'none';
-        if (grpPrazos) grpPrazos.style.display = 'flex';
+        setDisp(grpSaldo, 'none');
+        setDisp(grpPrazos, 'flex');
         if (ico) ico.innerText = '💳';
         if (tit && !window.cartaoEmEdicaoId) tit.innerText = "Cadastrar Cartão de Crédito";
     } else if (tipo === 'Conta Corrente') {
-        if (grpLimite) grpLimite.style.display = 'block';
+        setDisp(grpLimite, 'block');
         if (lblLimite) lblLimite.innerText = '🛡️ Limite Cheque Especial';
-        if (grpSaldo) grpSaldo.style.display = 'block';
-        if (grpPrazos) grpPrazos.style.display = 'none';
+        setDisp(grpSaldo, 'block');
+        setDisp(grpPrazos, 'none');
         if (lblSaldo) lblSaldo.innerText = 'Saldo Atual em Conta';
         if (ico) ico.innerText = '🏦';
         if (tit && !window.cartaoEmEdicaoId) tit.innerText = "Cadastrar Conta Corrente";
     } else if (tipo === 'Conta Poupança' || tipo === 'Conta Salário') {
-        if (grpLimite) grpLimite.style.display = 'none';
-        if (grpSaldo) grpSaldo.style.display = 'block';
-        if (grpPrazos) grpPrazos.style.display = 'none';
+        setDisp(grpLimite, 'none');
+        setDisp(grpSaldo, 'block');
+        setDisp(grpPrazos, 'none');
         if (lblSaldo) lblSaldo.innerText = 'Saldo Atual em Conta';
         if (ico) ico.innerText = '🏦';
         if (tit && !window.cartaoEmEdicaoId) tit.innerText = `Cadastrar ${tipo}`;
     } else if (tipo === 'Cartão Alimentação' || tipo === 'Cartão de Débito') {
-        if (grpLimite) grpLimite.style.display = 'none';
-        if (grpSaldo) grpSaldo.style.display = 'block';
-        if (grpPrazos) grpPrazos.style.display = 'none';
+        setDisp(grpLimite, 'none');
+        setDisp(grpSaldo, 'block');
+        setDisp(grpPrazos, 'none');
         if (lblSaldo) lblSaldo.innerText = 'Saldo Disponível no Cartão';
         if (ico) ico.innerText = (tipo === 'Cartão Alimentação') ? '🍽️' : '💳';
         if (tit && !window.cartaoEmEdicaoId) tit.innerText = (tipo === 'Cartão Alimentação') ? "Cadastrar Cartão Alimentação" : "Cadastrar Cartão de Débito";
     } else {
         // Outros tipos customizados
-        if (grpLimite) grpLimite.style.display = 'none';
-        if (grpSaldo) grpSaldo.style.display = 'block';
-        if (grpPrazos) grpPrazos.style.display = 'none';
+        setDisp(grpLimite, 'none');
+        setDisp(grpSaldo, 'block');
+        setDisp(grpPrazos, 'none');
         if (lblSaldo) lblSaldo.innerText = 'Saldo Atual em Conta';
         if (ico) ico.innerText = '🏦';
         if (tit && !window.cartaoEmEdicaoId) tit.innerText = `Cadastrar ${tipo}`;
