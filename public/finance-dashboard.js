@@ -4953,8 +4953,8 @@ function renderizarExtratoCompleto() {
     const container = document.getElementById('listaExtratoContainer');
     if (!container) return;
     
-    // Os gastos do Cartão Alimentação são gerenciados exclusivamente pelo card do próprio cartão em 'Cartões & Bancos'
-    let itens = (window.currentMesItens || []).filter(i => i.tipo_gasto !== 'Cartão Alimentação');
+    // Os gastos do Cartão Alimentação e do Cartão de Crédito são gerenciados exclusivamente pelos cards dedicados
+    let itens = (window.currentMesItens || []).filter(i => i.tipo_gasto !== 'Cartão Alimentação' && i.tipo_gasto !== 'Cartão de Crédito');
     if (window.extratoFiltroAtual === 'receitas') {
         itens = itens.filter(i => i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
     } else if (window.extratoFiltroAtual === 'despesas') {
@@ -4999,7 +4999,11 @@ function renderizarExtratoCompleto() {
     }
     
     if (itens.length === 0) {
-        container.innerHTML += '<p style="text-align:center; color:#94A3B8; padding: 2.5rem 1rem;">Nenhum lançamento encontrado para os filtros selecionados.</p>';
+        if (comprasCartaoMes.length > 0 && (!window.extratoFiltroAtual || window.extratoFiltroAtual === 'todos' || window.extratoFiltroAtual === 'despesas')) {
+            container.innerHTML += '<p style="text-align:center; color:#94A3B8; padding: 2rem 1rem; font-size: 0.88rem;">Não há outras despesas ou receitas avulsas neste mês.<br><span style="font-size: 0.80rem; color: #64748B;">As compras do cartão estão consolidadas no card acima e detalhadas na aba <strong>Cartões & Bancos</strong>.</span></p>';
+        } else {
+            container.innerHTML += '<p style="text-align:center; color:#94A3B8; padding: 2.5rem 1rem;">Nenhum lançamento encontrado para os filtros selecionados.</p>';
+        }
         return;
     }
     
