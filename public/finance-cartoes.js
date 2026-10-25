@@ -735,16 +735,34 @@ async function carregarCartoesEContas() {
                     iconeConta = '📈';
                 }
 
+                // Cor do cartão / conta bancária (segue o padrão visual vibrante dos cartões de crédito e alimentação)
+                let corConta = c.cor_cartao;
+                const nomeComp = ((c.nome_conta || '') + ' ' + (c.banco || '')).toLowerCase();
+                if (!corConta || corConta === '#2563EB') {
+                    if (nomeComp.includes('sicredi')) corConta = '#059669';
+                    else if (nomeComp.includes('nubank')) corConta = '#7C3AED';
+                    else if (nomeComp.includes('inter')) corConta = '#EA580C';
+                    else if (nomeComp.includes('santander')) corConta = '#DC2626';
+                    else if (nomeComp.includes('picpay')) corConta = '#10B981';
+                    else if (nomeComp.includes('caixa')) corConta = '#0284C7';
+                    else if (nomeComp.includes('brasil') || nomeComp.includes('bb')) corConta = '#2563EB';
+                    else if (nomeComp.includes('itau') || nomeComp.includes('itaú')) corConta = '#EA580C';
+                    else corConta = c.cor_cartao || '#2563EB';
+                }
+
                 const cardC = document.createElement('div');
                 cardC.style.cssText = `
-                    background: #1E293B;
-                    border: 1.5px solid ${isNeg ? '#EF4444' : '#334155'};
+                    background: linear-gradient(135deg, ${corConta}ee 0%, #0F172A 88%);
+                    border: 1.5px solid ${isNeg ? '#EF4444' : corConta};
                     border-radius: 16px;
                     padding: 18px;
                     display: flex;
                     flex-direction: column;
                     justify-content: space-between;
-                    box-shadow: ${isNeg ? '0 4px 18px rgba(239, 68, 68, 0.18)' : '0 4px 12px rgba(0,0,0,0.25)'};
+                    color: white;
+                    box-shadow: ${isNeg ? '0 8px 24px rgba(239, 68, 68, 0.32)' : '0 8px 22px rgba(0,0,0,0.45)'};
+                    position: relative;
+                    overflow: hidden;
                     transition: all 0.2s;
                 `;
                 cardC.innerHTML = `
@@ -752,54 +770,54 @@ async function carregarCartoesEContas() {
                         <!-- Cabeçalho Organizado: Nome da Conta + Única Tag do Tipo Escolhido -->
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; margin-bottom: 14px;">
                             <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
-                                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(59, 130, 246, 0.12); border: 1.5px solid rgba(59, 130, 246, 0.25); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
+                                <div style="width: 38px; height: 38px; border-radius: 10px; background: rgba(0, 0, 0, 0.35); border: 1.5px solid rgba(255, 255, 255, 0.2); display: flex; align-items: center; justify-content: center; font-size: 1.25rem; flex-shrink: 0;">
                                     ${iconeConta}
                                 </div>
                                 <div style="min-width: 0;">
                                     <div style="font-weight: 800; color: #FFFFFF; font-size: 1.05rem; letter-spacing: 0.3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${nomeLimpo}">
                                         ${nomeLimpo}
                                     </div>
-                                    ${c.titular ? `<div style="font-size: 0.74rem; color: #94A3B8; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px;"><span>👤</span> ${c.titular}</div>` : ''}
+                                    ${c.titular ? `<div style="font-size: 0.74rem; color: #E2E8F0; opacity: 0.88; font-weight: 600; display: flex; align-items: center; gap: 4px; margin-top: 2px;"><span>👤</span> ${c.titular}</div>` : ''}
                                 </div>
                             </div>
                             <div style="flex-shrink: 0;">
-                                <span style="font-size: 0.74rem; color: ${corBadgeTipo}; background: ${bgBadgeTipo}; border: 1.5px solid ${borderBadgeTipo}; padding: 3px 9px; border-radius: 7px; font-weight: 700; white-space: nowrap;">
+                                <span style="font-size: 0.72rem; color: #FFFFFF; background: rgba(0,0,0,0.45); border: 1px solid rgba(255,255,255,0.22); padding: 3px 9px; border-radius: 6px; font-weight: 700; white-space: nowrap;">
                                     ${c.tipo_conta}
                                 </span>
                             </div>
                         </div>
 
                         <!-- Caixa de Saldo Ampla e Destacada -->
-                        <div style="background: rgba(15, 23, 42, 0.55); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;">
+                        <div style="background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px;">
                             <div style="display: flex; justify-content: space-between; align-items: center;">
-                                <span style="font-size: 0.72rem; color: ${isNeg ? '#FCA5A5' : '#94A3B8'}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;">
+                                <span style="font-size: 0.72rem; color: ${isNeg ? '#FCA5A5' : '#CBD5E1'}; font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px;">
                                     ${isNeg ? '⚠️ Saldo Negativo (Cheque Especial)' : 'Saldo Atual em Conta'}
                                 </span>
-                                ${isSicredi ? '<span style="font-size: 0.68rem; background: rgba(16,185,129,0.18); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.3); padding: 1px 6px; border-radius: 5px; font-weight: 700;">Principal</span>' : ''}
+                                ${isSicredi ? '<span style="font-size: 0.68rem; background: rgba(16,185,129,0.25); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.4); padding: 1px 6px; border-radius: 5px; font-weight: 700;">Principal</span>' : ''}
                             </div>
-                            <div style="font-size: 1.55rem; font-weight: 900; color: ${sal >= 0 ? '#10B981' : '#EF4444'}; margin-top: 4px; letter-spacing: -0.5px;">
+                            <div style="font-size: 1.55rem; font-weight: 900; color: ${sal >= 0 ? '#10B981' : '#F87171'}; margin-top: 4px; letter-spacing: -0.5px;">
                                 ${formatBRL(sal)}
                             </div>
                             ${limCheque > 0 ? `
-                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; color: #94A3B8; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.08);">
+                                <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; color: #CBD5E1; margin-top: 8px; padding-top: 8px; border-top: 1px dashed rgba(255,255,255,0.12);">
                                     <span>🛡️ Cheque Especial: <strong style="color: #A78BFA;">${formatBRL(limCheque)}</strong></span>
-                                    <span>Disp: <strong style="color: ${sal + limCheque >= 0 ? '#60A5FA' : '#EF4444'};">${formatBRL(sal + limCheque)}</strong></span>
+                                    <span>Disp: <strong style="color: ${sal + limCheque >= 0 ? '#6EE7B7' : '#F87171'};">${formatBRL(sal + limCheque)}</strong></span>
                                 </div>
                             ` : ''}
                         </div>
 
                         <!-- Lista de Lançamentos da Conta -->
-                        <div style="margin-bottom: 14px; background: rgba(15, 23, 42, 0.35); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px 12px;">
-                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; font-weight: 700; color: #94A3B8; margin-bottom: ${movsConta.length > 0 ? '6px' : '0'};">
+                        <div style="margin-bottom: 14px; background: rgba(0, 0, 0, 0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; font-weight: 700; color: #E2E8F0; margin-bottom: ${movsConta.length > 0 ? '6px' : '0'};">
                                 <span>📋 Lançamentos do Mês</span>
-                                <span style="background: rgba(255,255,255,0.08); padding: 1px 7px; border-radius: 10px; font-size: 0.7rem; color: #CBD5E1;">${movsConta.length}</span>
+                                <span style="background: rgba(255,255,255,0.12); padding: 1px 7px; border-radius: 10px; font-size: 0.7rem; color: #FFFFFF;">${movsConta.length}</span>
                             </div>
                             ${movsConta.length === 0 ? `
-                                <div style="font-size: 0.72rem; color: #64748B; text-align: center; padding: 4px 0;">Nenhuma movimentação neste mês</div>
+                                <div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 4px 0;">Nenhuma movimentação neste mês</div>
                             ` : `
                                 <div style="display: flex; flex-direction: column; gap: 5px; max-height: 110px; overflow-y: auto;">
                                     ${movsConta.map(item => `
-                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.04); padding: 4px 8px; border-radius: 6px;">
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 6px;">
                                             <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 170px;" title="${item.descricao}">${item.descricao}</span>
                                             <span style="color: ${item.tipo_gasto === 'Receita' ? '#10B981' : (item.tipo_gasto === 'Transferência Interna' ? '#38BDF8' : '#F87171')}; font-weight: 800; white-space: nowrap;">
                                                 ${item.tipo_gasto === 'Receita' ? '+ ' : (item.tipo_gasto === 'Transferência Interna' ? '⇄ ' : '- ')}${formatBRL(item.valor_total)}
@@ -810,14 +828,14 @@ async function carregarCartoesEContas() {
                             `}
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 12px;">
-                        <button type="button" onclick="abrirModalTransferenciaContas('${c.id}')" style="height: 38px; background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; border-radius: 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;" title="Transferir de ou para esta conta">
+                    <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 12px;">
+                        <button type="button" onclick="abrirModalTransferenciaContas('${c.id}')" style="height: 38px; background: rgba(255, 255, 255, 0.16); border: 1.5px solid rgba(255, 255, 255, 0.3); color: #FFFFFF; border-radius: 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;" title="Transferir de ou para esta conta">
                             <span>🔄</span> Transferir
                         </button>
-                        <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="height: 38px; background: rgba(59, 130, 246, 0.15); border: 1.5px solid #3B82F6; color: #93C5FD; border-radius: 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;" title="Ajustar saldo manualmente">
+                        <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="height: 38px; background: rgba(255, 255, 255, 0.12); border: 1.5px solid rgba(255, 255, 255, 0.25); color: #FFFFFF; border-radius: 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;" title="Ajustar saldo manualmente">
                             <span>💰</span> Saldo
                         </button>
-                        <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="height: 38px; background: rgba(255,255,255,0.06); border: 1.5px solid #334155; color: #E2E8F0; border-radius: 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;" title="Editar conta">
+                        <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="height: 38px; background: rgba(255, 255, 255, 0.08); border: 1.5px solid rgba(255, 255, 255, 0.2); color: #FFFFFF; border-radius: 10px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px; transition: all 0.2s;" title="Editar conta">
                             <span>✏️</span> Editar
                         </button>
                     </div>
