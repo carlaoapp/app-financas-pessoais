@@ -200,24 +200,45 @@ function formatarValorParaInput(val) {
 function extrairValorComprovante(texto) {
     if (!texto) return null;
 
-    const linhas = texto.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+    // 0. SANITIZAÇÃO PRÉVIA: Neutraliza blocos fiscais de TRIBUTOS / IBPT
+    // Em notas fiscais brasileiras (NFC-e / SAT / CF-e), tributos aparecem como:
+    // "Tributos Totais Incidentes (Lei Federal 12.741/2012) - Total R$ 10,66 - Federal : 41.84% R$ 4,46 ..."
+    // Esses valores parciais de impostos JAMAIS são o valor pago pelo consumidor!
+    let textoSanitizado = texto;
+
+    // Remove qualquer trecho que comece com Tributos/Impostos/Lei 12.741 até a fonte IBPT ou próxima seção
+    textoSanitizado = textoSanitizado.replace(
+        /(?:TRIBUTOS|IMPOSTOS?|VALOR(?:ES)?\s+APROX(?:IMADOS?)?(?:\s+DOS)?\s+TRIBUTOS|LEI\s+(?:FEDERAL\s+)?12\.?741)[^]{0,350}?(?:FONTE\s+IBPT|\(FONTE\s+IBPT\)|IBPT)/gi,
+        ' '
+    );
+
+    // Também anula qualquer número que esteja explicitamente associado a uma porcentagem de alíquota/imposto (ex: "41.84% R$ 4,46" ou "R$ 4,46 (41.84%)")
+    textoSanitizado = textoSanitizado.replace(/[0-9]+(?:[.,][0-9]+)?\s*%\s*R?\$?\s*[0-9]+(?:[.,][0-9]{2})/gi, ' ');
+    textoSanitizado = textoSanitizado.replace(/R?\$?\s*[0-9]+(?:[.,][0-9]{2})\s*(?:\([0-9]+(?:[.,][0-9]+)?\s*%\)|[0-9]+(?:[.,][0-9]+)?\s*%)/gi, ' ');
+
+    const linhas = textoSanitizado.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
 
     // Palavras que indicam TRIBUTOS, TROCO ou DESCONTOS - JAMAIS devem ser pegas como valor da compra!
-    const palavrasIgnorar = /\b(FEDERAL|ESTADUAL|MUNICIPAL|TRIBUTOS?|IMPOSTOS?|ICMS|ISS|PIS|COFINS|TROCO|DESCONTO|ABATIMENTO|DEVOLUCAO|VALOR\s+UNIT|VL\s+UNIT|UNITARIO)\b/i;
+    const palavrasIgnorar = /\b(FEDERAL|ESTADUAL|MUNICIPAL|TRIBUTOS?|IMPOSTOS?|ICMS|ISS|PIS|COFINS|TROCO|DESCONTO|ABATIMENTO|DEVOLUCAO|VALOR\s+UNIT|VL\s+UNIT|UNITARIO|IBPT|LEI\s+12\.?741|APROX|ALIQUOTA)\b/i;
+    const isLinhaSaldo = l => /\b(SALDO|SALDO\s+DISP|DISPONIVEL)\b/i.test(l);
 
-    // 1. PRIORIDADE MÁXIMA: Rótulos explícitos de Total a Pagar e Compra
-    const regexTotalPrioritario = [
+    // 1. PRIORIDADE MÁXIMA: Rótulos explícitos de Total a Pagar, Valor Total, Pagamento e Comprovante TEF
+    const rotulosPrioritarios = [
         /(?:VALOR\s*A\s*PAGAR|TOTAL\s*A\s*PAGAR)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
         /(?:VALOR\s*TOTAL|TOTAL\s*LIQUIDO|VALOR\s*LIQUIDO)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
         /(?:VALOR\s*PAGO|TOTAL\s*PAGO)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:COMPROV(?:ANTE)?:?.*?VALOR:?|VALOR:?.*?COMPROV(?:ANTE)?)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
         /(?:COMPRA:?.*?VALOR:?|VALOR:?.*?COMPRA)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
-        /(?:CARTAO\s+DEBITO|CARTAO\s+CREDITO|TICKET|ALIMENTACAO|VOUCHER)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:CARTAO\s+(?:DEBITO|CREDITO)|TICKET|ALIMENTACAO|VOUCHER)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        // Comprovantes TEF / Maquininha (ex: "COMPROV: 509817600 VALOR: 37,35")
+        /\bVALOR[\s:]+R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
         /\bTOTAL[\s:]+R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i
     ];
 
-    for (const regex of regexTotalPrioritario) {
+    // 1.1 Procura na mesma linha
+    for (const regex of rotulosPrioritarios) {
         for (const linha of linhas) {
-            if (palavrasIgnorar.test(linha)) continue;
+            if (palavrasIgnorar.test(linha) || isLinhaSaldo(linha)) continue;
             const m = linha.match(regex);
             if (m && m[1]) {
                 const val = normalizarValorNumero(m[1]);
@@ -226,19 +247,43 @@ function extrairValorComprovante(texto) {
         }
     }
 
-    for (const regex of regexTotalPrioritario) {
-        const m = texto.match(regex);
+    // 1.2 Procura Multi-linha (Colunada de NFC-e):
+    // Quando o rótulo ("Valor total R$" ou "Valor a Pagar R$" ou "VALOR PAGO R$") está em uma linha
+    // e o número está na linha seguinte (i+1, i+2 ou i+3)
+    const rotulosCabecalhoTotal = /^(?:VALOR\s*(?:TOTAL|A\s*PAGAR|PAGO|LIQUIDO)|TOTAL\s*(?:A\s*PAGAR|PAGO|LIQUIDO)|FORMA\s*DE\s*PAGAMENTO|CARTAO\s*(?:DEBITO|CREDITO)|TICKET\s*ALIMENTACAO|VALOR)$/i;
+    for (let i = 0; i < linhas.length; i++) {
+        const linha = linhas[i].replace(/[:\-R\$]+$/g, '').trim();
+        if (rotulosCabecalhoTotal.test(linha) || /(?:VALOR\s*(?:TOTAL|A\s*PAGAR|PAGO)|TOTAL\s*A\s*PAGAR)/i.test(linha)) {
+            if (palavrasIgnorar.test(linha) || isLinhaSaldo(linha)) continue;
+            for (let j = 1; j <= 3 && (i + j) < linhas.length; j++) {
+                const proxLinha = linhas[i + j];
+                if (palavrasIgnorar.test(proxLinha) || isLinhaSaldo(proxLinha)) continue;
+                const mProx = proxLinha.match(/R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/);
+                if (mProx && mProx[1]) {
+                    const val = normalizarValorNumero(mProx[1]);
+                    if (val > 0) return { formatado: formatarValorParaInput(val), numero: val };
+                }
+            }
+        }
+    }
+
+    // 1.3 Regex em todo o texto para capturar quando há quebras de linha entre rótulo e valor
+    for (const regex of rotulosPrioritarios) {
+        const m = textoSanitizado.match(regex);
         if (m && m[1]) {
             const idx = m.index || 0;
-            const trecho = texto.substring(Math.max(0, idx - 40), Math.min(texto.length, idx + 40));
-            if (!palavrasIgnorar.test(trecho)) {
+            const trecho = textoSanitizado.substring(Math.max(0, idx - 40), Math.min(textoSanitizado.length, idx + 40));
+            if (!palavrasIgnorar.test(trecho) && !isLinhaSaldo(trecho)) {
                 const val = normalizarValorNumero(m[1]);
                 if (val > 0) return { formatado: formatarValorParaInput(val), numero: val };
             }
         }
     }
 
-    // 2. PRIORIDADE MÉDIA: "VALOR:", "VALOR DA TRANSACAO", "VALOR PIX", "VALOR COBRADO"
+    // 2. PRIORIDADE MÉDIA / CANDIDATOS:
+    // Em vez de pegar cegamente o primeiro "R$" do documento (que pode ser uma fração ou taxa residual),
+    // coleta todos os valores válidos e escolhe o maior (em compras, o total é o maior valor entre itens e taxas)
+    const candidatos = [];
     const regexSecundario = [
         /(?:VALOR\s*(?:DA\s*TRANSACAO|PIX|COBRADO|RECEBIDO|PRINCIPAL|FINAL)?|PAGO|COMPRA)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
         /R\$\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i
@@ -246,13 +291,19 @@ function extrairValorComprovante(texto) {
 
     for (const regex of regexSecundario) {
         for (const linha of linhas) {
-            if (palavrasIgnorar.test(linha)) continue;
-            if (/\b(SALDO|SALDO\s+DISP|DISPONIVEL)\b/i.test(linha)) continue;
+            if (palavrasIgnorar.test(linha) || isLinhaSaldo(linha)) continue;
             const m = linha.match(regex);
             if (m && m[1]) {
                 const val = normalizarValorNumero(m[1]);
-                if (val > 0) return { formatado: formatarValorParaInput(val), numero: val };
+                if (val > 0) candidatos.push(val);
             }
+        }
+    }
+
+    if (candidatos.length > 0) {
+        const maiorValor = Math.max(...candidatos);
+        if (maiorValor > 0) {
+            return { formatado: formatarValorParaInput(maiorValor), numero: maiorValor };
         }
     }
 
