@@ -589,12 +589,13 @@ async function carregarCartoesEContas() {
                         </div>
 
                         <!-- Lista de Lançamentos do Cartão Alimentação -->
-                        <div style="margin-bottom: 14px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px;">
+                        <div onclick="abrirModalExtratoCartaoAlimentacao('${c.id}')" style="margin-bottom: 14px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; cursor: pointer; transition: all 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.5)'; this.style.borderColor='#F97316';" onmouseout="this.style.background='rgba(0,0,0,0.35)'; this.style.borderColor='rgba(255,255,255,0.1)';" title="Clique para abrir e ver todos os lançamentos deste cartão">
                             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; font-weight: 700; color: #E2E8F0; margin-bottom: 6px;">
                                 <span>📋 Movimentações do Mês (${gastosAlim.length})</span>
+                                <span style="font-size: 0.7rem; color: #FED7AA; font-weight: 700; text-decoration: underline;">Ver Lançamentos 🔍</span>
                             </div>
                             ${gastosAlim.length === 0 ? `
-                                <div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 4px 0;">Nenhum gasto lançado neste mês</div>
+                                <div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 6px 0;">Nenhum gasto lançado neste mês • Toque para ver</div>
                             ` : `
                                 <div style="display: flex; flex-direction: column; gap: 5px; max-height: 110px; overflow-y: auto;">
                                     ${gastosAlim.map(item => `
@@ -609,13 +610,19 @@ async function carregarCartoesEContas() {
                             `}
                         </div>
                     </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px solid rgba(255,255,255,0.15); padding-top: 12px;">
-                        <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="height: 40px; background: linear-gradient(135deg, #EA580C, #C2410C); color: #FFFFFF; border: none; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(234,88,12,0.35); transition: all 0.2s;">
-                            <span>💰</span> Ajustar Saldo
+                    <!-- Botões de Ação do Card Alimentação -->
+                    <div style="border-top: 1px solid rgba(255,255,255,0.15); padding-top: 10px; display: flex; flex-direction: column; gap: 8px;">
+                        <button type="button" onclick="abrirModalExtratoCartaoAlimentacao('${c.id}')" style="height: 38px; width: 100%; background: rgba(255,255,255,0.16); border: 1.5px solid rgba(255,255,255,0.3); color: #FFFFFF; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(0,0,0,0.25); transition: all 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.25)'" onmouseout="this.style.background='rgba(255,255,255,0.16)'">
+                            <span>📋</span> Ver Lançamentos do Cartão (${gastosAlim.length})
                         </button>
-                        <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="height: 40px; background: rgba(255,255,255,0.12); border: 1.5px solid rgba(255,255,255,0.28); color: #FFFFFF; border-radius: 10px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
-                            <span>✏️</span> Editar
-                        </button>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                            <button type="button" onclick="ajustarSaldoConta('${c.id}')" style="height: 36px; background: linear-gradient(135deg, #EA580C, #C2410C); color: #FFFFFF; border: none; border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 2px 8px rgba(234,88,12,0.35); transition: all 0.2s;">
+                                <span>💰</span> Ajustar Saldo
+                            </button>
+                            <button type="button" onclick="abrirModalGerenciarConta('${c.id}')" style="height: 36px; background: rgba(255,255,255,0.1); border: 1.5px solid rgba(255,255,255,0.25); color: #FFFFFF; border-radius: 10px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.2s;">
+                                <span>✏️</span> Editar
+                            </button>
+                        </div>
                     </div>
                 `;
                 alimGrid.appendChild(cardA);
@@ -2039,4 +2046,166 @@ async function executarTransferenciaContasSubmit(event) {
     if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
 }
 window.executarTransferenciaContasSubmit = executarTransferenciaContasSubmit;
+
+// ==================================================================
+// MODAL DE EXTRATO / LANÇAMENTOS DO CARTÃO ALIMENTAÇÃO
+// ==================================================================
+async function abrirModalExtratoCartaoAlimentacao(contaId) {
+    if (!contaId || typeof dbLocal === 'undefined' || !dbLocal) return;
+
+    let targetMonth = (typeof currentViewDate !== 'undefined' && currentViewDate) ? currentViewDate.getMonth() : (new Date()).getMonth();
+    let targetYear = (typeof currentViewDate !== 'undefined' && currentViewDate) ? currentViewDate.getFullYear() : (new Date()).getFullYear();
+    const selMes = document.getElementById('mesBaseSelector');
+    if (selMes && selMes.value !== '') targetMonth = parseInt(selMes.value, 10);
+    const selAno = document.getElementById('anoBaseSelector');
+    if (selAno && selAno.value !== '') targetYear = parseInt(selAno.value, 10);
+
+    const conta = await dbLocal.contas_bancarias.get(contaId);
+    if (!conta) return;
+
+    const alimList = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão Alimentação').toArray();
+
+    // Buscar todas as movimentações dessa conta no mês
+    const todasMovs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
+    const movsCartao = todasMovs.filter(m => {
+        if (!m.data_lancamento) return false;
+        const [anoStr, mesStr] = m.data_lancamento.split('-');
+        if (parseInt(anoStr, 10) !== targetYear || (parseInt(mesStr, 10) - 1) !== targetMonth) return false;
+
+        if (String(m.conta_id) === String(contaId)) return true;
+        if (m.tipo_gasto === 'Cartão Alimentação') {
+            if (!m.conta_id) {
+                if (alimList.length === 1) return String(alimList[0].id) === String(contaId);
+                if (conta.titular && m.descricao && m.descricao.toLowerCase().includes(conta.titular.toLowerCase())) return true;
+                if (alimList.length > 0 && String(alimList[0].id) === String(contaId)) return true;
+            }
+        }
+        return false;
+    });
+
+    // Ordenar por data mais recente
+    movsCartao.sort((a, b) => (b.data_lancamento || '').localeCompare(a.data_lancamento || ''));
+
+    const elNome = document.getElementById('modalAlimNomeCartao');
+    const elTitular = document.getElementById('modalAlimTitular');
+    const elSaldo = document.getElementById('modalAlimSaldoAtual');
+    const elTotalGasto = document.getElementById('modalAlimTotalGasto');
+    const elRecarga = document.getElementById('modalAlimRecarga');
+    const elContador = document.getElementById('modalAlimContadorItens');
+    const elLista = document.getElementById('modalAlimListaLancamentos');
+    const btnNovo = document.getElementById('btnModalAlimNovoGasto');
+
+    const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const mesNome = mesesNomes[targetMonth] || '';
+
+    if (elNome) elNome.innerText = conta.nome_conta || 'Cartão Alimentação';
+    if (elTitular) elTitular.innerText = `${conta.titular ? '👤 ' + conta.titular + ' • ' : ''}${mesNome} de ${targetYear}`;
+    if (elSaldo) elSaldo.innerText = formatBRL(parseFloat(conta.saldo_atual) || 0);
+
+    let totalGastoMes = 0;
+    movsCartao.forEach(item => {
+        const v = parseFloat(item.valor_total) || 0;
+        if (item.tipo_gasto === 'Receita') {
+            totalGastoMes -= v;
+        } else {
+            totalGastoMes += v;
+        }
+    });
+    if (elTotalGasto) elTotalGasto.innerText = formatBRL(totalGastoMes);
+
+    const diaRec = conta.dia_recarga || 1;
+    const valRec = parseFloat(conta.valor_recarga) || 0;
+    if (elRecarga) {
+        elRecarga.innerText = valRec > 0 ? `Todo dia ${diaRec} (${formatBRL(valRec)})` : `Todo dia ${diaRec}`;
+    }
+    if (elContador) elContador.innerText = `${movsCartao.length} ${movsCartao.length === 1 ? 'item' : 'itens'}`;
+
+    if (btnNovo) {
+        btnNovo.onclick = () => {
+            fecharModalExtratoCartaoAlimentacao();
+            if (typeof abrirModalLancamento === 'function') {
+                abrirModalLancamento();
+                setTimeout(() => {
+                    const selConta = document.getElementById('inputContaId');
+                    if (selConta) {
+                        selConta.value = conta.id;
+                        selConta.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    const selTipo = document.getElementById('inputTipoGasto');
+                    if (selTipo) {
+                        selTipo.value = 'Cartão Alimentação';
+                        selTipo.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }, 100);
+            }
+        };
+    }
+
+    if (elLista) {
+        if (movsCartao.length === 0) {
+            elLista.innerHTML = `
+                <div style="background: rgba(255,255,255,0.03); border: 1px dashed #334155; border-radius: 12px; padding: 28px 16px; text-align: center; color: #94A3B8; font-size: 0.85rem;">
+                    🍽️ Nenhum gasto lançado neste cartão no mês de <strong>${mesNome}/${targetYear}</strong>.
+                </div>
+            `;
+        } else {
+            elLista.innerHTML = movsCartao.map(item => {
+                const [y, m, d] = (item.data_lancamento || '').split('-');
+                const dataBr = (d && m) ? `${d}/${m}/${y}` : (item.data_lancamento || '');
+                const isRec = item.tipo_gasto === 'Receita';
+                const v = parseFloat(item.valor_total) || 0;
+                const vFmt = (isRec ? '+ ' : '- ') + formatBRL(v);
+                const corV = isRec ? '#10B981' : '#F87171';
+                const tagComp = item.midia_url ? `
+                    <button type="button" onclick="event.stopPropagation(); abrirModalVisualizarComprovante('${item.midia_url}')" style="background: rgba(59, 130, 246, 0.18); border: 1px solid #3B82F6; color: #93C5FD; padding: 3px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Ver Comprovante Anexado">
+                        📷 Comprovante
+                    </button>
+                ` : '';
+
+                return `
+                    <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <span style="font-weight: 800; color: #FFFFFF; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.descricao || ''}">${item.descricao || 'Gasto Alimentação'}</span>
+                                ${tagComp}
+                            </div>
+                            <div style="font-size: 0.74rem; color: #94A3B8; margin-top: 3px; display: flex; align-items: center; gap: 8px;">
+                                <span>📅 ${dataBr}</span>
+                                <span>•</span>
+                                <span style="color: #FED7AA; font-weight: 600;">🍽️ Benefício</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0;">
+                            <span style="font-size: 1.05rem; font-weight: 900; color: ${corV}; white-space: nowrap;">
+                                ${vFmt}
+                            </span>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" onclick="fecharModalExtratoCartaoAlimentacao(); if(typeof editarLancamento === 'function') editarLancamento('${item.id}');" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; color: #60A5FA; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+                                    ✏️ Editar
+                                </button>
+                                <button type="button" onclick="fecharModalExtratoCartaoAlimentacao(); if(typeof excluirLancamento === 'function') excluirLancamento('${item.id}');" style="background: rgba(239, 68, 68, 0.12); border: 1px solid #EF4444; color: #FCA5A5; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+                                    🗑️ Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    const modal = document.getElementById('modalExtratoCartaoAlimentacao');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function fecharModalExtratoCartaoAlimentacao() {
+    const modal = document.getElementById('modalExtratoCartaoAlimentacao');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+window.abrirModalExtratoCartaoAlimentacao = abrirModalExtratoCartaoAlimentacao;
+window.fecharModalExtratoCartaoAlimentacao = fecharModalExtratoCartaoAlimentacao;
 

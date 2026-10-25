@@ -2444,6 +2444,62 @@
         </div>
     </div>
 
+    <!-- MODAL DE EXTRATO E LANÇAMENTOS DO CARTÃO ALIMENTAÇÃO -->
+    <div id="modalExtratoCartaoAlimentacao" class="modal-overlay" onclick="if(event.target === this) fecharModalExtratoCartaoAlimentacao()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
+        <div class="modal-content" style="max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #F97316; border-radius: 16px; box-shadow: 0 10px 35px rgba(249,115,22,0.25); padding: 22px; box-sizing: border-box;">
+            <!-- Header do Modal -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #334155; padding-bottom: 14px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.6rem;">🍽️</span>
+                    <div>
+                        <h3 id="modalAlimNomeCartao" style="color: #FFFFFF; font-size: 1.15rem; margin: 0; font-weight: 800;">Extrato do Cartão Alimentação</h3>
+                        <div id="modalAlimTitular" style="font-size: 0.78rem; color: #FED7AA; font-weight: 600; margin-top: 2px;">Benefício</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" onclick="fecharModalExtratoCartaoAlimentacao()" title="Fechar" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 8px; color: #94A3B8; width: 34px; height: 34px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                </div>
+            </div>
+
+            <!-- Resumo Financeiro do Cartão (Cards) -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px;">
+                <div style="background: rgba(249, 115, 22, 0.12); border: 1.5px solid rgba(249, 115, 22, 0.4); border-radius: 12px; padding: 10px 12px;">
+                    <div style="font-size: 0.7rem; color: #FED7AA; font-weight: 700; text-transform: uppercase;">Saldo Disponível</div>
+                    <div id="modalAlimSaldoAtual" style="font-size: 1.25rem; font-weight: 900; color: #FFFFFF; margin-top: 3px;">R$ 0,00</div>
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 10px 12px;">
+                    <div style="font-size: 0.7rem; color: #FCA5A5; font-weight: 700; text-transform: uppercase;">Gastos no Mês</div>
+                    <div id="modalAlimTotalGasto" style="font-size: 1.25rem; font-weight: 900; color: #F87171; margin-top: 3px;">R$ 0,00</div>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 10px 12px;">
+                    <div style="font-size: 0.7rem; color: #6EE7B7; font-weight: 700; text-transform: uppercase;">Recarga Programada</div>
+                    <div id="modalAlimRecarga" style="font-size: 0.95rem; font-weight: 800; color: #34D399; margin-top: 5px;">Todo dia 10</div>
+                </div>
+            </div>
+
+            <!-- Ações Rápidas -->
+            <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
+                <button type="button" id="btnModalAlimNovoGasto" style="flex: 1; min-width: 140px; height: 38px; background: linear-gradient(135deg, #EA580C, #F97316); color: white; border: none; border-radius: 9px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(249,115,22,0.3);">
+                    <span>➕</span> Lançar Gasto neste Cartão
+                </button>
+                <button type="button" onclick="abrirModalLancamentoComLeitura()" style="height: 38px; background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <span>📷</span> Ler Cupom / Foto
+                </button>
+            </div>
+
+            <!-- Lista de Lançamentos -->
+            <div style="margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="color: #E2E8F0; font-size: 0.9rem; margin: 0; font-weight: 800;">Lançamentos Realizados</h4>
+                    <span id="modalAlimContadorItens" style="font-size: 0.75rem; color: #94A3B8; font-weight: 700;">0 itens</span>
+                </div>
+                <div id="modalAlimListaLancamentos" style="display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 2px;">
+                    <!-- Preenchido via JavaScript -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL PARA COLAR TEXTO DE COMPROVANTE/PIX -->
     <div id="modalColarTextoComprovante" class="modal-overlay" onclick="if(event.target === this) fecharModalColarTexto()" style="display: none; z-index: 1000000;">
         <div class="modal-content" style="max-width: 500px; padding: 20px;">

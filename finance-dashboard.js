@@ -4953,7 +4953,8 @@ function renderizarExtratoCompleto() {
     const container = document.getElementById('listaExtratoContainer');
     if (!container) return;
     
-    let itens = (window.currentMesItens || []).slice();
+    // Os gastos do Cartão Alimentação são gerenciados exclusivamente pelo card do próprio cartão em 'Cartões & Bancos'
+    let itens = (window.currentMesItens || []).filter(i => i.tipo_gasto !== 'Cartão Alimentação');
     if (window.extratoFiltroAtual === 'receitas') {
         itens = itens.filter(i => i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
     } else if (window.extratoFiltroAtual === 'despesas') {
@@ -5730,7 +5731,7 @@ window.importarBackupFinancas = importarBackupFinancas;
 // 3. Gerar Extrato em PDF ("Estrato")
 async function gerarExtratoPDF() {
     try {
-        let itens = (window.currentMesItens || []).slice();
+        let itens = (window.currentMesItens || []).filter(i => i.tipo_gasto !== 'Cartão Alimentação');
         if (window.extratoFiltroAtual === 'receitas') {
             itens = itens.filter(i => i.tipo_gasto === 'Receita' || isTipoResgateReserva(i));
         } else if (window.extratoFiltroAtual === 'despesas') {
