@@ -97,6 +97,20 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 created_at INTEGER,
                 expires_at INTEGER
             )`);
+
+            // Tabela 6: notificacoes_bancarias (Leitura e Ingestão Automática de Notificações)
+            db.run(`CREATE TABLE IF NOT EXISTS notificacoes_bancarias (
+                id TEXT PRIMARY KEY,
+                user_id TEXT,
+                app_pacote TEXT DEFAULT '',
+                titulo TEXT DEFAULT '',
+                texto TEXT,
+                data_hora TEXT,
+                status TEXT DEFAULT 'pendente',
+                lancamento_id TEXT,
+                created_at INTEGER
+            )`);
+            db.run("CREATE INDEX IF NOT EXISTS idx_notif_user_status ON notificacoes_bancarias(user_id, status)", () => {});
         });
     }
 });

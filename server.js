@@ -560,6 +560,87 @@ app.get('/api/export', (req, res) => {
     });
 });
 
+// ==========================================================================
+// ENDPOINTS DE NOTIFICAÇÕES E WEBHOOKS BANCÁRIOS (LANÇAMENTO AUTOMÁTICO)
+// ==========================================================================
+
+// 1. Receber Notificação Bancária do Celular (via MacroDroid, Tasker ou Webhook)
+app.post(['/api/notificacoes/receber', '/api/webhook/notificacoes'], (req, res) => {
+    try {
+        const body = req.body || {};
+        const query = req.query || {};
+
+        const titulo = String(body.titulo || query.titulo || body.title || query.title || '').trim();
+        const texto = String(body.texto || query.texto || body.text || query.text || body.message || query.message || '').trim();
+        const appPacote = String(body.pacote || query.pacote || body.app || query.app || body.package || query.package || '').trim();
+        const userId = String(body.user_id || query.user_id || req.headers['x-user-id'] || 'default').trim();
+        const dataHora = String(body.data_hora || query.data_hora || new Date().toISOString());
+
+        if (!texto && !titulo) {
+            return res.status(400).json({ error: 'Título ou texto da notificação é obrigatório.' });
+        }
+
+        const id = 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
+        const timestamp = Date.now();
+
+        const sql = `INSERT INTO notificacoes_bancarias (id, user_id, app_pacote, titulo, texto, data_hora, status, lancamento_id, created_at)
+                     VALUES (?, ?, ?, ?, ?, ?, 'pendente', NULL, ?)`;
+
+        db.run(sql, [id, userId, appPacote, titulo, texto, dataHora, timestamp], function(err) {
+            if (err) {
+                console.error('[NOTIFICAÇÃO RECEBER ERRO]', err);
+                return res.status(500).json({ error: err.message });
+            }
+            console.log(`[NOTIFICAÇÃO BANCÁRIA RECEBIDA] ID: ${id} | App: ${appPacote || 'N/A'} | Título: ${titulo}`);
+            res.json({
+                success: true,
+                message: 'Notificação recebida com sucesso e aguardando processamento.',
+                id: id,
+                received_at: timestamp
+            });
+        });
+    } catch (e) {
+        console.error('[NOTIFICAÇÃO ERRO GERAL]', e);
+        res.status(500).json({ error: e.message });
+    }
+});
+
+// 2. Listar Notificações Pendentes para Ingestão no Frontend
+app.get('/api/notificacoes/pendentes', (req, res) => {
+    const userId = req.headers['x-user-id'] || req.query.user_id;
+    let sql = 'SELECT * FROM notificacoes_bancarias WHERE status = "pendente"';
+    const params = [];
+    if (userId && userId !== 'default') {
+        sql += ' AND (user_id = ? OR user_id = "default")';
+        params.push(userId);
+    }
+    sql += ' ORDER BY created_at ASC LIMIT 50';
+
+    db.all(sql, params, (err, rows) => {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json(rows || []);
+    });
+});
+
+// 3. Marcar Notificação como Processada ou Descartada
+app.post('/api/notificacoes/marcar-processada', (req, res) => {
+    const { id, status, lancamento_id } = req.body || {};
+    if (!id) return res.status(400).json({ error: 'ID da notificação é obrigatório.' });
+
+    const novoStatus = status || 'processada';
+    const lancId = lancamento_id || null;
+
+    db.run('UPDATE notificacoes_bancarias SET status = ?, lancamento_id = ? WHERE id = ?', [novoStatus, lancId, id], function(err) {
+        if (err) return res.status(500).json({ error: err.message });
+        res.json({ success: true, updated: this.changes });
+    });
+});
+
+// 4. Rota fallback para o Web Share Target (caso a requisição POST atinja o servidor)
+app.post('/compartilhar-comprovante', (req, res) => {
+    res.redirect('/?comprovante_compartilhado=1');
+});
+
 // Rota fallback SPA para o index.html
 app.get('*', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));

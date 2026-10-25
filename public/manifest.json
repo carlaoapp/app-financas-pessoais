@@ -32,5 +32,21 @@
       "type": "image/png",
       "purpose": "maskable"
     }
-  ]
+  ],
+  "share_target": {
+    "action": "/compartilhar-comprovante",
+    "method": "POST",
+    "enctype": "multipart/form-data",
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url",
+      "files": [
+        {
+          "name": "comprovante",
+          "accept": ["image/*", "application/pdf", "text/plain"]
+        }
+      ]
+    }
+  }
 }

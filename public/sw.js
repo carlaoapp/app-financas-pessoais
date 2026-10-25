@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.8.35
-const CACHE_NAME = 'financas-pessoais-v1.8.35';
+// Service Worker - APP Finanças Pessoais v1.8.36
+const CACHE_NAME = 'financas-pessoais-v1.8.36';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -12,6 +12,7 @@ const ASSETS_TO_CACHE = [
     '/xlsx.mini.min.js',
     '/tesseract.min.js',
     '/finance-ocr.js',
+    '/finance-auto-notificacoes.js',
     '/finance-dashboard.js',
     '/finance-cartoes.js',
     '/finance-powerbi.js',
@@ -79,8 +80,59 @@ self.addEventListener('message', event => {
     }
 });
 
+// Helper para armazenar temporariamente comprovantes compartilhados via Web Share Target
+function salvarCompartilhamentoNoIDB(dados) {
+    return new Promise((resolve, reject) => {
+        try {
+            const req = indexedDB.open('FinancasCompartilhamentoDB', 1);
+            req.onupgradeneeded = (e) => {
+                const db = e.target.result;
+                if (!db.objectStoreNames.contains('comprovantes_temp')) {
+                    db.createObjectStore('comprovantes_temp', { keyPath: 'id' });
+                }
+            };
+            req.onsuccess = (e) => {
+                const db = e.target.result;
+                const tx = db.transaction('comprovantes_temp', 'readwrite');
+                const store = tx.objectStore('comprovantes_temp');
+                store.put({
+                    id: 'ultimo',
+                    file: dados.file || null,
+                    title: dados.title || '',
+                    text: dados.text || '',
+                    timestamp: Date.now()
+                });
+                tx.oncomplete = () => { db.close(); resolve(); };
+                tx.onerror = (err) => { db.close(); reject(err); };
+            };
+            req.onerror = (err) => reject(err);
+        } catch (err) {
+            reject(err);
+        }
+    });
+}
+
 self.addEventListener('fetch', event => {
     const url = event.request.url;
+
+    // 0. Web Share Target: intercepta comprovantes compartilhados diretamente do banco/celular
+    if (event.request.method === 'POST' && url.includes('/compartilhar-comprovante')) {
+        event.respondWith(
+            (async () => {
+                try {
+                    const formData = await event.request.formData();
+                    const file = formData.get('comprovante');
+                    const title = formData.get('title') || '';
+                    const text = formData.get('text') || '';
+                    await salvarCompartilhamentoNoIDB({ file, title, text });
+                } catch (e) {
+                    console.error('[SW Share Target Error]', e);
+                }
+                return Response.redirect('/?comprovante_compartilhado=1', 303);
+            })()
+        );
+        return;
+    }
 
     // 1. APIs e controle de versão: SEMPRE direto na rede nativa (sem interceptação do Service Worker)
     if (url.includes('/api/') || url.includes('/version.json')) {
