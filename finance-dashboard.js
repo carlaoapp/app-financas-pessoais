@@ -4966,9 +4966,40 @@ function renderizarExtratoCompleto() {
     }
     
     container.innerHTML = '';
+
+    // Total de compras no Cartão de Crédito deste mês (Requisito 1: Total de compras feitas no cartão naquele mês)
+    const comprasCartaoMes = (window.currentMesItens || []).filter(i => i.tipo_gasto === 'Cartão de Crédito' && i.status !== 'Cancelado');
+    const totalComprasCartaoMes = comprasCartaoMes.reduce((acc, i) => acc + (parseFloat(i.valor_realizado) > 0 ? parseFloat(i.valor_realizado) : (parseFloat(i.valor_total) || 0)), 0);
+    const totalComprasCartaoFmt = window.privacyMode ? '•••••' : totalComprasCartaoMes.toFixed(2).replace('.', ',');
+
+    if (comprasCartaoMes.length > 0 && (!window.extratoFiltroAtual || window.extratoFiltroAtual === 'todos' || window.extratoFiltroAtual === 'despesas')) {
+        const bannerCartao = document.createElement('div');
+        bannerCartao.style.cssText = 'background: linear-gradient(135deg, rgba(37,99,235,0.18), rgba(15,23,42,0.85)); border: 1.5px solid #3B82F6; border-radius: 12px; padding: 12px 16px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; box-shadow: 0 4px 14px rgba(37,99,235,0.15);';
+        bannerCartao.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 1.5rem;">💳</span>
+                <div>
+                    <div style="font-size: 0.92rem; font-weight: 800; color: #FFFFFF;">Total de Compras no Cartão de Crédito deste Mês</div>
+                    <div style="font-size: 0.76rem; color: #93C5FD; margin-top: 2px;">
+                        ${comprasCartaoMes.length} compra(s) na fatura &bull; Cada fatura mensal é descontada na receita
+                    </div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 12px;">
+                <div style="text-align: right;">
+                    <div style="font-size: 0.70rem; color: #CBD5E1; text-transform: uppercase; font-weight: 700;">Total no Mês</div>
+                    <div style="font-size: 1.25rem; font-weight: 900; color: #F87171;">- R$ ${totalComprasCartaoFmt}</div>
+                </div>
+                <button type="button" onclick="if(typeof switchFinanceTab === 'function') switchFinanceTab('cartoes')" style="background: #2563EB; border: none; color: white; padding: 8px 12px; border-radius: 8px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                    <span>🔍</span> Ver Cartões
+                </button>
+            </div>
+        `;
+        container.appendChild(bannerCartao);
+    }
     
     if (itens.length === 0) {
-        container.innerHTML = '<p style="text-align:center; color:#94A3B8; padding: 2.5rem 1rem;">Nenhum lançamento encontrado para os filtros selecionados.</p>';
+        container.innerHTML += '<p style="text-align:center; color:#94A3B8; padding: 2.5rem 1rem;">Nenhum lançamento encontrado para os filtros selecionados.</p>';
         return;
     }
     
@@ -4997,10 +5028,19 @@ function renderizarExtratoCompleto() {
         if (item.status === 'Cancelado') cssClass = 'cancelled';
         if (item.status === 'Pago') cssClass = '';
         
+        const isParcelado = item.parcelado === 'Sim' || (parseInt(item.total_parcelas, 10) > 1);
+        const totalParcelas = parseInt(item.total_parcelas, 10) || 1;
+        const parcelaAtual = parseInt(item.parcela_atual || item.numero_parcela, 10) || 1;
+        const valParcelaFloat = parseFloat(item.valor_realizado) > 0 ? parseFloat(item.valor_realizado) : (parseFloat(item.valor_total) || 0);
+        const valorTotalCompra = valParcelaFloat * totalParcelas;
+        const valorTotalCompraFmt = window.privacyMode ? '•••••' : valorTotalCompra.toFixed(2).replace('.', ',');
+
         const tagCancelado = item.status === 'Cancelado' ? '<span class="badge" style="background:#FEE2E2; color:#EF4444; margin-left: 6px;">Cancelado</span>' : '';
         const tagStatus = item.status === 'Pago' ? '<span class="badge" style="background:rgba(16,185,129,0.2); color:#10B981; margin-left: 6px;">Pago</span>' :
                           (item.status === 'Pendente' ? '<span class="badge" style="background:rgba(245,158,11,0.2); color:#F59E0B; margin-left: 6px;">Pendente</span>' : '');
-        const tagParcela = item.parcelado === 'Sim' ? `<span class="badge" style="margin-left: 6px;">Parc. ${item.parcela_atual}/${item.total_parcelas}</span>` : '';
+        
+        // Exibição clara do total da compra quando parcelado (Requisito 1)
+        const tagParcela = isParcelado ? `<span class="badge" style="margin-left: 6px; background: rgba(139, 92, 246, 0.2); color: #C084FC; font-weight: 700;">🏷️ Parc. ${parcelaAtual}/${totalParcelas} • Total da Compra: R$ ${valorTotalCompraFmt}</span>` : '';
         const tagComprovante = item.midia_url ? `<button type="button" onclick="event.stopPropagation(); abrirModalVisualizarComprovante('${item.midia_url}')" style="background: rgba(59, 130, 246, 0.18); border: 1px solid #3B82F6; color: #93C5FD; padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; margin-left: 6px;" title="Ver Comprovante Anexado">📷 Comprovante</button>` : '';
         
         const btnActions = item.isVirtual ? 
@@ -5061,7 +5101,9 @@ function renderizarExtratoCompleto() {
 
         const labelPrevisto = (item.tipo_gasto === 'Cartão Alimentação')
             ? `Previsto: R$ ${vOrcado} (Saldo do Cartão)`
-            : `Previsto: R$ ${vOrcado}`;
+            : (isParcelado
+                ? `Previsto Parcela: R$ ${vOrcado} (Total da Compra: R$ ${valorTotalCompraFmt})`
+                : `Previsto: R$ ${vOrcado}`);
 
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; width:100%; align-items:center;">
@@ -5854,9 +5896,17 @@ async function gerarExtratoPDF() {
                 const sinal = isReceita ? '+ ' : (isReserva ? '🛡️ ' : '- ');
                 const statusTexto = item.status === 'Pago' ? 'Pago' : (item.status === 'Cancelado' ? 'Cancelado' : 'Pendente');
 
+                let descFinal = item.descricao || 'Sem descrição';
+                if (item.parcelado === 'Sim' || (parseInt(item.total_parcelas, 10) > 1)) {
+                    const totP = parseInt(item.total_parcelas, 10) || 1;
+                    const numP = parseInt(item.parcela_atual || item.numero_parcela, 10) || 1;
+                    const totC = valorFinal * totP;
+                    descFinal += ` (Parc. ${numP}/${totP} - Total Compra: ${fmtMoeda(totC)})`;
+                }
+
                 return [
                     dataBr,
-                    item.descricao || 'Sem descrição',
+                    descFinal,
                     item.tipo_gasto || 'Geral',
                     statusTexto,
                     sinal + fmtMoeda(valorFinal)
@@ -5931,10 +5981,17 @@ function imprimirExtratoHTML(nomeMes, anoNum, nomeUsuario, totalReceitas, totalD
         const valorFinal = vReal > 0 ? vReal : vOrc;
         const cor = isReceita ? '#10B981' : (isReserva ? '#F59E0B' : '#EF4444');
         const sinal = isReceita ? '+ ' : (isReserva ? '🛡️ ' : '- ');
+        let descFinal = item.descricao || '';
+        if (item.parcelado === 'Sim' || (parseInt(item.total_parcelas, 10) > 1)) {
+            const totP = parseInt(item.total_parcelas, 10) || 1;
+            const numP = parseInt(item.parcela_atual || item.numero_parcela, 10) || 1;
+            const totC = valorFinal * totP;
+            descFinal += ` (Parc. ${numP}/${totP} - Total Compra: ${fmtMoeda(totC)})`;
+        }
         rowsHtml += `
             <tr style="border-bottom: 1px solid #E2E8F0;">
                 <td style="padding: 8px; text-align: center;">${dataBr}</td>
-                <td style="padding: 8px;">${item.descricao || ''}</td>
+                <td style="padding: 8px;">${descFinal}</td>
                 <td style="padding: 8px;">${item.tipo_gasto || ''}</td>
                 <td style="padding: 8px; text-align: center;">${item.status || 'Pendente'}</td>
                 <td style="padding: 8px; text-align: right; font-weight: bold; color: ${cor};">${sinal}${fmtMoeda(valorFinal)}</td>

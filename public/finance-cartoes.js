@@ -431,29 +431,35 @@ async function carregarCartoesEContas() {
                             <div style="font-size: 1.45rem; font-weight: 900; color: #10B981; margin-top: 2px;">${formatBRL(cartao.saldo_atual || 0)}</div>
                         </div>
                         ` : `
-                        <div style="margin-bottom: 14px;">
-                            <div style="font-size: 0.72rem; color: #CBD5E1; text-transform: uppercase; font-weight: 600;">Fatura do Mês (${meses[targetMonth]})</div>
-                            <div style="font-size: 1.45rem; font-weight: 900; color: #FFFFFF; margin-top: 2px;">${formatBRL(faturaAtual)}</div>
-                        </div>
-
-                        <!-- Barra de Uso do Limite -->
-                        <div style="margin-bottom: 12px;">
-                            <div style="display: flex; justify-content: space-between; font-size: 0.74rem; color: #E2E8F0; margin-bottom: 4px; font-weight: 600;">
-                                <span>Disp: <strong style="color: #6EE7B7;">${formatBRL(limDisp)}</strong></span>
-                                <span>Limite: ${formatBRL(limTotal)}</span>
+                        <!-- Resumo dos 3 Limites no Card (Requisito 2: Total, Utilizado e Disponível) -->
+                        <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; cursor: pointer;" onclick="abrirModalExtratoFaturaCartao('${cartao.id}')" title="Clique para ver extrato e faturas deste cartão">
+                            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; margin-bottom: 8px;">
+                                <div>
+                                    <div style="font-size: 0.65rem; color: #CBD5E1; text-transform: uppercase; font-weight: 700;">Limite Total</div>
+                                    <div style="font-size: 0.95rem; font-weight: 900; color: #FFFFFF; margin-top: 2px;">${formatBRL(limTotal)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.65rem; color: #FCA5A5; text-transform: uppercase; font-weight: 700;">Utilizado (Fatura)</div>
+                                    <div style="font-size: 0.95rem; font-weight: 900; color: #F87171; margin-top: 2px;">${formatBRL(faturaAtual)}</div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 0.65rem; color: #6EE7B7; text-transform: uppercase; font-weight: 700;">Disponível</div>
+                                    <div style="font-size: 0.95rem; font-weight: 900; color: #34D399; margin-top: 2px;">${formatBRL(limDisp)}</div>
+                                </div>
                             </div>
-                            <div style="width: 100%; height: 8px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15);">
+
+                            <!-- Barra de Uso do Limite -->
+                            <div style="width: 100%; height: 7px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 6px;">
                                 <div style="width: ${window.privacyMode ? 0 : percUsado}%; height: 100%; background: ${percUsado > 85 ? '#EF4444' : (percUsado > 50 ? '#F59E0B' : '#10B981')}; border-radius: 4px; transition: width 0.3s;"></div>
                             </div>
+                            <div style="display: flex; justify-content: space-between; font-size: 0.70rem; color: #CBD5E1;">
+                                <span>Fechamento: Dia ${cartao.dia_fechamento || 1} &bull; Venc: Dia ${cartao.dia_vencimento || 10}</span>
+                                <span>Uso: ${window.privacyMode ? '•••%' : percUsado + '%'}</span>
+                            </div>
                         </div>
 
-                        <div style="display: flex; justify-content: space-between; font-size: 0.72rem; color: #CBD5E1; margin-bottom: 12px;">
-                            <span>Fechamento: Dia ${cartao.dia_fechamento || 1}</span>
-                            <span>Uso: ${window.privacyMode ? '•••%' : percUsado + '%'}</span>
-                        </div>
-
-                        <!-- Lista de Lançamentos da Fatura -->
-                        <div style="margin-bottom: 14px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px;">
+                        <!-- Lista de Lançamentos da Fatura (Clicável para abrir extrato detalhado por mês) -->
+                        <div onclick="abrirModalExtratoFaturaCartao('${cartao.id}')" style="margin-bottom: 14px; background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.1); border-radius: 10px; padding: 10px; cursor: pointer; transition: all 0.2s;" title="Clique para ver extrato completo e faturas de cada mês">
                             <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.74rem; font-weight: 700; color: #E2E8F0; margin-bottom: 6px;">
                                 <span>📋 Compras nesta Fatura (${comprasCard.length})</span>
                                 <span style="color: #6EE7B7; font-weight: 800;">${formatBRL(faturaAtual)}</span>
@@ -464,12 +470,15 @@ async function carregarCartoesEContas() {
                                 <div style="display: flex; flex-direction: column; gap: 5px; max-height: 110px; overflow-y: auto;">
                                     ${comprasCard.map(item => `
                                         <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 6px;">
-                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${item.descricao}">${item.descricao}</span>
+                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${item.descricao}">${item.descricao}${item.parcelado === 'Sim' ? ` (${item.parcela_atual || item.numero_parcela || 1}/${item.total_parcelas})` : ''}</span>
                                             <span style="color: #F87171; font-weight: 800; white-space: nowrap;">- ${formatBRL(item.valor_total)}</span>
                                         </div>
                                     `).join('')}
                                 </div>
                             `}
+                            <div style="margin-top: 6px; text-align: center; font-size: 0.72rem; color: #93C5FD; font-weight: 700;">
+                                🔍 Ver Detalhes das Faturas e Prestações ➔
+                            </div>
                         </div>
                         `}
                     </div>
@@ -1649,26 +1658,38 @@ async function ajustarSaldoConta(contaId) {
 window.ajustarSaldoConta = ajustarSaldoConta;
 
 // Pagar fatura do cartão debitando de uma conta corrente
-async function pagarFaturaCartao(cartaoId) {
+async function pagarFaturaCartao(cartaoId, anoAlvo, mesAlvo) {
     if (!cartaoId) return;
 
     const cartao = await dbLocal.contas_bancarias.get(cartaoId);
     if (!cartao) return;
 
-    const targetMonth = (typeof window.currentMonthIndex !== 'undefined') ? window.currentMonthIndex : (new Date()).getMonth();
-    const targetYear = (typeof window.selectedAno !== 'undefined') ? parseInt(window.selectedAno, 10) : (new Date()).getFullYear();
+    let targetMonth = (mesAlvo !== undefined && mesAlvo !== null) ? parseInt(mesAlvo, 10) : ((typeof window.currentMonthIndex !== 'undefined') ? window.currentMonthIndex : (new Date()).getMonth());
+    let targetYear = (anoAlvo !== undefined && anoAlvo !== null) ? parseInt(anoAlvo, 10) : ((typeof window.selectedAno !== 'undefined') ? parseInt(window.selectedAno, 10) : (new Date()).getFullYear());
+    if (mesAlvo === undefined || mesAlvo === null) {
+        const selMes = document.getElementById('mesBaseSelector');
+        if (selMes && selMes.value !== '' && selMes.value !== 'MULTI_DEMO') targetMonth = parseInt(selMes.value, 10);
+    }
+    if (anoAlvo === undefined || anoAlvo === null) {
+        const selAno = document.getElementById('anoBaseSelector');
+        if (selAno && selAno.value !== '' && selAno.value !== 'MULTI_DEMO') targetYear = parseInt(selAno.value, 10);
+    }
     const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+    const cartoesCredito = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão de Crédito').toArray();
     const allMovs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
     const comprasCartao = allMovs.filter(m => {
         if (!m.data_lancamento) return false;
         const [anoStr, mesStr] = m.data_lancamento.split('-');
-        return String(m.conta_id) === String(cartaoId) &&
-               parseInt(anoStr, 10) === targetYear &&
-               (parseInt(mesStr, 10) - 1) === targetMonth &&
-               m.tipo_gasto === 'Cartão de Crédito' &&
-               m.status !== 'Cancelado' &&
-               m.status !== 'Pago';
+        if (parseInt(anoStr, 10) !== targetYear || (parseInt(mesStr, 10) - 1) !== targetMonth) return false;
+        if (m.tipo_gasto !== 'Cartão de Crédito' || m.status === 'Cancelado' || m.status === 'Pago') return false;
+        if (String(m.conta_id) === String(cartaoId)) return true;
+        if (!m.conta_id) {
+            if (cartoesCredito.length === 1 && String(cartoesCredito[0].id) === String(cartaoId)) return true;
+            if (cartao.titular && m.descricao && m.descricao.toLowerCase().includes(cartao.titular.toLowerCase())) return true;
+            if (cartoesCredito.length > 0 && String(cartoesCredito[0].id) === String(cartaoId)) return true;
+        }
+        return false;
     });
 
     const totalFatura = comprasCartao.reduce((acc, c) => acc + (parseFloat(c.valor_total) || 0), 0);
@@ -2208,4 +2229,255 @@ function fecharModalExtratoCartaoAlimentacao() {
 }
 window.abrirModalExtratoCartaoAlimentacao = abrirModalExtratoCartaoAlimentacao;
 window.fecharModalExtratoCartaoAlimentacao = fecharModalExtratoCartaoAlimentacao;
+
+// ==================================================================
+// MODAL DE EXTRATO, FATURAS E PRESTAÇÕES DO CARTÃO DE CRÉDITO
+// ==================================================================
+async function abrirModalExtratoFaturaCartao(cartaoId, anoAlvo, mesAlvo) {
+    if (!cartaoId || typeof dbLocal === 'undefined' || !dbLocal) return;
+
+    let targetMonth = (mesAlvo !== undefined && mesAlvo !== null) 
+        ? parseInt(mesAlvo, 10) 
+        : ((typeof currentViewDate !== 'undefined' && currentViewDate) ? currentViewDate.getMonth() : (new Date()).getMonth());
+    let targetYear = (anoAlvo !== undefined && anoAlvo !== null) 
+        ? parseInt(anoAlvo, 10) 
+        : ((typeof currentViewDate !== 'undefined' && currentViewDate) ? currentViewDate.getFullYear() : (new Date()).getFullYear());
+
+    if (mesAlvo === undefined || mesAlvo === null) {
+        const selMes = document.getElementById('mesBaseSelector');
+        if (selMes && selMes.value !== '' && selMes.value !== 'MULTI_DEMO') targetMonth = parseInt(selMes.value, 10);
+    }
+    if (anoAlvo === undefined || anoAlvo === null) {
+        const selAno = document.getElementById('anoBaseSelector');
+        if (selAno && selAno.value !== '' && selAno.value !== 'MULTI_DEMO') targetYear = parseInt(selAno.value, 10);
+    }
+
+    const cartao = await dbLocal.contas_bancarias.get(cartaoId);
+    if (!cartao) return;
+
+    const cartoesCredito = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão de Crédito').toArray();
+
+    // 1. Carrega todas as movimentações ativas
+    const todasMovs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
+
+    // 2. Filtra todas as movimentações pertencentes a este cartão
+    const movsDoCartaoTodas = todasMovs.filter(m => {
+        if (m.status === 'Cancelado') return false;
+        if (String(m.conta_id) === String(cartaoId)) return true;
+        if (m.tipo_gasto === 'Cartão de Crédito') {
+            if (!m.conta_id) {
+                if (cartoesCredito.length === 1) return String(cartoesCredito[0].id) === String(cartaoId);
+                if (cartao.titular && m.descricao && m.descricao.toLowerCase().includes(cartao.titular.toLowerCase())) return true;
+                if (cartoesCredito.length > 0 && String(cartoesCredito[0].id) === String(cartaoId)) return true;
+            }
+        }
+        return false;
+    });
+
+    // 3. Limites
+    const limTotal = parseFloat(cartao.limite_cartao) || 0;
+    
+    // Fatura do mês selecionado
+    const movsMesSelecionado = movsDoCartaoTodas.filter(m => {
+        if (!m.data_lancamento) return false;
+        const [y, mStr] = m.data_lancamento.split('-');
+        return parseInt(y, 10) === targetYear && (parseInt(mStr, 10) - 1) === targetMonth;
+    });
+
+    let faturaMes = 0;
+    movsMesSelecionado.forEach(m => {
+        const v = (parseFloat(m.valor_realizado) > 0) ? parseFloat(m.valor_realizado) : (parseFloat(m.valor_total) || 0);
+        faturaMes += v;
+    });
+
+    const limDisp = Math.max(0, limTotal - faturaMes);
+
+    // 4. Preenche cabeçalhos e métricas
+    const elNome = document.getElementById('modalCardCredNome');
+    const elTitular = document.getElementById('modalCardCredTitular');
+    const elLimTotal = document.getElementById('modalCardCredLimTotal');
+    const elLimUtilizado = document.getElementById('modalCardCredLimUtilizado');
+    const elLimDisp = document.getElementById('modalCardCredLimDisp');
+
+    if (elNome) elNome.innerText = cartao.nome_conta || 'Cartão de Crédito';
+    if (elTitular) elTitular.innerText = `${cartao.titular ? '👤 ' + cartao.titular + ' • ' : ''}Cartão de Crédito (Fechamento: Dia ${cartao.dia_fechamento || 1} • Vencimento: Dia ${cartao.dia_vencimento || 10})`;
+    if (elLimTotal) elLimTotal.innerText = formatBRL(limTotal);
+    if (elLimUtilizado) elLimUtilizado.innerText = formatBRL(faturaMes);
+    if (elLimDisp) elLimDisp.innerText = formatBRL(limDisp);
+
+    const mesesNomes = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const mesesCurtos = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const mesNome = mesesNomes[targetMonth] || '';
+
+    // 5. Preenche Banner do Mês Selecionado
+    const elBannerTitulo = document.getElementById('modalCardCredMesSelecionadoTitulo');
+    const elDatasFatura = document.getElementById('modalCardCredDatasFatura');
+    const elValorFatura = document.getElementById('modalCardCredValorFatura');
+    const elContadorItens = document.getElementById('modalCardCredContadorItens');
+
+    if (elBannerTitulo) elBannerTitulo.innerText = `Fatura de ${mesNome} / ${targetYear}`;
+    if (elDatasFatura) elDatasFatura.innerText = `Vence dia ${cartao.dia_vencimento || 10} • Fechamento dia ${cartao.dia_fechamento || 1}`;
+    if (elValorFatura) elValorFatura.innerText = formatBRL(faturaMes);
+    if (elContadorItens) elContadorItens.innerText = `${movsMesSelecionado.length} ${movsMesSelecionado.length === 1 ? 'compra' : 'compras'}`;
+
+    // 6. Carrossel de 12 Meses com valores de fatura
+    const elCarrossel = document.getElementById('modalCardCredCarrosselMeses');
+    if (elCarrossel) {
+        const mesesCarrossel = [];
+        const baseDate = new Date(targetYear, targetMonth, 1);
+        for (let offset = -2; offset <= 9; offset++) {
+            const d = new Date(baseDate.getFullYear(), baseDate.getMonth() + offset, 1);
+            mesesCarrossel.push({
+                ano: d.getFullYear(),
+                mes: d.getMonth()
+            });
+        }
+
+        elCarrossel.innerHTML = mesesCarrossel.map(item => {
+            const isAtivo = (item.ano === targetYear && item.mes === targetMonth);
+            const comprasDesteMes = movsDoCartaoTodas.filter(m => {
+                if (!m.data_lancamento) return false;
+                const [y, mStr] = m.data_lancamento.split('-');
+                return parseInt(y, 10) === item.ano && (parseInt(mStr, 10) - 1) === item.mes;
+            });
+            const totalDesteMes = comprasDesteMes.reduce((acc, m) => acc + ((parseFloat(m.valor_realizado) > 0) ? parseFloat(m.valor_realizado) : (parseFloat(m.valor_total) || 0)), 0);
+
+            const bgBtn = isAtivo 
+                ? 'linear-gradient(135deg, #2563EB, #1D4ED8)' 
+                : (comprasDesteMes.length > 0 ? 'rgba(30, 41, 59, 0.9)' : 'rgba(15, 23, 42, 0.6)');
+            const borderBtn = isAtivo 
+                ? '2px solid #60A5FA' 
+                : (comprasDesteMes.length > 0 ? '1.5px solid #3B82F6' : '1px solid #334155');
+            const corTexto = isAtivo ? '#FFFFFF' : '#CBD5E1';
+
+            return `
+                <button type="button" onclick="abrirModalExtratoFaturaCartao('${cartao.id}', ${item.ano}, ${item.mes})" style="min-width: 88px; padding: 6px 10px; border-radius: 10px; background: ${bgBtn}; border: ${borderBtn}; color: ${corTexto}; cursor: pointer; text-align: center; flex-shrink: 0; transition: all 0.2s; box-shadow: ${isAtivo ? '0 4px 12px rgba(37,99,235,0.4)' : 'none'};">
+                    <div style="font-weight: 800; font-size: 0.82rem;">${mesesCurtos[item.mes]}/${String(item.ano).slice(2)}</div>
+                    <div style="font-size: 0.70rem; color: ${isAtivo ? '#93C5FD' : (totalDesteMes > 0 ? '#34D399' : '#64748B')}; font-weight: 700; margin-top: 2px;">
+                        ${totalDesteMes > 0 ? formatBRL(totalDesteMes) : 'R$ 0,00'}
+                    </div>
+                </button>
+            `;
+        }).join('');
+    }
+
+    // 7. Lista de Compras e Prestações da Fatura
+    const elLista = document.getElementById('modalCardCredListaCompras');
+    if (elLista) {
+        if (movsMesSelecionado.length === 0) {
+            elLista.innerHTML = `
+                <div style="background: rgba(255,255,255,0.03); border: 1.5px dashed #334155; border-radius: 12px; padding: 28px 16px; text-align: center; color: #94A3B8; font-size: 0.85rem;">
+                    💳 Nenhuma compra ou prestação lançada nesta fatura de <strong>${mesNome}/${targetYear}</strong>.
+                </div>
+            `;
+        } else {
+            movsMesSelecionado.sort((a, b) => (b.data_lancamento || '').localeCompare(a.data_lancamento || ''));
+
+            elLista.innerHTML = movsMesSelecionado.map(item => {
+                const [y, m, d] = (item.data_lancamento || '').split('-');
+                const dataBr = (d && m) ? `${d}/${m}/${y}` : (item.data_lancamento || '');
+                const valParcela = (parseFloat(item.valor_realizado) > 0) ? parseFloat(item.valor_realizado) : (parseFloat(item.valor_total) || 0);
+                const isParcelado = item.parcelado === 'Sim' || (parseInt(item.total_parcelas, 10) > 1);
+                const totalParcelas = parseInt(item.total_parcelas, 10) || 1;
+                const numParcela = parseInt(item.parcela_atual || item.numero_parcela, 10) || 1;
+                const totalCompra = valParcela * totalParcelas;
+
+                const tagParcelamento = isParcelado ? `
+                    <div style="display: inline-flex; align-items: center; gap: 5px; background: rgba(139, 92, 246, 0.18); border: 1px solid #8B5CF6; color: #C084FC; padding: 2px 8px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; margin-top: 4px;">
+                        <span>🏷️ Parcela ${numParcela}/${totalParcelas}</span>
+                        <span>&bull;</span>
+                        <span>Total da Compra: ${formatBRL(totalCompra)}</span>
+                    </div>
+                ` : '';
+
+                const tagComp = item.midia_url ? `
+                    <button type="button" onclick="event.stopPropagation(); abrirModalVisualizarComprovante('${item.midia_url}')" style="background: rgba(59, 130, 246, 0.18); border: 1px solid #3B82F6; color: #93C5FD; padding: 2px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer; display: inline-flex; align-items: center; gap: 4px;" title="Ver Comprovante Anexado">
+                        📷 Comprovante
+                    </button>
+                ` : '';
+
+                return `
+                    <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                        <div style="flex: 1; min-width: 0;">
+                            <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                                <span style="font-weight: 800; color: #FFFFFF; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.descricao || ''}">${item.descricao || 'Compra no Cartão'}</span>
+                                ${tagComp}
+                            </div>
+                            ${tagParcelamento}
+                            <div style="font-size: 0.74rem; color: #94A3B8; margin-top: 4px; display: flex; align-items: center; gap: 8px;">
+                                <span>📅 ${dataBr}</span>
+                                <span>•</span>
+                                <span style="color: #CBD5E1; font-weight: 600;">💳 Cartão de Crédito</span>
+                                <span>•</span>
+                                <span style="color: ${item.status === 'Pago' ? '#10B981' : '#F59E0B'}; font-weight: 700;">${item.status === 'Pago' ? '✓ Pago' : '⏳ Na Fatura'}</span>
+                            </div>
+                        </div>
+                        <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0;">
+                            <span style="font-size: 1.05rem; font-weight: 900; color: #F87171; white-space: nowrap;">
+                                - ${formatBRL(valParcela)}
+                            </span>
+                            <div style="display: flex; gap: 6px;">
+                                <button type="button" onclick="fecharModalExtratoFaturaCartao(); if(typeof editarLancamento === 'function') editarLancamento('${item.id}');" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; color: #60A5FA; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+                                    ✏️ Editar
+                                </button>
+                                <button type="button" onclick="fecharModalExtratoFaturaCartao(); if(typeof excluirLancamento === 'function') excluirLancamento('${item.id}');" style="background: rgba(239, 68, 68, 0.12); border: 1px solid #EF4444; color: #FCA5A5; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+                                    🗑️ Excluir
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+    }
+
+    // 8. Botões de Ação
+    const btnPagar = document.getElementById('btnModalCredPagarFatura');
+    if (btnPagar) {
+        btnPagar.onclick = () => {
+            fecharModalExtratoFaturaCartao();
+            if (typeof pagarFaturaCartao === 'function') {
+                pagarFaturaCartao(cartao.id, targetYear, targetMonth);
+            }
+        };
+    }
+
+    const btnNovo = document.getElementById('btnModalCredNovoLancamento');
+    if (btnNovo) {
+        btnNovo.onclick = () => {
+            fecharModalExtratoFaturaCartao();
+            if (typeof abrirModalLancamento === 'function') {
+                abrirModalLancamento();
+                setTimeout(() => {
+                    const selConta = document.getElementById('inputContaId');
+                    if (selConta) {
+                        selConta.value = cartao.id;
+                        selConta.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                    const selTipo = document.getElementById('inputTipoGasto');
+                    if (selTipo) {
+                        selTipo.value = 'Cartão de Crédito';
+                        selTipo.dispatchEvent(new Event('change', { bubbles: true }));
+                    }
+                }, 100);
+            }
+        };
+    }
+
+    // 9. Abre o modal
+    const modal = document.getElementById('modalExtratoFaturaCartao');
+    if (modal) {
+        modal.style.display = 'flex';
+        document.body.style.overflow = 'hidden';
+    }
+}
+
+function fecharModalExtratoFaturaCartao() {
+    const modal = document.getElementById('modalExtratoFaturaCartao');
+    if (modal) modal.style.display = 'none';
+    document.body.style.overflow = 'auto';
+}
+window.abrirModalExtratoFaturaCartao = abrirModalExtratoFaturaCartao;
+window.fecharModalExtratoFaturaCartao = fecharModalExtratoFaturaCartao;
+
 

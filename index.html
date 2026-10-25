@@ -2500,6 +2500,84 @@
         </div>
     </div>
 
+    <!-- MODAL DE EXTRATO, FATURAS E PRESTAÇÕES DO CARTÃO DE CRÉDITO -->
+    <div id="modalExtratoFaturaCartao" class="modal-overlay" onclick="if(event.target === this) fecharModalExtratoFaturaCartao()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
+        <div class="modal-content" style="max-width: 650px; width: 100%; max-height: 92vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #3B82F6; border-radius: 16px; box-shadow: 0 10px 40px rgba(37,99,235,0.28); padding: 22px; box-sizing: border-box;">
+            <!-- Header do Modal -->
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #334155; padding-bottom: 14px; margin-bottom: 16px;">
+                <div style="display: flex; align-items: center; gap: 10px;">
+                    <span style="font-size: 1.6rem;">💳</span>
+                    <div>
+                        <h3 id="modalCardCredNome" style="color: #FFFFFF; font-size: 1.15rem; margin: 0; font-weight: 800;">Faturas e Prestações do Cartão</h3>
+                        <div id="modalCardCredTitular" style="font-size: 0.78rem; color: #93C5FD; font-weight: 600; margin-top: 2px;">Cartão de Crédito</div>
+                    </div>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <button type="button" onclick="fecharModalExtratoFaturaCartao()" title="Fechar" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 8px; color: #94A3B8; width: 34px; height: 34px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                </div>
+            </div>
+
+            <!-- Resumo dos 3 Limites (Total, Utilizado e Disponível) -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1.5px solid rgba(59, 130, 246, 0.35); border-radius: 12px; padding: 10px 12px; text-align: center;">
+                    <div style="font-size: 0.68rem; color: #93C5FD; font-weight: 700; text-transform: uppercase;">💳 Limite Total</div>
+                    <div id="modalCardCredLimTotal" style="font-size: 1.15rem; font-weight: 900; color: #FFFFFF; margin-top: 3px;">R$ 0,00</div>
+                </div>
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.35); border-radius: 12px; padding: 10px 12px; text-align: center;">
+                    <div style="font-size: 0.68rem; color: #FCA5A5; font-weight: 700; text-transform: uppercase;">🔴 Utilizado (Fatura)</div>
+                    <div id="modalCardCredLimUtilizado" style="font-size: 1.15rem; font-weight: 900; color: #F87171; margin-top: 3px;">R$ 0,00</div>
+                </div>
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 10px 12px; text-align: center;">
+                    <div style="font-size: 0.68rem; color: #6EE7B7; font-weight: 700; text-transform: uppercase;">🟢 Disponível</div>
+                    <div id="modalCardCredLimDisp" style="font-size: 1.15rem; font-weight: 900; color: #34D399; margin-top: 3px;">R$ 0,00</div>
+                </div>
+            </div>
+
+            <!-- Seletor de Meses para Ver Faturas e Prestações -->
+            <div style="margin-bottom: 16px;">
+                <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 8px;">
+                    📅 Escolha o Mês para ver a Fatura e as Prestações:
+                </label>
+                <div id="modalCardCredCarrosselMeses" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px;">
+                    <!-- Preenchido dinamicamente com botões de cada mês -->
+                </div>
+            </div>
+
+            <!-- Banner do Mês Selecionado -->
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div>
+                    <span id="modalCardCredMesSelecionadoTitulo" style="font-size: 0.95rem; font-weight: 800; color: #FFFFFF;">Fatura de Novembro / 2026</span>
+                    <div id="modalCardCredDatasFatura" style="font-size: 0.74rem; color: #94A3B8; margin-top: 2px;">Vence dia 08 &bull; Fechamento dia 24</div>
+                </div>
+                <div style="text-align: right;">
+                    <div style="font-size: 0.7rem; color: #CBD5E1; text-transform: uppercase; font-weight: 700;">Total da Fatura</div>
+                    <div id="modalCardCredValorFatura" style="font-size: 1.35rem; font-weight: 900; color: #F87171; margin-top: 1px;">R$ 0,00</div>
+                </div>
+            </div>
+
+            <!-- Lista de Compras e Prestações -->
+            <div style="margin-bottom: 8px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                    <h4 style="color: #E2E8F0; font-size: 0.9rem; margin: 0; font-weight: 800;">Compras e Prestações Desta Fatura</h4>
+                    <span id="modalCardCredContadorItens" style="font-size: 0.75rem; color: #94A3B8; font-weight: 700;">0 compras</span>
+                </div>
+                <div id="modalCardCredListaCompras" style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 2px;">
+                    <!-- Preenchido via JavaScript -->
+                </div>
+            </div>
+
+            <!-- Botões de Ação Inferiores -->
+            <div style="display: flex; gap: 8px; margin-top: 16px; border-top: 1px solid #334155; padding-top: 14px; flex-wrap: wrap;">
+                <button type="button" id="btnModalCredPagarFatura" style="flex: 1; min-width: 140px; height: 40px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                    <span>💵</span> Pagar Fatura Deste Mês
+                </button>
+                <button type="button" id="btnModalCredNovoLancamento" style="height: 40px; background: rgba(59, 130, 246, 0.15); border: 1.5px solid #3B82F6; color: #93C5FD; border-radius: 10px; padding: 0 16px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <span>➕</span> Nova Compra
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL PARA COLAR TEXTO DE COMPROVANTE/PIX -->
     <div id="modalColarTextoComprovante" class="modal-overlay" onclick="if(event.target === this) fecharModalColarTexto()" style="display: none; z-index: 1000000;">
         <div class="modal-content" style="max-width: 500px; padding: 20px;">

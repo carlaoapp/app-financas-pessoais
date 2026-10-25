@@ -681,6 +681,9 @@ async function renderPowerBIDashboard() {
             }
         }
 
+        let totalComprasCartaoDemo = 0;
+        let totalComprasParceladasDemo = 0;
+
         todosItensDoPeriodo.forEach(m => {
             if (m.deleted === 1 || m.status === 'Cancelado') return;
             if (m.tipo_gasto === 'Conta a Pagar') return;
@@ -691,6 +694,17 @@ async function renderPowerBIDashboard() {
             const vTotal = parseFloat(m.valor_total) || 0;
             const vReal = parseFloat(m.valor_realizado) || 0;
             const vEfetivo = vReal > 0 ? vReal : vTotal;
+
+            const isParc = m.parcelado === 'Sim' || (parseInt(m.total_parcelas, 10) > 1);
+            const totParc = parseInt(m.total_parcelas, 10) || 1;
+            const parcAtu = parseInt(m.parcela_atual || m.numero_parcela, 10) || 1;
+
+            if (m.tipo_gasto === 'Cartão de Crédito') {
+                totalComprasCartaoDemo += vEfetivo;
+            }
+            if (isParc && totParc > 1) {
+                totalComprasParceladasDemo += (vEfetivo * totParc);
+            }
 
             const descName = m.descricao ? m.descricao.split(' (')[0].trim() : 'Outros';
 
@@ -703,7 +717,11 @@ async function renderPowerBIDashboard() {
                 totalReservaMes += vReal;
             } else {
                 totalDespesasMes += vEfetivo;
-                despesasPorCat[descName] = (despesasPorCat[descName] || 0) + vEfetivo;
+                let catLabel = descName;
+                if (isParc && totParc > 1) {
+                    catLabel = `${descName} (${parcAtu}/${totParc} - Tot: ${formatBRL(vEfetivo * totParc)})`;
+                }
+                despesasPorCat[catLabel] = (despesasPorCat[catLabel] || 0) + vEfetivo;
             }
         });
 
@@ -733,9 +751,13 @@ async function renderPowerBIDashboard() {
                 : `Total de entradas em ${descPeriodo}`;
         }
         if (subDes) {
-            subDes.innerText = isMultiPeriodo
-                ? `Soma das despesas (gasto/previsto) em ${descPeriodo}`
-                : `Total de contas e gastos em ${descPeriodo}`;
+            let infoExtraCartao = '';
+            if (totalComprasCartaoDemo > 0 || totalComprasParceladasDemo > 0) {
+                infoExtraCartao = ` &bull; 💳 Cartão: ${formatBRL(totalComprasCartaoDemo)}${totalComprasParceladasDemo > 0 ? ` (Total Parcelado: ${formatBRL(totalComprasParceladasDemo)})` : ''}`;
+            }
+            subDes.innerText = (isMultiPeriodo
+                ? `Soma das despesas em ${descPeriodo}`
+                : `Total de contas e gastos em ${descPeriodo}`) + infoExtraCartao;
         }
         if (subInv) {
             subInv.innerText = isMultiPeriodo
