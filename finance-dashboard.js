@@ -1510,11 +1510,44 @@ window.renderizarSelectTiposGasto = renderizarSelectTiposGasto;
 function desformatarMoedaInput(valorStr) {
     if (typeof valorStr === 'number') return isNaN(valorStr) ? 0 : valorStr;
     if (!valorStr) return 0;
-    const str = String(valorStr);
+    let str = String(valorStr).trim();
+    if (!str) return 0;
     const isNeg = str.includes('-');
+
+    // Caso 1: String com formatação brasileira (possui vírgula para centavos, ex: "R$ 1.000,00", "1.000,00", "10,00", "0,50")
+    if (str.includes(',')) {
+        const parts = str.split(',');
+        const inteiros = parts[0].replace(/\D/g, '') || '0';
+        const centavos = (parts[1] || '').replace(/\D/g, '').padEnd(2, '0').slice(0, 2);
+        const val = parseFloat(`${inteiros}.${centavos}`) || 0;
+        return isNeg ? -val : val;
+    }
+
+    // Caso 2: String com ponto decimal ou de milhar (ex: "1000.50" ou "1.000")
+    if (str.includes('.')) {
+        const dotCount = (str.match(/\./g) || []).length;
+        if (dotCount === 1) {
+            const parts = str.split('.');
+            // Se tiver exatamente 3 dígitos após o ponto e parte inteira maior que 0, é separador de milhar (ex: "1.000")
+            if (parts[1].length === 3 && parseInt(parts[0], 10) > 0) {
+                const val = parseInt(str.replace(/\D/g, ''), 10) || 0;
+                return isNeg ? -val : val;
+            }
+            // Caso contrário, é ponto decimal padrão (ex: "1000.50", "10.5")
+            const val = parseFloat(str.replace(/[^0-9.]/g, '')) || 0;
+            return isNeg ? -val : val;
+        } else {
+            // Mais de 1 ponto (ex: "1.000.000") -> milhar
+            const val = parseInt(str.replace(/\D/g, ''), 10) || 0;
+            return isNeg ? -val : val;
+        }
+    }
+
+    // Caso 3: String contendo apenas dígitos numéricos inteiros (ex: "1000", "50", "200")
+    // Se o usuário digitou sem pontuação nem centavos, é o valor integral em Reais (NÃO dividir por 100!)
     const digitos = str.replace(/\D/g, '');
     if (!digitos) return 0;
-    const val = parseInt(digitos, 10) / 100;
+    const val = parseInt(digitos, 10) || 0;
     return isNeg ? -val : val;
 }
 
@@ -1570,6 +1603,16 @@ function aplicarMascaraMoedaEmElemento(input) {
         }
     });
 
+    input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pastedText = (e.clipboardData || window.clipboardData)?.getData('text') || '';
+        if (!pastedText) return;
+        const num = desformatarMoedaInput(pastedText);
+        setarValorMoedaInput(input, num);
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+        input.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
     input.addEventListener('keydown', (e) => {
         if (input.id === 'contaSaldo' && (e.key === '-' || e.key === 'Subtract')) {
             e.preventDefault();
@@ -1601,15 +1644,27 @@ function aplicarMascaraMoedaEmElemento(input) {
     input.addEventListener('blur', () => {
         if ((input.value === 'R$ 0,00' || input.value === '-R$ 0,00') && !input.required) {
             input.value = '';
+            return;
+        }
+        if (input.value && input.value.trim() !== '') {
+            const val = desformatarMoedaInput(input.value);
+            setarValorMoedaInput(input, val);
         }
     });
 }
 
 function inicializarMascarasMoeda() {
-    const ids = ['inputValor', 'inputValorRealizado', 'novaContaValor', 'novoDesejoValor', 'inputRendaExtraValor', 'contaLimite', 'contaSaldo'];
+    const ids = [
+        'inputValor', 'inputValorRealizado', 'novaContaValor', 'novoDesejoValor',
+        'inputRendaExtraValor', 'contaLimite', 'contaSaldo', 'contaValorRecarga',
+        'transferenciaValor', 'metaPlanoValor', 'metaPlanoRealizado'
+    ];
     ids.forEach(id => {
         const el = document.getElementById(id);
         if (el) aplicarMascaraMoedaEmElemento(el);
+    });
+    document.querySelectorAll('.input-money-mask').forEach(el => {
+        aplicarMascaraMoedaEmElemento(el);
     });
 }
 

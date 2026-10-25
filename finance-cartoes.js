@@ -268,6 +268,18 @@ async function carregarCartoesEContas() {
                 } catch(e) {}
             }
         }
+        // Auto-correção para Cartão Alimentação onde valor_recarga foi gravado incorretamente como 10 (devido à divisão indevida de 1000 por 100)
+        if (c.tipo_conta === 'Cartão Alimentação' && parseFloat(c.valor_recarga) === 10) {
+            c.valor_recarga = 1000;
+            try {
+                await dbLocal.contas_bancarias.update(c.id, {
+                    valor_recarga: 1000,
+                    sync_status: 'pending_update',
+                    updated_at: Date.now()
+                });
+                if (typeof sincronizarDados === 'function') sincronizarDados();
+            } catch(e) {}
+        }
     }
 
     // Filtra compras do mês alvo
@@ -1306,6 +1318,10 @@ async function abrirModalGerenciarConta(id = null, tipoPadrao = 'Conta Corrente'
     const btnExcluir = document.getElementById('btnExcluirContaBancaria');
     const tit = document.getElementById('tituloModalConta');
     const ico = document.getElementById('iconeModalConta');
+
+    if (inpLim && typeof aplicarMascaraMoedaEmElemento === 'function') aplicarMascaraMoedaEmElemento(inpLim);
+    if (inpSal && typeof aplicarMascaraMoedaEmElemento === 'function') aplicarMascaraMoedaEmElemento(inpSal);
+    if (inpRecVal && typeof aplicarMascaraMoedaEmElemento === 'function') aplicarMascaraMoedaEmElemento(inpRecVal);
 
     if (id && id !== 'novo') {
         window.cartaoEmEdicaoId = id;
