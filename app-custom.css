@@ -795,28 +795,82 @@ body {
     .desktop-tabs-bar {
         display: none !important;
     }
-    .zoom-controls-group {
-        display: none !important; /* Desabilita widget de zoom no celular para evitar estouro da tela */
-    }
     .header-tools-desktop-row {
         width: 100% !important;
+        display: flex !important;
+        flex-direction: row !important;
+        align-items: center !important;
         justify-content: space-between !important;
         gap: 6px !important;
         padding-top: 4px !important;
         border-top: 1px solid rgba(255, 255, 255, 0.05) !important;
+        box-sizing: border-box !important;
+    }
+    .zoom-controls-group {
+        display: flex !important; /* Lupa visível no celular */
+        align-items: center !important;
+        gap: 2px !important;
+        height: 32px !important;
+        padding: 0 4px !important;
+        background: rgba(15, 23, 42, 0.75) !important;
+        border: 1px solid var(--border-color) !important;
+        border-radius: 8px !important;
+        flex-shrink: 0 !important;
+    }
+    .zoom-controls-group .btn-sub-tool {
+        width: 26px !important;
+        height: 26px !important;
+        min-width: 26px !important;
+        padding: 0 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        background: rgba(255, 255, 255, 0.08) !important;
+        border: none !important;
+        border-radius: 6px !important;
+        color: #E2E8F0 !important;
+        cursor: pointer !important;
+    }
+    .zoom-controls-group .btn-sub-tool svg {
+        width: 14px !important;
+        height: 14px !important;
+    }
+    .zoom-controls-group #lblZoomPercent {
+        font-size: 0.70rem !important;
+        min-width: 32px !important;
+        text-align: center !important;
+        color: #94A3B8 !important;
+        font-weight: 700 !important;
+        user-select: none !important;
     }
     .sub-actions-group {
-        width: 100% !important;
         display: flex !important;
-        justify-content: space-between !important;
-        gap: 6px !important;
+        align-items: center !important;
+        gap: 4px !important;
+        flex: 1 !important;
+        justify-content: flex-end !important;
+        min-width: 0 !important;
     }
     .btn-sub-action {
-        flex: 1 !important;
-        padding: 0 6px !important;
-        font-size: 0.74rem !important;
+        flex: 1 1 auto !important;
+        padding: 0 5px !important;
+        font-size: 0.72rem !important;
         height: 32px !important;
+        min-width: 0 !important;
         justify-content: center !important;
+        white-space: nowrap !important;
+        border-radius: 8px !important;
+        gap: 4px !important;
+    }
+    .btn-sub-action svg {
+        width: 14px !important;
+        height: 14px !important;
+        flex-shrink: 0 !important;
+    }
+    .btn-sub-action span:not(:first-child) {
+        font-size: 0.68rem !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
     }
     .desktop-columns {
         grid-template-columns: 1fr;
@@ -875,24 +929,63 @@ body.mode-mobbi .mobile-bottom-nav {
 body.mode-mobbi .desktop-tabs-bar {
     display: none !important;
 }
-body.mode-mobbi .zoom-controls-group {
-    display: none !important;
-}
 body.mode-mobbi .header-tools-desktop-row {
     width: 100% !important;
+    display: flex !important;
+    flex-direction: row !important;
+    align-items: center !important;
     justify-content: space-between !important;
+    gap: 6px !important;
+}
+body.mode-mobbi .zoom-controls-group {
+    display: flex !important; /* Lupa visível no modo mobbi */
+    align-items: center !important;
+    gap: 2px !important;
+    height: 32px !important;
+    padding: 0 4px !important;
+    background: rgba(15, 23, 42, 0.75) !important;
+    border: 1px solid var(--border-color) !important;
+    border-radius: 8px !important;
+    flex-shrink: 0 !important;
+}
+body.mode-mobbi .zoom-controls-group .btn-sub-tool {
+    width: 26px !important;
+    height: 26px !important;
+    min-width: 26px !important;
+    padding: 0 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: rgba(255, 255, 255, 0.08) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    color: #E2E8F0 !important;
+    cursor: pointer !important;
+}
+body.mode-mobbi .zoom-controls-group #lblZoomPercent {
+    font-size: 0.70rem !important;
+    min-width: 32px !important;
+    text-align: center !important;
+    color: #94A3B8 !important;
+    font-weight: 700 !important;
 }
 body.mode-mobbi .sub-actions-group {
-    width: 100% !important;
     display: flex !important;
-    justify-content: space-between !important;
+    align-items: center !important;
+    gap: 4px !important;
+    flex: 1 !important;
+    justify-content: flex-end !important;
+    min-width: 0 !important;
 }
 body.mode-mobbi .btn-sub-action {
-    flex: 1 !important;
-    padding: 0 6px !important;
-    font-size: 0.74rem !important;
+    flex: 1 1 auto !important;
+    padding: 0 5px !important;
+    font-size: 0.72rem !important;
     height: 32px !important;
+    min-width: 0 !important;
     justify-content: center !important;
+    white-space: nowrap !important;
+    border-radius: 8px !important;
 }
 
 @media (min-width: 769px) {
