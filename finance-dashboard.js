@@ -4882,13 +4882,16 @@ document.addEventListener('DOMContentLoaded', async () => {
 // Zoom para Gestao Financeira
 let financeZoom = parseFloat(localStorage.getItem('financeZoom')) || 1.0;
 function applyFinanceZoom() {
+    const isMobile = window.innerWidth <= 768 || document.body.classList.contains('mode-mobbi');
+    const zoomEfetivo = isMobile ? 1.0 : financeZoom;
+
     const wrappers = document.querySelectorAll('.content-wrapper');
     wrappers.forEach(w => {
-        w.style.zoom = financeZoom;
+        w.style.zoom = zoomEfetivo;
     });
     const lbl = document.getElementById('lblZoomPercent');
     if (lbl) {
-        lbl.innerText = Math.round(financeZoom * 100) + '%';
+        lbl.innerText = Math.round(zoomEfetivo * 100) + '%';
     }
     // Trigger resize on charts to fix rendering issues
     if(typeof renderPowerBIDashboard === 'function' && document.getElementById('tabPowerBI') && document.getElementById('tabPowerBI').style.display !== 'none') {
