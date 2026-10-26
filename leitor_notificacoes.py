@@ -320,6 +320,14 @@ class LeitorNotificacaoBancaria:
                 if c.get('tipo_conta') == 'Cartão de Crédito':
                     return c
         elif operacao == "Alimentação":
+            if "jaqueline" in termo or "jaque" in termo:
+                for c in contas:
+                    if c.get('tipo_conta') == 'Cartão Alimentação' and 'jaqueline' in (c.get('titular') or '').lower():
+                        return c
+            elif "carlos" in termo:
+                for c in contas:
+                    if c.get('tipo_conta') == 'Cartão Alimentação' and 'carlos' in (c.get('titular') or '').lower():
+                        return c
             for c in contas:
                 if c.get('tipo_conta') == 'Cartão Alimentação':
                     return c

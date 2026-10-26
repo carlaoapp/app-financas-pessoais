@@ -226,7 +226,15 @@ async function interpretarNotificacaoBancaria(notificacao) {
                 const cCred = candidatas.find(c => c.tipo_conta === 'Cartão de Crédito');
                 if (cCred) contaId = cCred.id;
             } else if (isAlimentacao) {
-                const cAlim = candidatas.find(c => c.tipo_conta === 'Cartão Alimentação');
+                let cAlim = null;
+                if (/\b(JAQUELINE|JAQUE)\b/i.test(textoLimpo)) {
+                    cAlim = candidatas.find(c => c.tipo_conta === 'Cartão Alimentação' && /jaqueline/i.test(c.titular || ''));
+                } else if (/\bCARLOS\b/i.test(textoLimpo)) {
+                    cAlim = candidatas.find(c => c.tipo_conta === 'Cartão Alimentação' && /carlos/i.test(c.titular || ''));
+                }
+                if (!cAlim) {
+                    cAlim = candidatas.find(c => c.tipo_conta === 'Cartão Alimentação');
+                }
                 if (cAlim) contaId = cAlim.id;
             }
 
@@ -238,7 +246,15 @@ async function interpretarNotificacaoBancaria(notificacao) {
         // Se ainda não casou com conta específica, filtra por tipo global
         if (!contaId) {
             if (tipoGasto === 'Cartão Alimentação') {
-                const cAlim = contasCadastradas.find(c => c.tipo_conta === 'Cartão Alimentação' || /ticket|alelo|sodexo|vr/i.test(c.nome_conta || ''));
+                let cAlim = null;
+                if (/\b(JAQUELINE|JAQUE)\b/i.test(textoLimpo)) {
+                    cAlim = contasCadastradas.find(c => c.tipo_conta === 'Cartão Alimentação' && /jaqueline/i.test(c.titular || ''));
+                } else if (/\bCARLOS\b/i.test(textoLimpo)) {
+                    cAlim = contasCadastradas.find(c => c.tipo_conta === 'Cartão Alimentação' && /carlos/i.test(c.titular || ''));
+                }
+                if (!cAlim) {
+                    cAlim = contasCadastradas.find(c => c.tipo_conta === 'Cartão Alimentação' || /ticket|alelo|sodexo|vr/i.test(c.nome_conta || ''));
+                }
                 if (cAlim) contaId = cAlim.id;
             } else if (tipoGasto === 'Cartão de Crédito') {
                 const cCred = contasCadastradas.find(c => c.tipo_conta === 'Cartão de Crédito');

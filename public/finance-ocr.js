@@ -220,25 +220,25 @@ function extrairValorComprovante(texto) {
 
     // Palavras que indicam TRIBUTOS, TROCO ou DESCONTOS - JAMAIS devem ser pegas como valor da compra!
     const palavrasIgnorar = /\b(FEDERAL|ESTADUAL|MUNICIPAL|TRIBUTOS?|IMPOSTOS?|ICMS|ISS|PIS|COFINS|TROCO|DESCONTO|ABATIMENTO|DEVOLUCAO|VALOR\s+UNIT|VL\s+UNIT|UNITARIO|IBPT|LEI\s+12\.?741|APROX|ALIQUOTA)\b/i;
-    const isLinhaSaldo = l => /\b(SALDO|SALDO\s+DISP|DISPONIVEL)\b/i.test(l);
+    const isRotuloSaldoApenas = l => /^(?:SALDO(?:\s+ANTERIOR|\s+ATUAL|\s+DISP|\s+DISPONIVEL)?|NOVO\s+SALDO)[\s:]*R?\$?\s*[0-9]/i.test(l.trim());
 
     // 1. PRIORIDADE MÁXIMA: Rótulos explícitos de Total a Pagar, Valor Total, Pagamento e Comprovante TEF
     const rotulosPrioritarios = [
-        /(?:VALOR\s*A\s*PAGAR|TOTAL\s*A\s*PAGAR)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:VALOR\s*(?:DA\s*)?COMPRA|VALOR\s*(?:DA\s*)?TRANSACAO|VALOR\s*A\s*PAGAR|TOTAL\s*A\s*PAGAR)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
         /(?:VALOR\s*TOTAL|TOTAL\s*LIQUIDO|VALOR\s*LIQUIDO)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
-        /(?:VALOR\s*PAGO|TOTAL\s*PAGO)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:VALOR\s*PAGO|TOTAL\s*PAGO|PAGO\s*COM\s*SUCESSO)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:CARTAO\s+(?:ALIMENTACAO|DEBITO|CREDITO)|TICKET(?:\s+FLEX)?|VALE\s+ALIMENTACAO|VOUCHER)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
         /(?:COMPROV(?:ANTE)?:?.*?VALOR:?|VALOR:?.*?COMPROV(?:ANTE)?)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
         /(?:COMPRA:?.*?VALOR:?|VALOR:?.*?COMPRA)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
-        /(?:CARTAO\s+(?:DEBITO|CREDITO)|TICKET|ALIMENTACAO|VOUCHER)[\s:]*R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
         // Comprovantes TEF / Maquininha (ex: "COMPROV: 509817600 VALOR: 37,35")
-        /\bVALOR[\s:]+R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
-        /\bTOTAL[\s:]+R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i
+        /(?:^|[^\w])VALOR[\s:]+R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /(?:^|[^\w])TOTAL[\s:]+R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/i
     ];
 
     // 1.1 Procura na mesma linha
     for (const regex of rotulosPrioritarios) {
         for (const linha of linhas) {
-            if (palavrasIgnorar.test(linha) || isLinhaSaldo(linha)) continue;
+            if (palavrasIgnorar.test(linha) || isRotuloSaldoApenas(linha)) continue;
             const m = linha.match(regex);
             if (m && m[1]) {
                 const val = normalizarValorNumero(m[1]);
@@ -250,14 +250,14 @@ function extrairValorComprovante(texto) {
     // 1.2 Procura Multi-linha (Colunada de NFC-e):
     // Quando o rótulo ("Valor total R$" ou "Valor a Pagar R$" ou "VALOR PAGO R$") está em uma linha
     // e o número está na linha seguinte (i+1, i+2 ou i+3)
-    const rotulosCabecalhoTotal = /^(?:VALOR\s*(?:TOTAL|A\s*PAGAR|PAGO|LIQUIDO)|TOTAL\s*(?:A\s*PAGAR|PAGO|LIQUIDO)|FORMA\s*DE\s*PAGAMENTO|CARTAO\s*(?:DEBITO|CREDITO)|TICKET\s*ALIMENTACAO|VALOR)$/i;
+    const rotulosCabecalhoTotal = /^(?:VALOR\s*(?:TOTAL|A\s*PAGAR|PAGO|LIQUIDO|DA\s*COMPRA)|TOTAL\s*(?:A\s*PAGAR|PAGO|LIQUIDO)|FORMA\s*DE\s*PAGAMENTO|CARTAO\s*(?:DEBITO|CREDITO|ALIMENTACAO)|TICKET(?:\s*ALIMENTACAO|\s*FLEX)?|VALOR)$/i;
     for (let i = 0; i < linhas.length; i++) {
         const linha = linhas[i].replace(/[:\-R\$]+$/g, '').trim();
         if (rotulosCabecalhoTotal.test(linha) || /(?:VALOR\s*(?:TOTAL|A\s*PAGAR|PAGO)|TOTAL\s*A\s*PAGAR)/i.test(linha)) {
-            if (palavrasIgnorar.test(linha) || isLinhaSaldo(linha)) continue;
+            if (palavrasIgnorar.test(linha) || isRotuloSaldoApenas(linha)) continue;
             for (let j = 1; j <= 3 && (i + j) < linhas.length; j++) {
                 const proxLinha = linhas[i + j];
-                if (palavrasIgnorar.test(proxLinha) || isLinhaSaldo(proxLinha)) continue;
+                if (palavrasIgnorar.test(proxLinha) || isRotuloSaldoApenas(proxLinha)) continue;
                 const mProx = proxLinha.match(/R?\$?\s*([0-9]{1,4}(?:[.,][0-9]{3})*[.,][0-9]{2})/);
                 if (mProx && mProx[1]) {
                     const val = normalizarValorNumero(mProx[1]);
@@ -271,12 +271,8 @@ function extrairValorComprovante(texto) {
     for (const regex of rotulosPrioritarios) {
         const m = textoSanitizado.match(regex);
         if (m && m[1]) {
-            const idx = m.index || 0;
-            const trecho = textoSanitizado.substring(Math.max(0, idx - 40), Math.min(textoSanitizado.length, idx + 40));
-            if (!palavrasIgnorar.test(trecho) && !isLinhaSaldo(trecho)) {
-                const val = normalizarValorNumero(m[1]);
-                if (val > 0) return { formatado: formatarValorParaInput(val), numero: val };
-            }
+            const val = normalizarValorNumero(m[1]);
+            if (val > 0) return { formatado: formatarValorParaInput(val), numero: val };
         }
     }
 
@@ -291,7 +287,7 @@ function extrairValorComprovante(texto) {
 
     for (const regex of regexSecundario) {
         for (const linha of linhas) {
-            if (palavrasIgnorar.test(linha) || isLinhaSaldo(linha)) continue;
+            if (palavrasIgnorar.test(linha) || isRotuloSaldoApenas(linha)) continue;
             const m = linha.match(regex);
             if (m && m[1]) {
                 const val = normalizarValorNumero(m[1]);
@@ -319,6 +315,10 @@ function limparNomeEstabelecimento(str) {
     if (/acesso\s+enera/i.test(sLimpo) || /enera\s+o\s+vuv/i.test(sLimpo)) {
         return '';
     }
+    // Ignora termos genéricos de cupom que não são estabelecimentos (ex: "Itens Ficara", "Qtd Itens")
+    if (/\b(ITENS?|QTD|SUBTOTAL|DESCONTO|TROCO|PAGAMENTO|FORMA\s+DE\s+PAGAMENTO|VALOR\s+A\s+PAGAR|CUPOM\s+FISCAL|EXTRATO\s+SAT|DOCUMENTO\s+AUXILIAR|VOLTE\s+SEMPRE|OBRIGADO)\b/i.test(sLimpo)) {
+        return '';
+    }
     const res = sLimpo
         .replace(/\b(LTDA|EIRELI|S\/?A|S\.A\.|M\.?E\.?|EPP|MEI)\b/gi, '')
         .replace(/^[:\-\s\.\*]+|[:\-\s\.\*]+$/g, '')
@@ -329,7 +329,7 @@ function limparNomeEstabelecimento(str) {
         .join(' ')
         .trim();
 
-    if (res.length < 3 || /^(Acesso|Terminal|Via|Transacao|Autorizacao|Comprovante|Rede|Ticket|Chip|Senha)/i.test(res)) {
+    if (res.length < 3 || /^(Acesso|Terminal|Via|Transacao|Autorizacao|Comprovante|Rede|Ticket|Chip|Senha|Itens)/i.test(res)) {
         return '';
     }
     return res;
@@ -524,7 +524,7 @@ function interpretarTextoComprovante(texto, origem) {
         }
     }
 
-    const isAlimentacaoNotif = /\b(ALELO|SODEXO|PLUXEE|TICKET|VR|FLASH|CAJU|SWILE|VALE\s+ALIMENTACAO|VALE\s+REFEICAO|ALIMENTACAO|REFEICAO)\b/i.test(textoLimpo);
+    const isAlimentacaoNotif = /\b(ALELO|SODEXO|PLUXEE|TICKET|VR|FLASH|CAJU|SWILE|VALE\s*ALIMENTA|VALE\s*REFEIC|ALIMENTA|REFEIC|BENEFIC|VOUCHER|CONVENIO)\b/i.test(textoLimpo);
     const isDebitoNotif = /\b(DEBITO|COMPRA\s+DEBITO|NO\s+DEBITO|CARTAO\s+DE\s+DEBITO)\b/i.test(textoLimpo);
     const isCreditoNotif = (parcelasDetectadas > 1) || /\b(CREDITO|COMPRA\s+CREDITO|NO\s+CREDITO|CARTAO\s+DE\s+CREDITO|FATURA|PARCELADO)\b/i.test(textoLimpo);
 
@@ -615,18 +615,27 @@ function interpretarTextoComprovante(texto, origem) {
     const selTipo = document.getElementById('inputTipoGasto');
     if (selTipo) {
         selTipo.value = tipoMovimentacao;
-        if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
-        camposPreenchidos.push("Tipo");
+        if (typeof aoMudarTipoGastoLancamento === 'function') {
+            aoMudarTipoGastoLancamento(tipoMovimentacao);
+        } else if (typeof atualizarTextoStatus === 'function') {
+            atualizarTextoStatus();
+        }
+        camposPreenchidos.push("Tipo: " + tipoMovimentacao);
     }
 
     // Valor Orçado e Realizado
-    if (valorEncontrado) {
-        const valFmt = "R$ " + valorEncontrado;
+    if (resValor && resValor.numero > 0) {
         const inpValor = document.getElementById('inputValor');
         const inpRealizado = document.getElementById('inputValorRealizado');
-        if (inpValor) inpValor.value = valFmt;
-        if (inpRealizado && isStatusPago) inpRealizado.value = valFmt;
-        camposPreenchidos.push("Valor: " + valFmt);
+        if (typeof setarValorMoedaInput === 'function') {
+            setarValorMoedaInput(inpValor, resValor.numero);
+            if (isStatusPago) setarValorMoedaInput(inpRealizado, resValor.numero);
+        } else {
+            const valFmt = "R$ " + resValor.formatado;
+            if (inpValor) inpValor.value = valFmt;
+            if (inpRealizado && isStatusPago) inpRealizado.value = valFmt;
+        }
+        camposPreenchidos.push("Valor: R$ " + resValor.formatado);
     }
 
     // Data
@@ -709,35 +718,117 @@ function interpretarTextoComprovante(texto, origem) {
     // Casamento de Conta Bancária ou Cartão de Crédito
     const selConta = document.getElementById('inputContaId');
     if (selConta) {
-        let encontrouConta = false;
-        if (cartaoBancoDetectado) {
-            const termoBusca = ocrNormalizarTexto(cartaoBancoDetectado);
-            for (let i = 0; i < selConta.options.length; i++) {
-                const optTxt = ocrNormalizarTexto(selConta.options[i].text);
-                if (optTxt.includes(termoBusca) || (optTxt && termoBusca.includes(optTxt))) {
-                    selConta.selectedIndex = i;
-                    encontrouConta = true;
-                    camposPreenchidos.push("Conta: " + selConta.options[i].text.split('(')[0].trim());
-                    break;
+        // Detecta titular no comprovante (ex: Jaqueline ou Carlos)
+        let titularDetectado = "";
+        if (/\b(JAQUELINE|JAQUE)\b/i.test(textoLimpo)) {
+            titularDetectado = "Jaqueline";
+        } else if (/\bCARLOS\b/i.test(textoLimpo)) {
+            titularDetectado = "Carlos";
+        }
+
+        let contaIndexEscolhida = -1;
+
+        if (tipoMovimentacao === 'Cartão Alimentação') {
+            // 1. Procura primeiro Cartão Alimentação com match no titular detectado
+            if (titularDetectado) {
+                for (let i = 0; i < selConta.options.length; i++) {
+                    const opt = selConta.options[i];
+                    if (opt.dataset && opt.dataset.tipo === 'Cartão Alimentação') {
+                        const optTxt = ocrNormalizarTexto(opt.text);
+                        if (optTxt.includes(ocrNormalizarTexto(titularDetectado))) {
+                            contaIndexEscolhida = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            // 2. Se não encontrou por titular, procura por bandeira/banco detectado (Ticket, Alelo, etc.)
+            if (contaIndexEscolhida === -1 && cartaoBancoDetectado) {
+                const termo = ocrNormalizarTexto(cartaoBancoDetectado);
+                for (let i = 0; i < selConta.options.length; i++) {
+                    const opt = selConta.options[i];
+                    if (opt.dataset && opt.dataset.tipo === 'Cartão Alimentação') {
+                        const optTxt = ocrNormalizarTexto(opt.text);
+                        if (optTxt.includes(termo) || termo.includes(optTxt)) {
+                            contaIndexEscolhida = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            // 3. Fallback: seleciona o primeiro Cartão Alimentação
+            if (contaIndexEscolhida === -1) {
+                for (let i = 0; i < selConta.options.length; i++) {
+                    if (selConta.options[i].dataset && selConta.options[i].dataset.tipo === 'Cartão Alimentação') {
+                        contaIndexEscolhida = i;
+                        break;
+                    }
+                }
+            }
+        } else if (tipoMovimentacao === 'Cartão de Crédito') {
+            if (titularDetectado) {
+                for (let i = 0; i < selConta.options.length; i++) {
+                    const opt = selConta.options[i];
+                    if (opt.dataset && opt.dataset.tipo === 'Cartão de Crédito') {
+                        const optTxt = ocrNormalizarTexto(opt.text);
+                        if (optTxt.includes(ocrNormalizarTexto(titularDetectado))) {
+                            contaIndexEscolhida = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (contaIndexEscolhida === -1 && cartaoBancoDetectado) {
+                const termo = ocrNormalizarTexto(cartaoBancoDetectado);
+                for (let i = 0; i < selConta.options.length; i++) {
+                    const opt = selConta.options[i];
+                    if (opt.dataset && opt.dataset.tipo === 'Cartão de Crédito') {
+                        const optTxt = ocrNormalizarTexto(opt.text);
+                        if (optTxt.includes(termo) || termo.includes(optTxt)) {
+                            contaIndexEscolhida = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (contaIndexEscolhida === -1) {
+                for (let i = 0; i < selConta.options.length; i++) {
+                    if (selConta.options[i].dataset && selConta.options[i].dataset.tipo === 'Cartão de Crédito') {
+                        contaIndexEscolhida = i;
+                        break;
+                    }
+                }
+            }
+        } else {
+            // Contas Correntes
+            if (titularDetectado) {
+                for (let i = 0; i < selConta.options.length; i++) {
+                    const opt = selConta.options[i];
+                    if (opt.dataset && opt.dataset.tipo !== 'Cartão de Crédito' && opt.dataset.tipo !== 'Cartão Alimentação') {
+                        const optTxt = ocrNormalizarTexto(opt.text);
+                        if (optTxt.includes(ocrNormalizarTexto(titularDetectado))) {
+                            contaIndexEscolhida = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            if (contaIndexEscolhida === -1 && cartaoBancoDetectado) {
+                const termo = ocrNormalizarTexto(cartaoBancoDetectado);
+                for (let i = 0; i < selConta.options.length; i++) {
+                    const optTxt = ocrNormalizarTexto(selConta.options[i].text);
+                    if (optTxt.includes(termo) || termo.includes(optTxt)) {
+                        contaIndexEscolhida = i;
+                        break;
+                    }
                 }
             }
         }
-        if (!encontrouConta && tipoMovimentacao === 'Cartão de Crédito') {
-            for (let i = 0; i < selConta.options.length; i++) {
-                if (selConta.options[i].dataset && selConta.options[i].dataset.tipo === 'Cartão de Crédito') {
-                    selConta.selectedIndex = i;
-                    camposPreenchidos.push("Cartão: " + selConta.options[i].text.split('(')[0].trim());
-                    break;
-                }
-            }
-        } else if (!encontrouConta && tipoMovimentacao === 'Cartão Alimentação') {
-            for (let i = 0; i < selConta.options.length; i++) {
-                if (selConta.options[i].dataset && selConta.options[i].dataset.tipo === 'Cartão Alimentação') {
-                    selConta.selectedIndex = i;
-                    camposPreenchidos.push("Alimentação: " + selConta.options[i].text.split('(')[0].trim());
-                    break;
-                }
-            }
+
+        if (contaIndexEscolhida >= 0) {
+            selConta.selectedIndex = contaIndexEscolhida;
+            camposPreenchidos.push("Conta: " + selConta.options[contaIndexEscolhida].text.split('(')[0].trim());
+            selConta.dispatchEvent(new Event('change', { bubbles: true }));
         }
     }
 
