@@ -186,7 +186,7 @@ async function interpretarNotificacaoBancaria(notificacao) {
     let nomeBancoIdentificado = "";
 
     const listaBancos = [
-        { nome: "Sicredi", regex: /\bSICREDI\b/i, pacote: /sicredi/i },
+        { nome: "Sicredi", regex: /\b(SICREDI|VISA\s+GOLD|OUROCARD\s+SICREDI)\b/i, pacote: /sicredi/i },
         { nome: "Nubank", regex: /\bNUBANK|NU\b/i, pacote: /nu\.production|nubank/i },
         { nome: "Inter", regex: /\b(BANCO\s+INTER|INTER)\b/i, pacote: /intermedium|bancointer/i },
         { nome: "Itaú", regex: /\bITA[UÚ]\b/i, pacote: /itau/i },
@@ -209,19 +209,33 @@ async function interpretarNotificacaoBancaria(notificacao) {
         }
     }
 
-    // Busca melhor conta cadastrada para vincular
+    // Busca melhor conta cadastrada para vincular com prioridade de tipo de conta
     if (contasCadastradas.length > 0) {
         if (nomeBancoIdentificado) {
             const bNorm = limparTextoNotificacao(nomeBancoIdentificado);
-            const matchC = contasCadastradas.find(c => {
+            const candidatas = contasCadastradas.filter(c => {
                 const n = limparTextoNotificacao(c.nome_conta || '');
                 const b = limparTextoNotificacao(c.banco || '');
                 return n.includes(bNorm) || b.includes(bNorm) || bNorm.includes(n);
             });
-            if (matchC) contaId = matchC.id;
+
+            if (isDebito) {
+                const cDeb = candidatas.find(c => c.tipo_conta === 'Conta Corrente' || c.tipo_conta === 'Conta Salário');
+                if (cDeb) contaId = cDeb.id;
+            } else if (isCredito) {
+                const cCred = candidatas.find(c => c.tipo_conta === 'Cartão de Crédito');
+                if (cCred) contaId = cCred.id;
+            } else if (isAlimentacao) {
+                const cAlim = candidatas.find(c => c.tipo_conta === 'Cartão Alimentação');
+                if (cAlim) contaId = cAlim.id;
+            }
+
+            if (!contaId && candidatas.length > 0) {
+                contaId = candidatas[0].id;
+            }
         }
 
-        // Se ainda não casou com conta específica, filtra por tipo
+        // Se ainda não casou com conta específica, filtra por tipo global
         if (!contaId) {
             if (tipoGasto === 'Cartão Alimentação') {
                 const cAlim = contasCadastradas.find(c => c.tipo_conta === 'Cartão Alimentação' || /ticket|alelo|sodexo|vr/i.test(c.nome_conta || ''));
@@ -241,6 +255,13 @@ async function interpretarNotificacaoBancaria(notificacao) {
     let estabelecimento = "";
     if (typeof extrairEstabelecimentoComprovante === 'function') {
         estabelecimento = extrairEstabelecimentoComprovante(textoBruto, textoLimpo);
+    }
+    // Padrão Sicredi Notificação: "26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99"
+    if (!estabelecimento) {
+        const mSicredi = textoBruto.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Za-z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|\-|\d{4}))/i);
+        if (mSicredi && mSicredi[1]) {
+            estabelecimento = mSicredi[1].trim();
+        }
     }
     if (!estabelecimento || /acesso|aprovada|compra|cartao|terminal/i.test(estabelecimento)) {
         // Padrões comuns em notificações: "Compra de R$ 50 aprovada em PADARIA ESTRELA"
@@ -546,38 +567,58 @@ function abrirModalCentralNotificacoes() {
             <!-- Card 1: Como enviar Comprovante direto do Banco -->
             <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
                 <div style="font-size: 0.88rem; font-weight: 800; color: #60A5FA; display: flex; align-items: center; gap: 6px;">
-                    <span>📤</span> 1. Compartilhar Comprovante do Banco para o App
+                    <span>📤</span> 1. Compartilhar Comprovante Direto do Banco para o App
                 </div>
                 <p style="font-size: 0.78rem; color: #CBD5E1; margin: 6px 0 0; line-height: 1.4;">
                     Ao gerar o comprovante em qualquer app de banco (Pix, Cartão, Boleto), clique em <strong>Compartilhar</strong> e escolha o <strong>Finanças Pessoais</strong>. O app abrirá e preencherá tudo automaticamente para sua confirmação com 1 clique!
                 </p>
             </div>
 
-            <!-- Card 2: Webhook de Notificações para Celular -->
-            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
-                <div style="font-size: 0.88rem; font-weight: 800; color: #10B981; display: flex; align-items: center; gap: 6px;">
-                    <span>📲</span> 2. Link de Integração para Notificações do Celular
+            <!-- Card 2: Leitor Direto de Notificação / Print (Sem Aplicativo de Terceiros) -->
+            <div style="background: rgba(16, 185, 129, 0.08); border: 1.5px solid #10B981; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+                <div style="font-size: 0.88rem; font-weight: 800; color: #34D399; display: flex; align-items: center; gap: 6px;">
+                    <span>⚡</span> 2. Leitor Direto de Notificação / Print (Nativo)
                 </div>
-                <p style="font-size: 0.78rem; color: #CBD5E1; margin: 6px 0 8px; line-height: 1.4;">
-                    Use aplicativos como <strong>MacroDroid</strong> ou <strong>Tasker</strong> (Play Store) para encaminhar as notificações dos bancos instantaneamente para o seu Finanças:
+                <p style="font-size: 0.76rem; color: #CBD5E1; margin: 6px 0 8px; line-height: 1.4;">
+                    Cole abaixo o texto da notificação do banco (ex: Sicredi, Nubank, Itaú) ou carregue o print da tela do celular para lançamento instantâneo:
                 </p>
-                <div style="display: flex; gap: 6px; align-items: center;">
-                    <input type="text" readonly value="${webhookUrl}" id="txtWebhookUrl" style="flex: 1; background: #0F172A; border: 1px solid #475569; color: #94A3B8; padding: 8px 10px; border-radius: 8px; font-size: 0.72rem; font-family: monospace;">
-                    <button type="button" onclick="copiarLinkWebhook()" style="background: #2563EB; border: none; color: white; padding: 8px 12px; border-radius: 8px; font-weight: 800; font-size: 0.74rem; cursor: pointer; white-space: nowrap;">
-                        📋 Copiar
+                <textarea id="txtInputNotificacaoManual" rows="2" placeholder="Cole aqui o texto da notificação (ex: Compra débito Visa Gold 26/10 Livraria Maranatha R$ 4,99)..." style="width: 100%; box-sizing: border-box; background: #0F172A; border: 1px solid #334155; border-radius: 8px; color: #F8FAFC; padding: 8px 10px; font-size: 0.78rem; resize: vertical; margin-bottom: 8px; font-family: inherit;"></textarea>
+                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" onclick="processarNotificacaoTextoInput()" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 800; font-size: 0.76rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <span>⚡</span> Lançar Notificação Agora
                     </button>
+                    <label style="background: #1E293B; border: 1px solid #475569; color: #E2E8F0; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.76rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                        <span>📷</span> Carregar Print / Foto
+                        <input type="file" accept="image/*" style="display: none;" onchange="if(this.files[0]) processarPrintNotificacaoInput(this.files[0])">
+                    </label>
                 </div>
             </div>
 
-            <!-- Card 3: SIMULADOR DE TESTES EM TEMPO REAL -->
+            <!-- Card 3: Automação Inteligente com Python (Payton) -->
+            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid #3B82F6; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+                <div style="font-size: 0.88rem; font-weight: 800; color: #60A5FA; display: flex; align-items: center; gap: 6px;">
+                    <span>🐍</span> 3. Automação Avançada com Python (Payton)
+                </div>
+                <p style="font-size: 0.76rem; color: #CBD5E1; margin: 6px 0 6px; line-height: 1.4;">
+                    Nosso módulo Python nativo (<strong>automacao_bancaria_python.py</strong>) faz a leitura automática de capturas de tela e da área de transferência em segundo plano sem exigir aplicativos de terceiros.
+                </p>
+                <div style="font-size: 0.72rem; color: #94A3B8; background: #0B1120; border: 1px solid #1E293B; padding: 6px 10px; border-radius: 6px; font-family: monospace;">
+                    Execute: <strong>leitor_cartao_python.bat</strong> ou <strong>iniciar_automacao_python.bat</strong>
+                </div>
+            </div>
+
+            <!-- Card 4: SIMULADOR DE TESTES EM TEMPO REAL -->
             <div style="background: rgba(139, 92, 246, 0.08); border: 1.5px solid #8B5CF6; border-radius: 12px; padding: 12px;">
                 <div style="font-size: 0.88rem; font-weight: 800; color: #C084FC; display: flex; align-items: center; gap: 6px;">
-                    <span>🧪</span> 3. Teste o Lançamento Automático Agora
+                    <span>🧪</span> 4. Teste o Lançamento Automático Agora
                 </div>
                 <p style="font-size: 0.76rem; color: #CBD5E1; margin: 4px 0 10px;">
                     Clique em qualquer botão abaixo para simular uma notificação real de banco e testar o funcionamento automático imediatamente:
                 </p>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <button type="button" onclick="testarNotificacaoSimulada('sicredi_debito_maranatha')" style="background: rgba(16,185,129,0.22); border: 1.5px solid #10B981; color: #A7F3D0; padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
+                        💳 <strong>Sicredi Débito</strong><br><span style="font-size:0.68rem; color:#6EE7B7;">R$ 4,99 Livraria Maranatha</span>
+                    </button>
                     <button type="button" onclick="testarNotificacaoSimulada('nubank_credito')" style="background: rgba(139,92,246,0.18); border: 1px solid #8B5CF6; color: #E9D5FF; padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
                         💳 <strong>Nubank Crédito</strong><br><span style="font-size:0.68rem; color:#A78BFA;">R$ 89,90 Mercado Livre</span>
                     </button>
@@ -586,9 +627,6 @@ function abrirModalCentralNotificacoes() {
                     </button>
                     <button type="button" onclick="testarNotificacaoSimulada('ticket_alimentacao')" style="background: rgba(249,115,22,0.18); border: 1px solid #F97316; color: #FFEDD5; padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
                         🍽️ <strong>Ticket Alimentação</strong><br><span style="font-size:0.68rem; color:#FDBA74;">R$ 145,20 Supermercado</span>
-                    </button>
-                    <button type="button" onclick="testarNotificacaoSimulada('credito_parcelado')" style="background: rgba(59,130,246,0.18); border: 1px solid #3B82F6; color: #BFDBFE; padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
-                        🏷️ <strong>Compra 3x</strong><br><span style="font-size:0.68rem; color:#93C5FD;">R$ 300,00 em 3 parcelas</span>
                     </button>
                 </div>
             </div>
@@ -621,11 +659,73 @@ function copiarLinkWebhook() {
     }
 }
 
+// Processa texto de notificação inserido manualmente ou colado no modal
+async function processarNotificacaoTextoInput() {
+    const txtEl = document.getElementById('txtInputNotificacaoManual');
+    const texto = txtEl ? txtEl.value.trim() : '';
+    if (!texto) {
+        alert('Por favor, cole o texto da notificação ou do comprovante.');
+        return;
+    }
+    if (typeof showToast === 'function') showToast('Processando notificação bancária...');
+    const notifObj = {
+        titulo: 'Notificação Bancária',
+        texto: texto,
+        app: ''
+    };
+    const lanc = await executarLancamentoAutomatico(notifObj);
+    if (lanc) {
+        if (txtEl) txtEl.value = '';
+        fecharModalCentralNotificacoes();
+        exibirModalLancamentosAutomaticos();
+    } else {
+        alert('Não foi possível identificar valor ou dados suficientes na notificação informada. Verifique se o valor está presente.');
+    }
+}
+
+// Processa print/foto de notificação selecionada pelo usuário
+async function processarPrintNotificacaoInput(file) {
+    if (!file) return;
+    if (typeof mostrarStatusOcr === 'function') mostrarStatusOcr('Lendo print da notificação com IA...');
+    try {
+        const base64 = await comprimirImagemComprovante(file);
+        const textoLido = await extrairTextoImagem(base64);
+        if (!textoLido || textoLido.trim().length < 5) {
+            alert('Não foi possível identificar o texto do print. Tente colar o texto da notificação.');
+            return;
+        }
+        const notifObj = {
+            titulo: 'Print Notificação',
+            texto: textoLido,
+            app: ''
+        };
+        const lanc = await executarLancamentoAutomatico(notifObj);
+        if (lanc) {
+            fecharModalCentralNotificacoes();
+            exibirModalLancamentosAutomaticos();
+        } else {
+            if (typeof abrirModalConfirmacaoExpressoComTexto === 'function') {
+                abrirModalConfirmacaoExpressoComTexto(textoLido, base64, 'Print Notificação');
+            }
+        }
+    } catch (e) {
+        alert('Erro ao processar imagem da notificação: ' + (e.message || e));
+    } finally {
+        if (typeof ocultarStatusOcr === 'function') ocultarStatusOcr();
+    }
+}
+
 // Executa simulação imediata com dados realistas de teste
 async function testarNotificacaoSimulada(tipo) {
     let payload = null;
 
-    if (tipo === 'nubank_credito') {
+    if (tipo === 'sicredi_debito_maranatha') {
+        payload = {
+            titulo: '💳 Compra débito Visa Gold AP..',
+            texto: '26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99 - Dúvidas: 0800-...',
+            app: 'br.com.sicredi.mobile'
+        };
+    } else if (tipo === 'nubank_credito') {
         payload = {
             titulo: 'Compra no cartão Nubank',
             texto: 'Compra de R$ 89,90 aprovada em Mercado Livre no crédito.',
@@ -701,3 +801,5 @@ window.confirmarTodosLancamentosAutomaticos = confirmarTodosLancamentosAutomatic
 window.testarNotificacaoSimulada = testarNotificacaoSimulada;
 window.copiarLinkWebhook = copiarLinkWebhook;
 window.executarLancamentoAutomatico = executarLancamentoAutomatico;
+window.processarNotificacaoTextoInput = processarNotificacaoTextoInput;
+window.processarPrintNotificacaoInput = processarPrintNotificacaoInput;

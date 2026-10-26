@@ -564,7 +564,7 @@ app.get('/api/export', (req, res) => {
 // ENDPOINTS DE NOTIFICAÇÕES E WEBHOOKS BANCÁRIOS (LANÇAMENTO AUTOMÁTICO)
 // ==========================================================================
 
-// 1. Receber Notificação Bancária do Celular (via MacroDroid, Tasker ou Webhook)
+// 1. Receber Notificação Bancária (via Python, Telegram, API ou Automação Direta)
 app.post(['/api/notificacoes/receber', '/api/webhook/notificacoes'], (req, res) => {
     try {
         const body = req.body || {};

@@ -14,8 +14,21 @@ import time
 import sqlite3
 import argparse
 import asyncio
+import urllib.request
 from datetime import datetime
 from PIL import Image
+
+# Configura encoding UTF-8 no Windows para evitar falhas com emojis bancários
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
+if hasattr(sys.stderr, 'reconfigure'):
+    try:
+        sys.stderr.reconfigure(encoding='utf-8')
+    except Exception:
+        pass
 
 # Tenta importar winocr para leitura nativa ultra rápida no Windows
 try:
@@ -184,7 +197,7 @@ class LeitorNotificacaoBancaria:
             ("Caju", r'\bCAJU\b'),
             ("Swile", r'\bSWILE\b'),
             ("Cartão Alimentação", r'\b(VALE\s+ALIMENTACAO|VALE\s+REFEICAO|ALIMENTACAO|REFEICAO)\b'),
-            ("Visa Gold", r'\bVISA\s+GOLD\b'),
+            ("Sicredi", r'\b(SICREDI|VISA\s+GOLD.*AP\.\.|VISA\s+GOLD)\b'),
             ("Visa Infinite", r'\bVISA\s+INFINITE\b'),
             ("Visa Platinum", r'\bVISA\s+PLATINUM\b'),
             ("Visa", r'\bVISA\b'),
@@ -192,7 +205,6 @@ class LeitorNotificacaoBancaria:
             ("Mastercard", r'\bMASTERCARD\b'),
             ("Elo Nanquim", r'\bELO\s+NANQUIM\b'),
             ("Elo", r'\bELO\b'),
-            ("Sicredi", r'\bSICREDI\b'),
             ("Nubank", r'\bNUBANK\b'),
             ("Inter", r'\bBANCO\s+INTER|INTER\b'),
             ("Itaú", r'\bITA[UÚ]\b'),
@@ -211,8 +223,8 @@ class LeitorNotificacaoBancaria:
         # 5. IDENTIFICAR ESTABELECIMENTO / BENEFICIÁRIO
         estabelecimento = ""
 
-        # Padrão Sicredi (ex: "20/10 SATSOM COMPONENTES ELE Paranavai BR R$ 4,50 - Dúvidas...")
-        match_sicredi = re.search(r'[0-3]?[0-9]/[0-1]?[0-9]\s+([A-Z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|SP|PR|RJ|BR|R\$|-|\d{4}))', texto_limpo, re.IGNORECASE)
+        # Padrão Sicredi (ex: "26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99 - Dúvidas...")
+        match_sicredi = re.search(r'[0-3]?[0-9]/[0-1]?[0-9]\s+([A-Z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|-|\d{4}))', texto_limpo, re.IGNORECASE)
         if match_sicredi:
             estabelecimento = match_sicredi.group(1).strip()
 
@@ -282,28 +294,42 @@ class LeitorNotificacaoBancaria:
     def localizar_ou_criar_conta_compativel(self, cartao_banco, operacao="Débito"):
         """Busca a conta correspondente cadastrada ou cria uma inicial compatível."""
         contas = self.listar_contas()
-        
-        # 1. Procura por match no nome ou banco
         termo = (cartao_banco or "").lower()
+
+        # 1. Procura por match prioritário pelo tipo de operação
+        if operacao == "Débito":
+            for c in contas:
+                if c.get('tipo_conta') in ['Conta Corrente', 'Conta Salário']:
+                    c_nome = (c.get('nome_conta') or '').lower()
+                    c_banco = (c.get('banco') or '').lower()
+                    if termo and (termo in c_nome or termo in c_banco or c_nome in termo):
+                        return c
+                    if ("sicred" in termo or "visa gold" in termo) and ("sicred" in c_nome or "sicred" in c_banco):
+                        return c
+            for c in contas:
+                if c.get('tipo_conta') in ['Conta Corrente', 'Conta Salário']:
+                    return c
+        elif operacao == "Crédito":
+            for c in contas:
+                if c.get('tipo_conta') == 'Cartão de Crédito':
+                    c_nome = (c.get('nome_conta') or '').lower()
+                    c_banco = (c.get('banco') or '').lower()
+                    if termo and (termo in c_nome or termo in c_banco or c_nome in termo):
+                        return c
+            for c in contas:
+                if c.get('tipo_conta') == 'Cartão de Crédito':
+                    return c
+        elif operacao == "Alimentação":
+            for c in contas:
+                if c.get('tipo_conta') == 'Cartão Alimentação':
+                    return c
+
+        # Fallback genérico de match
         if termo:
             for c in contas:
                 c_nome = (c.get('nome_conta') or '').lower()
                 c_banco = (c.get('banco') or '').lower()
                 if termo in c_nome or termo in c_banco or c_nome in termo:
-                    return c
-
-        # 2. Se for cartão de alimentação, prioriza Cartão Alimentação
-        if operacao == "Alimentação":
-            for c in contas:
-                if c.get('tipo_conta') == 'Cartão Alimentação':
-                    return c
-        elif operacao == "Crédito":
-            for c in contas:
-                if c.get('tipo_conta') == 'Cartão de Crédito':
-                    return c
-        else:
-            for c in contas:
-                if c.get('tipo_conta') != 'Cartão de Crédito' and c.get('tipo_conta') != 'Cartão Alimentação':
                     return c
 
         # 3. Se nenhuma conta existir, cria automaticamente uma com o nome identificado
@@ -442,6 +468,16 @@ class LeitorNotificacaoBancaria:
         conn.commit()
         conn.close()
 
+        # Envia também sincronização para a nuvem (Render) se houver conexão
+        try:
+            self.enviar_para_servidor_online(
+                titulo=f"Notificação {operacao} {cartao_banco or nome_conta}",
+                texto=dados_interpretados.get('texto_original', f"{descricao} R$ {valor:.2f}"),
+                app_pacote="br.com.sicredi.mobile" if ("sicred" in nome_conta.lower()) else "com.banco.app"
+            )
+        except Exception:
+            pass
+
         return {
             "sucesso": True,
             "movimentacao_id": mov_id,
@@ -454,6 +490,59 @@ class LeitorNotificacaoBancaria:
             "saldo_anterior": saldo_anterior,
             "saldo_novo": saldo_novo
         }
+
+    def enviar_para_servidor_online(self, titulo, texto, app_pacote="br.com.sicredi.mobile", user_id="usr_1791774521681"):
+        """Envia a notificação diretamente para a API online do Render em segundo plano."""
+        try:
+            url = "https://app-financas-pessoais-knrp.onrender.com/api/notificacoes/receber"
+            payload = {
+                "titulo": titulo,
+                "texto": texto,
+                "app": app_pacote,
+                "user_id": user_id
+            }
+            req = urllib.request.Request(
+                url,
+                data=json.dumps(payload).encode('utf-8'),
+                headers={"Content-Type": "application/json", "x-user-id": user_id},
+                method="POST"
+            )
+            with urllib.request.urlopen(req, timeout=6) as resp:
+                res_data = json.loads(resp.read().decode('utf-8'))
+                return res_data
+        except Exception as e:
+            return None
+
+    def monitorar_clipboard(self):
+        """Monitora continuamente a área de transferência do Windows para lançamentos automáticos instantâneos."""
+        import tkinter as tk
+        root = tk.Tk()
+        root.withdraw()
+        print("\n" + "="*65)
+        print("   🤖 MONITOR INTELIGENTE DE NOTIFICAÇÕES (PYTHON)")
+        print("="*65)
+        print(" [*] Aguardando novas notificações ou comprovantes...")
+        print(" [*] Copie qualquer notificação de banco para lançar automaticamente.")
+        print(" [*] Pressione Ctrl+C para encerrar o monitor.")
+        print("="*65 + "\n")
+
+        ultimo_texto = ""
+        while True:
+            try:
+                conteudo = root.clipboard_get()
+                if conteudo and conteudo != ultimo_texto:
+                    ultimo_texto = conteudo
+                    c_low = conteudo.lower()
+                    if ("r$" in c_low or "compra" in c_low or "débito" in c_low or "debito" in c_low or "crédito" in c_low or "credito" in c_low or "pix" in c_low):
+                        print(f"\n[🔔 NOVA NOTIFICAÇÃO DETECTADA]: {conteudo[:80]}...")
+                        res = self.interpretar_notificacao(conteudo)
+                        if res and res.get('valor'):
+                            salvo = self.registrar_transacao(res)
+                            print(f"  ✓ Lançado com sucesso no SQLite e na Nuvem!")
+                            print(f"    • {res['operacao']} | {res['valor_formatado']} | {res['estabelecimento']} ({salvo['nome_conta']})")
+            except Exception:
+                pass
+            time.sleep(1.5)
 
 
 def abrir_interface_grafica():
@@ -625,8 +714,38 @@ def modo_cli():
     parser.add_argument("--salvar", action="store_true", help="Salva a movimentação automaticamente no banco SQLite")
     parser.add_argument("--json", action="store_true", help="Retorna saída estruturada em JSON")
     parser.add_argument("--gui", action="store_true", help="Abre a interface gráfica visual do leitor")
+    parser.add_argument("--monitor", action="store_true", help="Monitora área de transferência para capturar e lançar notificações automaticamente")
+    parser.add_argument("--sicredi-teste", action="store_true", help="Executa teste com a notificação real do Sicredi")
 
     args = parser.parse_args()
+
+    if args.monitor:
+        leitor = LeitorNotificacaoBancaria()
+        leitor.monitorar_clipboard()
+        return
+
+    if args.sicredi_teste:
+        leitor = LeitorNotificacaoBancaria()
+        texto_exemplo = "💳 Compra débito Visa Gold AP.. 26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99 - Dúvidas: 0800-..."
+        print("\n" + "="*65)
+        print("   TESTE DE LANÇAMENTO AUTOMÁTICO SICREDI (PYTHON)")
+        print("="*65)
+        print(f"Texto da Notificação: {texto_exemplo}\n")
+        res = leitor.interpretar_notificacao(texto_exemplo)
+        print("[1. Dados Interpretados]:")
+        print(f"  • Operação:        {res['operacao']}")
+        print(f"  • Valor:           {res['valor_formatado']}")
+        print(f"  • Estabelecimento: {res['estabelecimento']}")
+        print(f"  • Cartão/Banco:    {res['cartao_banco']}")
+        print(f"  • Data/Hora:       {res['data']} {res['hora']}\n")
+        salvo = leitor.registrar_transacao(res)
+        print("[2. Lançamento Realizado]:")
+        print(f"  • Conta:           {salvo['nome_conta']}")
+        print(f"  • Saldo Anterior:  R$ {salvo['saldo_anterior']:.2f}")
+        print(f"  • Novo Saldo:      R$ {salvo['saldo_novo']:.2f}")
+        print(f"  • ID Movimentação: {salvo['movimentacao_id']}")
+        print("="*65 + "\n")
+        return
 
     if args.gui or (len(sys.argv) == 1):
         abrir_interface_grafica()

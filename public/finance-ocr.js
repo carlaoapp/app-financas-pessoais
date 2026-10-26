@@ -370,6 +370,13 @@ function extrairEstabelecimentoComprovante(texto, textoLimpo) {
         }
     }
 
+    // 2.5 Padrão de Notificação Sicredi (ex: "26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99")
+    const matchSicrediNotif = texto.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Za-z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|\-|\d{4}))/i);
+    if (matchSicrediNotif && matchSicrediNotif[1]) {
+        const limpo = limparNomeEstabelecimento(matchSicrediNotif[1]);
+        if (limpo) return limpo;
+    }
+
     // 3. Notificações de Celular (Nubank, Sicredi, Itaú, etc.): "em Loja X", "para Fulano"
     const matchNotif = texto.match(/\b(?:em|na|no|para|de)\s+([A-Za-z0-9\s\.\-_&]{3,35})(?:[\.\-,]|$)/i);
     if (matchNotif && matchNotif[1]) {
