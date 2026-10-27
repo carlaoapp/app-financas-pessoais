@@ -100,26 +100,41 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
         console.warn('Erro ao carregar contas para select:', e);
     }
 
-    sel.innerHTML = '<option value="">🏦 Selecione o Cartão ou Conta (Opcional)...</option>';
+    sel.innerHTML = '';
+
+    // 1. Opção Direta para Pagamento em Dinheiro / Débito em Conta Geral
+    const optDinheiro = document.createElement('option');
+    optDinheiro.value = 'DINHEIRO';
+    optDinheiro.dataset.tipo = 'Dinheiro';
+    optDinheiro.innerText = '💵 Dinheiro / Espécie (Sem banco)';
+    if (String(contaIdSelecionada) === 'DINHEIRO') optDinheiro.selected = true;
+    sel.appendChild(optDinheiro);
+
+    const optGeral = document.createElement('option');
+    optGeral.value = '';
+    optGeral.dataset.tipo = 'Geral';
+    optGeral.innerText = '🏦 Sem vínculo bancário específico';
+    if (!contaIdSelecionada || String(contaIdSelecionada) === '1') optGeral.selected = true;
+    sel.appendChild(optGeral);
 
     if (contas.length === 0) {
-        const opt = document.createElement('option');
-        opt.value = '';
-        opt.innerText = '➕ Nenhuma conta cadastrada (Clique em Novo ao lado)';
-        sel.appendChild(opt);
         return;
     }
 
-    // Função auxiliar para limpar sufixos redundantes de nomes de contas
+    // Função auxiliar para limpar sufixos redundantes de nomes de contas e deixar 100% enxuto
     const limparNomeOpcaoConta = (c) => {
         let nome = (c.nome_conta || c.banco || 'Conta').trim();
-        const sufixos = ['Conta Corrente', 'Conta Salário', 'Conta Poupança', 'Cartão de Crédito', 'Cartão de Débito', 'Cartão Alimentação', 'Conta Investimento'];
-        sufixos.forEach(s => {
-            if (nome.toLowerCase().endsWith(s.toLowerCase())) {
-                const cortado = nome.slice(0, nome.length - s.length).trim();
-                if (cortado.length > 0) nome = cortado;
-            }
-        });
+        nome = nome
+            .replace(/\b(Conta\s+Corrente|Conta\s+Poupan[cç]a|Conta\s+Sal[aá]rio|Cart[aã]o\s+Alimenta[cç][aã]o|Cart[aã]o\s+Refei[cç][aã]o|Cart[aã]o\s+de\s+Cr[eé]dito|Cart[aã]o\s+de\s+D[eé]bito|Conta\s+Investimento|Carteira\s+F[ií]sica)\b/gi, '')
+            .replace(/\[.*?\]/g, '')
+            .replace(/\(.*?\)/g, '')
+            .replace(/\s*-\s*$/g, '')
+            .replace(/\s+/g, ' ')
+            .trim();
+        if (!nome) nome = (c.banco || c.tipo_conta || 'Conta').trim();
+        if (nome.toLowerCase() === 'caixa econômica' || nome.toLowerCase() === 'caixa economica' || nome.toLowerCase() === 'caixa econômica federal') {
+            nome = 'Caixa';
+        }
         return nome;
     };
 
@@ -140,31 +155,31 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
     });
     const contasUnicas = Array.from(mapaUnico.values());
 
-    // Agrupa por Cartões de Crédito, Cartões Alimentação & Benefícios e Contas Correntes
+    // Agrupa por Contas Correntes, Cartões Alimentação e Cartões de Crédito
     const cartoes = contasUnicas.filter(c => c.tipo_conta === 'Cartão de Crédito');
     const alimentacao = contasUnicas.filter(c => c.tipo_conta === 'Cartão Alimentação');
     const correntes = contasUnicas.filter(c => c.tipo_conta !== 'Cartão de Crédito' && c.tipo_conta !== 'Cartão Alimentação');
 
-    // Se nenhuma conta foi pré-selecionada e o tipo for Receita ou despesa de débito, sugere Sicredi por padrão
+    // Se nenhuma conta foi pré-selecionada e o tipo for Receita ou Despesa Fixa/Variável, sugere Sicredi por padrão
     if (!contaIdSelecionada) {
         const tipoAtual = document.getElementById('inputTipoGasto')?.value;
-        if (tipoAtual === 'Receita') {
+        if (tipoAtual === 'Receita' || tipoAtual === 'Despesa Fixa' || tipoAtual === 'Despesa Variável') {
             const sicredi = correntes.find(c => (c.nome_conta + ' ' + (c.banco || '')).toLowerCase().includes('sicredi'));
             if (sicredi) contaIdSelecionada = sicredi.id;
         }
     }
 
-    if (cartoes.length > 0) {
+    if (correntes.length > 0) {
         const grp = document.createElement('optgroup');
-        grp.label = '💳 Cartões de Crédito';
-        cartoes.forEach(c => {
+        grp.label = '🏦 Contas Bancárias (Débito / Pix)';
+        correntes.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
             opt.dataset.tipo = c.tipo_conta;
-            const lim = parseFloat(c.limite_cartao) || 0;
             const nomeLimpo = limparNomeOpcaoConta(c);
             const tit = c.titular ? ` • ${c.titular}` : '';
-            opt.innerText = `💳 ${nomeLimpo}${tit} (${formatBRL(lim)})`;
+            const sufixoPoup = (c.tipo_conta === 'Conta Poupança' || /poupan/i.test(c.nome_conta || '')) ? ' (Poup.)' : '';
+            opt.innerText = `🏦 ${nomeLimpo}${sufixoPoup}${tit}`;
             if (String(c.id) === String(contaIdSelecionada)) opt.selected = true;
             grp.appendChild(opt);
         });
@@ -173,37 +188,36 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
 
     if (alimentacao.length > 0) {
         const grp = document.createElement('optgroup');
-        grp.label = '🍽️ Cartões Alimentação & Benefícios';
+        grp.label = '🍽️ Cartão Alimentação';
         alimentacao.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
             opt.dataset.tipo = c.tipo_conta;
-            const sal = parseFloat(c.saldo_atual) || 0;
             const nomeLimpo = limparNomeOpcaoConta(c);
             const tit = c.titular ? ` • ${c.titular}` : '';
-            opt.innerText = `🍽️ ${nomeLimpo}${tit} (${formatBRL(sal)})`;
+            opt.innerText = `🍽️ ${nomeLimpo}${tit}`;
             if (String(c.id) === String(contaIdSelecionada)) opt.selected = true;
             grp.appendChild(opt);
         });
         sel.appendChild(grp);
     }
 
-    if (correntes.length > 0) {
+    if (cartoes.length > 0) {
         const grp = document.createElement('optgroup');
-        grp.label = '🏦 Contas Correntes & Bancos';
-        correntes.forEach(c => {
+        grp.label = '💳 Cartão de Crédito';
+        cartoes.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.id;
             opt.dataset.tipo = c.tipo_conta;
-            const sal = parseFloat(c.saldo_atual) || 0;
             const nomeLimpo = limparNomeOpcaoConta(c);
             const tit = c.titular ? ` • ${c.titular}` : '';
-            opt.innerText = `🏦 ${nomeLimpo}${tit} (${formatBRL(sal)})`;
+            opt.innerText = `💳 ${nomeLimpo}${tit}`;
             if (String(c.id) === String(contaIdSelecionada)) opt.selected = true;
             grp.appendChild(opt);
         });
         sel.appendChild(grp);
     }
+
     if (typeof atualizarSeletorCartaoAlimentacaoManual === 'function') {
         setTimeout(atualizarSeletorCartaoAlimentacaoManual, 50);
     }
@@ -212,7 +226,7 @@ window.carregarSelectContasModal = carregarSelectContasModal;
 
 // Sincronização automática entre o seletor de contas e o tipo de gasto no modal de lançamento
 async function aoMudarContaLancamento(contaId) {
-    if (!contaId) {
+    if (!contaId || contaId === 'DINHEIRO') {
         if (typeof atualizarSeletorCartaoAlimentacaoManual === 'function') atualizarSeletorCartaoAlimentacaoManual();
         return;
     }
@@ -312,13 +326,17 @@ async function aoMudarTipoGastoLancamento(tipoGasto) {
                     }
                 }
             }
-        } else if (tipoGasto === 'Receita') {
-            // Conta central de recebimento: Sicredi
-            for (let i = 0; i < selConta.options.length; i++) {
-                const txt = selConta.options[i].innerText.toLowerCase();
-                if (txt.includes('sicredi')) {
-                    selConta.selectedIndex = i;
-                    break;
+        } else if (tipoGasto === 'Receita' || tipoGasto === 'Despesa Fixa' || tipoGasto === 'Despesa Variável') {
+            const optAtual = selConta.selectedOptions[0];
+            const tipoOpt = optAtual ? optAtual.dataset.tipo : '';
+            // Se antes estava em Cartão de Crédito ou Alimentação, ou sem conta selecionada, sugere Sicredi (ou mantém se já for Dinheiro/Conta Corrente)
+            if (!selConta.value || tipoOpt === 'Cartão de Crédito' || tipoOpt === 'Cartão Alimentação') {
+                for (let i = 0; i < selConta.options.length; i++) {
+                    const txt = selConta.options[i].innerText.toLowerCase();
+                    if (txt.includes('sicredi')) {
+                        selConta.selectedIndex = i;
+                        break;
+                    }
                 }
             }
         }

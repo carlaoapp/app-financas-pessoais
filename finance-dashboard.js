@@ -651,6 +651,7 @@ async function carregarPlanejamento() {
 
     // Prepara a lista para renderizar (Despesas e Entradas pendentes)
     // Cartão de Crédito NAO vai pra lista principal de Pendentes, vai apenas pra Fatura!
+    window._cacheContasMap = new Map(contasBancarias.map(c => [String(c.id), c]));
     const pendentesParaExibir = itensDoMes.filter(item => (item.status === 'Pendente' || item.status === 'Cancelado') && item.tipo_gasto !== 'Cartão de Crédito' && item.tipo_gasto !== 'Transferência Interna');
     renderizarLista(pendentesParaExibir);
     renderizarExtratoCompleto();
@@ -751,10 +752,22 @@ function renderizarLista(itens) {
         const vOrcado = window.privacyMode ? '•••••' : parseFloat(item.valor_total || 0).toFixed(2).replace('.', ',');
         const vRealizado = window.privacyMode ? '•••••' : parseFloat(item.valor_realizado || 0).toFixed(2).replace('.', ',');
 
+        let tagMeioPagamento = '';
+        if (item.conta_id === 'DINHEIRO') {
+            tagMeioPagamento = `<span class="badge" style="background:rgba(16,185,129,0.15); color:#10B981; margin-left:4px;">💵 Dinheiro</span>`;
+        } else if (item.conta_id && item.conta_id !== '1' && window._cacheContasMap) {
+            const cObj = window._cacheContasMap.get(String(item.conta_id));
+            if (cObj) {
+                const nCurto = (cObj.nome_conta || cObj.banco || 'Conta').replace(/\b(Conta\s+Corrente|Conta\s+Poupan[cç]a|Cart[aã]o\s+Alimenta[cç][aã]o|Cart[aã]o\s+de\s+Cr[eé]dito)\b/gi, '').trim();
+                const titCurto = cObj.titular ? ` • ${cObj.titular}` : '';
+                tagMeioPagamento = `<span class="badge" style="background:rgba(59,130,246,0.15); color:#3B82F6; margin-left:4px;">🏦 ${nCurto}${titCurto}</span>`;
+            }
+        }
+
         div.innerHTML = `
             <div style="display:flex; justify-content:space-between; width:100%;">
                 <div class="card-details">
-                    <h4 style="display:flex; align-items:center; gap:6px;">${item.descricao} ${tagTipo} ${tagCancelado}</h4>
+                    <h4 style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">${item.descricao} ${tagTipo} ${tagMeioPagamento} ${tagCancelado}</h4>
                     <p>Venc: ${dataBr} &nbsp; ${tagParcela} ${tagVirtual}</p>
                 </div>
                 <div class="card-value" style="text-align: right; ${item.status === 'Cancelado' ? 'text-decoration: line-through; color:#94A3B8;' : ''}">
@@ -1099,7 +1112,11 @@ function aoSelecionarCategoriaPredefinida(val) {
             } else if (lower.includes('luz') || lower.includes('água') || lower.includes('agua') || lower.includes('mercado') || lower.includes('supermercado') || lower.includes('alimentação') || lower.includes('combustível') || lower.includes('combustivel') || lower.includes('farmácia') || lower.includes('farmacia') || lower.includes('saúde') || lower.includes('lazer')) {
                 selTipo.value = 'Despesa Variável';
             }
-            if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
+            if (typeof aoMudarTipoGastoLancamento === 'function') {
+                aoMudarTipoGastoLancamento(selTipo.value);
+            } else if (typeof atualizarTextoStatus === 'function') {
+                atualizarTextoStatus();
+            }
         }
     }
 }
@@ -1280,11 +1297,13 @@ let indiceTipoGastoEmEdicao = -1;
 function normalizarTipoGastoCanonico(t) {
     if (!t || typeof t !== 'string') return '';
     const v = t.trim();
-    if (v === 'Resgate de Reserva (Usar)') return 'Resgate de Reserva';
-    if (v === 'Reserva de Emergência (Guardar)') return 'Reserva de Emergência';
-    if (v === 'Conta a Pagar (Gaveta)') return 'Conta a Pagar';
-    if (v === 'Renda Extra') return 'Planejamento Renda Extra';
-    if (v === 'Cartão Alimentação / Benefício') return 'Cartão Alimentação';
+    const low = v.toLowerCase();
+    if (low.startsWith('resgate de reserva')) return 'Resgate de Reserva';
+    if (low.startsWith('reserva de emerg')) return 'Reserva de Emergência';
+    if (low.startsWith('conta a pagar')) return 'Conta a Pagar';
+    if (low === 'renda extra' || low.startsWith('planejamento renda extra')) return 'Planejamento Renda Extra';
+    if (low.startsWith('cartão alimentação') || low.startsWith('cartao alimentacao')) return 'Cartão Alimentação';
+    if (low.startsWith('cartão de crédito') || low.startsWith('cartao de credito')) return 'Cartão de Crédito';
     return v;
 }
 
@@ -1357,12 +1376,12 @@ function renderizarSelectTiposGasto() {
             itensPresentes.forEach(t => {
                 tiposAlocados.add(t);
                 let label = t;
-                if (t === 'Cartão Alimentação') label = '🍽️ Cartão Alimentação / Benefício';
+                if (t === 'Cartão Alimentação') label = '🍽️ Cartão Alimentação';
                 else if (t === 'Cartão de Crédito') label = '💳 Cartão de Crédito';
-                else if (t === 'Conta a Pagar') label = '📂 Conta a Pagar (Gaveta)';
-                else if (t === 'Planejamento Renda Extra') label = '⚡ Planejamento Renda Extra';
-                else if (t === 'Resgate de Reserva') label = '🔓 Resgate de Reserva (Usar)';
-                else if (t === 'Reserva de Emergência') label = '🛡️ Reserva de Emergência (Guardar)';
+                else if (t === 'Conta a Pagar') label = '📂 Conta a Pagar';
+                else if (t === 'Planejamento Renda Extra') label = '⚡ Renda Extra';
+                else if (t === 'Resgate de Reserva') label = '🔓 Resgate de Reserva';
+                else if (t === 'Reserva de Emergência') label = '🛡️ Reserva de Emergência';
                 else if (t === 'Investimento') label = '📈 Investimento';
                 else if (t === 'Receita') label = '💰 Receita';
                 else if (t === 'Despesa Fixa') label = '📌 Despesa Fixa';
@@ -5131,9 +5150,21 @@ function renderizarExtratoCompleto() {
         div.style.alignItems = 'flex-start';
         div.style.borderLeft = '5px solid ' + borderLeftColor;
 
+        let infoContaBadge = '';
+        if (item.conta_id === 'DINHEIRO') {
+            infoContaBadge = ' • <span style="color:#10B981; font-weight:700;">💵 Dinheiro</span>';
+        } else if (item.conta_id && item.conta_id !== '1' && window._cacheContasMap) {
+            const cObj = window._cacheContasMap.get(String(item.conta_id));
+            if (cObj) {
+                const nCurto = (cObj.nome_conta || cObj.banco || 'Conta').replace(/\b(Conta\s+Corrente|Conta\s+Poupan[cç]a|Cart[aã]o\s+Alimenta[cç][aã]o|Cart[aã]o\s+de\s+Cr[eé]dito)\b/gi, '').trim();
+                const titCurto = cObj.titular ? ` (${cObj.titular})` : '';
+                infoContaBadge = ` • <span style="color:#3B82F6; font-weight:700;">🏦 ${nCurto}${titCurto}</span>`;
+            }
+        }
+
         const subInfoTipo = (item.tipo_gasto === 'Cartão Alimentação') 
-            ? '<span style="color:#FB923C; font-weight:700;">🍽️ Cartão Alimentação (Benefício)</span>' 
-            : (item.tipo_gasto || 'Geral');
+            ? `<span style="color:#FB923C; font-weight:700;">🍽️ Cartão Alimentação</span>${infoContaBadge}` 
+            : `${item.tipo_gasto || 'Geral'}${infoContaBadge}`;
 
         const labelPrevisto = (item.tipo_gasto === 'Cartão Alimentação')
             ? `Previsto: R$ ${vOrcado} (Saldo do Cartão)`
