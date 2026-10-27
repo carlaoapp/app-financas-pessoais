@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="app-build-version" content="1.8.42">
+    <meta name="app-build-version" content="1.8.43">
     <script>
-        window.APP_BUILD_VERSION = '1.8.42';
+        window.APP_BUILD_VERSION = '1.8.43';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -70,8 +70,8 @@
     <script src="lucide.min.js"></script>
     
     <!-- Estilos -->
-    <link rel="stylesheet" href="finance-style.css?v=1.8.42">
-    <link rel="stylesheet" href="app-custom.css?v=1.8.42">
+    <link rel="stylesheet" href="finance-style.css?v=1.8.43">
+    <link rel="stylesheet" href="app-custom.css?v=1.8.43">
 </head>
 <body class="mode-desktop">
 
@@ -238,9 +238,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.42" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.43" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.42</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.43</span>
                 </div>
             </div>
 
@@ -310,10 +310,6 @@
 
                     <!-- Botões Notificações, Baixar App e Sair -->
                     <div class="sub-actions-group">
-                        <button class="btn-sub-action" onclick="abrirModalCentralNotificacoes()" title="Central de Notificações e Comprovantes Automáticos" style="background: linear-gradient(135deg, rgba(37,99,235,0.2), rgba(139,92,246,0.25)); border: 1px solid #3B82F6; color: #93C5FD;">
-                            <span style="font-size: 14px;">⚡</span>
-                            <span>Notificações</span>
-                        </button>
 
                         <button class="btn-sub-action btn-install-app" id="btnInstallPwa" onclick="triggerPwaInstall()" title="Baixar / Instalar App">
                             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
@@ -698,7 +694,7 @@
             <div id="tabCartoes" class="tab-content" style="display: none;">
                 <!-- Cabeçalho e Métricas Resumo -->
                 <div style="background: var(--bg-card); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 18px 20px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-                    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+                    <div style="display: flex; flex-direction: column; gap: 14px; margin-bottom: 16px;">
                         <div>
                             <h2 style="font-size: 1.25rem; color: #60A5FA; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
                                 <span>💳</span> Cartões & Contas Bancárias
@@ -707,12 +703,12 @@
                                 Controle limites de faturas, cartões alimentação/benefícios e saldos com subtrações automáticas
                             </p>
                         </div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                            <button type="button" onclick="abrirModalTransferenciaContas()" style="background: linear-gradient(135deg, #059669, #10B981); color: #0F172A; border: none; padding: 9px 16px; border-radius: 9px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: all 0.2s;">
-                                <span>🔄</span> Transferir entre Contas
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%;">
+                            <button type="button" onclick="abrirModalTransferenciaContas()" style="width: 100%; height: 42px; background: linear-gradient(135deg, #059669, #10B981); color: #0F172A; border: none; padding: 0 8px; border-radius: 10px; font-weight: 800; font-size: clamp(0.75rem, 2.8vw, 0.85rem); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: all 0.2s; white-space: nowrap; box-sizing: border-box;">
+                                <span>🔄</span> <span>Transferir Contas</span>
                             </button>
-                            <button type="button" onclick="abrirModalCentralNotificacoes()" style="background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(139,92,246,0.3)); border: 1.5px solid #3B82F6; color: #93C5FD; padding: 9px 14px; border-radius: 9px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.25);">
-                                <span>⚡</span> Notificações & Comprovantes
+                            <button type="button" onclick="abrirModalCentralNotificacoes()" style="width: 100%; height: 42px; background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(139,92,246,0.3)); border: 1.5px solid #3B82F6; color: #93C5FD; padding: 0 8px; border-radius: 10px; font-weight: 800; font-size: clamp(0.75rem, 2.8vw, 0.85rem); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.25); transition: all 0.2s; white-space: nowrap; box-sizing: border-box;">
+                                <span>⚡</span> <span>Notificações</span>
                             </button>
                         </div>
                     </div>
@@ -2632,15 +2628,15 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.42"></script>
-    <script src="finance-auto-notificacoes.js?v=1.8.42"></script>
-    <script src="finance-db.js?v=1.8.42"></script>
-    <script src="finance-sync.js?v=1.8.42"></script>
-    <script src="finance-powerbi.js?v=1.8.42"></script>
-    <script src="finance-dashboard.js?v=1.8.42"></script>
-    <script src="finance-cartoes.js?v=1.8.42"></script>
-    <script src="auth.js?v=1.8.42"></script>
-    <script src="auto-update.js?v=1.8.42"></script>
+    <script src="finance-ocr.js?v=1.8.43"></script>
+    <script src="finance-auto-notificacoes.js?v=1.8.43"></script>
+    <script src="finance-db.js?v=1.8.43"></script>
+    <script src="finance-sync.js?v=1.8.43"></script>
+    <script src="finance-powerbi.js?v=1.8.43"></script>
+    <script src="finance-dashboard.js?v=1.8.43"></script>
+    <script src="finance-cartoes.js?v=1.8.43"></script>
+    <script src="auth.js?v=1.8.43"></script>
+    <script src="auto-update.js?v=1.8.43"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
