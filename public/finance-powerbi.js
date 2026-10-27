@@ -185,7 +185,7 @@ function renderizarBotoesPeriodoModalDemo() {
         gridAnos.innerHTML = listaAnos.map(ano => {
             const ativo = anosFiltroDemo.includes(ano);
             return `
-                <button type="button" onclick="toggleAnoFiltroDemo(${ano}, event)" style="padding: 8px 4px; border-radius: 9px; font-size: 0.82rem; font-weight: 800; cursor: pointer; transition: all 0.15s; border: 1.5px solid ${ativo ? '#3B82F6' : '#334155'}; background: ${ativo ? 'rgba(37, 99, 235, 0.28)' : '#0F172A'}; color: ${ativo ? '#FFFFFF' : '#94A3B8'}; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                <button type="button" onclick="toggleAnoFiltroDemo(${ano}, event)" style="padding: 8px 4px; border-radius: 9px; font-size: 0.82rem; font-weight: 800; cursor: pointer; transition: all 0.15s; border: 1.5px solid ${ativo ? '#3B82F6' : 'var(--border-color)'}; background: ${ativo ? 'rgba(37, 99, 235, 0.22)' : 'var(--bg-card)'}; color: ${ativo ? 'var(--text-primary)' : 'var(--text-secondary)'}; display: flex; align-items: center; justify-content: center; gap: 4px;">
                     <span>${ativo ? '✓' : ''}</span>
                     <span>${ano}</span>
                 </button>
@@ -198,7 +198,7 @@ function renderizarBotoesPeriodoModalDemo() {
         gridMeses.innerHTML = MESES_CURTOS_DEMO.map((nomeCurto, idx) => {
             const ativo = mesesFiltroDemo.includes(idx);
             return `
-                <button type="button" onclick="toggleMesFiltroDemo(${idx}, event)" style="padding: 8px 4px; border-radius: 9px; font-size: 0.8rem; font-weight: 800; cursor: pointer; transition: all 0.15s; border: 1.5px solid ${ativo ? '#10B981' : '#334155'}; background: ${ativo ? 'rgba(16, 185, 129, 0.24)' : '#0F172A'}; color: ${ativo ? '#FFFFFF' : '#94A3B8'}; display: flex; align-items: center; justify-content: center; gap: 3px;">
+                <button type="button" onclick="toggleMesFiltroDemo(${idx}, event)" style="padding: 8px 4px; border-radius: 9px; font-size: 0.8rem; font-weight: 800; cursor: pointer; transition: all 0.15s; border: 1.5px solid ${ativo ? '#10B981' : 'var(--border-color)'}; background: ${ativo ? 'rgba(16, 185, 129, 0.2)' : 'var(--bg-card)'}; color: ${ativo ? 'var(--text-primary)' : 'var(--text-secondary)'}; display: flex; align-items: center; justify-content: center; gap: 3px;">
                     <span>${ativo ? '✓' : ''}</span>
                     <span>${nomeCurto}</span>
                 </button>
@@ -209,7 +209,7 @@ function renderizarBotoesPeriodoModalDemo() {
     const lblResumoModal = document.getElementById('lblResumoPeriodoModalDemo');
     const descPeriodo = formatarDescricaoPeriodoDemo();
     if (lblResumoModal) {
-        lblResumoModal.innerHTML = `📊 Período ativo: <strong style="color:#FFFFFF;">${descPeriodo}</strong>`;
+        lblResumoModal.innerHTML = `📊 Período ativo: <strong style="color:var(--text-primary);">${descPeriodo}</strong>`;
     }
 
     window.sincronizarHeaderComPeriodoDemo();
@@ -1048,14 +1048,14 @@ async function renderPowerBIDashboard() {
 
                 elPeriodoMeta.innerHTML = `
                     <div style="display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 4px;">
-                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); padding: 5px 12px; border-radius: 8px; color: #93C5FD; font-size: 0.8rem; font-weight: 700;">
-                            <span>📅</span> Início da Meta: <strong style="color: #FFFFFF;">${inicioInfo.textoCompleto}</strong>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(59, 130, 246, 0.12); border: 1px solid rgba(59, 130, 246, 0.35); padding: 5px 12px; border-radius: 8px; color: #3B82F6; font-size: 0.8rem; font-weight: 700;">
+                            <span>📅</span> Início da Meta: <strong style="color: var(--text-primary);">${inicioInfo.textoCompleto}</strong>
                         </span>
-                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); padding: 5px 12px; border-radius: 8px; color: #6EE7B7; font-size: 0.8rem; font-weight: 700;">
-                            <span>🏁</span> Prazo Final: <strong style="color: #FFFFFF;">${fimInfo.textoCompleto}</strong>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); padding: 5px 12px; border-radius: 8px; color: #10B981; font-size: 0.8rem; font-weight: 700;">
+                            <span>🏁</span> Prazo Final: <strong style="color: var(--text-primary);">${fimInfo.textoCompleto}</strong>
                         </span>
                         ${qtdMesesMeta > 1 ? `
-                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 5px 10px; border-radius: 8px; color: #FCD34D; font-size: 0.8rem; font-weight: 700;">
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); padding: 5px 10px; border-radius: 8px; color: #D97706; font-size: 0.8rem; font-weight: 700;">
                             <span>⏱️</span> Prazo: ${qtdMesesMeta} meses
                         </span>` : ''}
                     </div>
@@ -1131,14 +1131,14 @@ async function renderPowerBIDashboard() {
             if (elPeriodoMetaInv) {
                 elPeriodoMetaInv.innerHTML = `
                     <div style="display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap; margin-top: 4px;">
-                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.4); padding: 5px 12px; border-radius: 8px; color: #C084FC; font-size: 0.8rem; font-weight: 700;">
-                            <span>📅</span> Início da Meta: <strong style="color: #FFFFFF;">${inicioInvInfo.textoCompleto}</strong>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.4); padding: 5px 12px; border-radius: 8px; color: #8B5CF6; font-size: 0.8rem; font-weight: 700;">
+                            <span>📅</span> Início da Meta: <strong style="color: var(--text-primary);">${inicioInvInfo.textoCompleto}</strong>
                         </span>
-                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 5px 12px; border-radius: 8px; color: #6EE7B7; font-size: 0.8rem; font-weight: 700;">
-                            <span>🏁</span> Prazo Final: <strong style="color: #FFFFFF;">${fimInvInfo.textoCompleto}</strong>
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.4); padding: 5px 12px; border-radius: 8px; color: #10B981; font-size: 0.8rem; font-weight: 700;">
+                            <span>🏁</span> Prazo Final: <strong style="color: var(--text-primary);">${fimInvInfo.textoCompleto}</strong>
                         </span>
                         ${qtdMesesInv > 1 ? `
-                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); padding: 5px 10px; border-radius: 8px; color: #93C5FD; font-size: 0.8rem; font-weight: 700;">
+                        <span style="display: inline-flex; align-items: center; gap: 5px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); padding: 5px 10px; border-radius: 8px; color: #3B82F6; font-size: 0.8rem; font-weight: 700;">
                             <span>⏱️</span> Prazo: ${qtdMesesInv} meses
                         </span>` : ''}
                     </div>
@@ -1161,7 +1161,7 @@ async function renderPowerBIDashboard() {
             if (listaDetalhadosEl) {
                 const chavesInv = Object.keys(investimentosPorNome);
                 if (chavesInv.length > 0) {
-                    let htmlCards = '<div style="font-size: 0.8rem; font-weight: 700; color: #C084FC; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">📋 Seus Investimentos Ativos:</div>';
+                    let htmlCards = '<div style="font-size: 0.8rem; font-weight: 700; color: #8B5CF6; margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.5px;">📋 Seus Investimentos Ativos:</div>';
                     chavesInv.forEach(nome => {
                         const inv = investimentosPorNome[nome];
                         inv.datas.sort();
@@ -1181,26 +1181,26 @@ async function renderPowerBIDashboard() {
                         const percItem = metaItem > 0 ? Math.min(100, Math.round((inv.totalRealizado / metaItem) * 100)) : 100;
 
                         htmlCards += `
-                            <div style="background: rgba(30, 41, 59, 0.7); border: 1.5px solid rgba(139, 92, 246, 0.35); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;" onclick="abrirGerenciadorMeta('Investimento', '${inv.nome.replace(/'/g, "\\'")}')" title="Clique para editar ou excluir a meta de ${inv.nome}">
+                            <div style="background: var(--bg-secondary); border: 1.5px solid rgba(139, 92, 246, 0.45); border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: all 0.2s;" onclick="abrirGerenciadorMeta('Investimento', '${inv.nome.replace(/'/g, "\\'")}')" title="Clique para editar ou excluir a meta de ${inv.nome}">
                                 <div style="display: flex; justify-content: space-between; align-items: center;">
-                                    <span style="font-weight: 800; color: #FFFFFF; font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
+                                    <span style="font-weight: 800; color: var(--text-primary); font-size: 0.95rem; display: flex; align-items: center; gap: 6px;">
                                         <span>📈</span> <span>${inv.nome}</span>
                                     </span>
                                     <div style="display: flex; align-items: center; gap: 8px;">
-                                        <span style="font-weight: 800; color: #A78BFA; font-size: 0.95rem;">${formatBRL(inv.totalRealizado)}</span>
-                                        <span style="font-size: 0.74rem; background: rgba(139, 92, 246, 0.25); border: 1px solid #8B5CF6; color: #DDD6FE; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
+                                        <span style="font-weight: 800; color: #8B5CF6; font-size: 0.95rem;">${formatBRL(inv.totalRealizado)}</span>
+                                        <span style="font-size: 0.74rem; background: rgba(139, 92, 246, 0.2); border: 1px solid #8B5CF6; color: #8B5CF6; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px;">
                                             <span>✏️</span> Editar
                                         </span>
                                     </div>
                                 </div>
-                                <div style="display: flex; justify-content: space-between; font-size: 0.76rem; color: #94A3B8; font-weight: 600;">
-                                    <span>Meta Prevista: <strong style="color: #E2E8F0;">${formatBRL(metaItem)}</strong></span>
-                                    <span style="color: #C084FC; font-weight: 700;">${window.privacyMode ? '•••%' : percItem + '%'}</span>
+                                <div style="display: flex; justify-content: space-between; font-size: 0.76rem; color: var(--text-secondary); font-weight: 600;">
+                                    <span>Meta Prevista: <strong style="color: var(--text-primary);">${formatBRL(metaItem)}</strong></span>
+                                    <span style="color: #8B5CF6; font-weight: 700;">${window.privacyMode ? '•••%' : percItem + '%'}</span>
                                 </div>
-                                <div style="width: 100%; height: 6px; background: #0F172A; border-radius: 4px; overflow: hidden; border: 1px solid #334155;">
+                                <div style="width: 100%; height: 6px; background: var(--bg-card); border-radius: 4px; overflow: hidden; border: 1px solid var(--border-color);">
                                     <div style="width: ${window.privacyMode ? 0 : percItem}%; height: 100%; background: linear-gradient(90deg, #8B5CF6, #A855F7); border-radius: 4px;"></div>
                                 </div>
-                                <div style="font-size: 0.75rem; color: #93C5FD; font-weight: 700; margin-top: 2px;">
+                                <div style="font-size: 0.75rem; color: #3B82F6; font-weight: 700; margin-top: 2px;">
                                     ${prazoTexto}
                                 </div>
                             </div>
@@ -1296,11 +1296,11 @@ async function abrirGerenciadorMeta(tipo, nomeInvestimento) {
         if (isReserva) {
             inputNome.readOnly = true;
             inputNome.style.opacity = '0.85';
-            inputNome.style.background = '#1E293B';
+            inputNome.style.background = 'var(--bg-secondary)';
         } else {
             inputNome.readOnly = false;
             inputNome.style.opacity = '1';
-            inputNome.style.background = '#1E293B';
+            inputNome.style.background = 'var(--bg-secondary)';
         }
     }
 
@@ -1425,19 +1425,19 @@ function atualizarResumoCalculadoModalMeta() {
 
     const qtdMeses = diffMeses + 1;
     const totalProgramado = qtdMeses * valOrc;
-    const cor = (tipo === 'Investimento') ? '#C084FC' : '#FBBF24';
+    const cor = (tipo === 'Investimento') ? '#8B5CF6' : '#D97706';
 
     box.innerHTML = `
-        <div style="font-weight: 800; color: #FFFFFF; margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
+        <div style="font-weight: 800; color: var(--text-primary); margin-bottom: 6px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 4px;">
             <span>⏱️ Duração: <strong style="color: ${cor};">${qtdMeses} ${qtdMeses === 1 ? 'mês' : 'meses'}</strong></span>
-            <span style="color: #34D399; font-weight: 800;">Total: ${formatBRL(totalProgramado)}</span>
+            <span style="color: #10B981; font-weight: 800;">Total: ${formatBRL(totalProgramado)}</span>
         </div>
-        <div style="display: flex; gap: 4px 10px; flex-wrap: wrap; font-size: 0.76rem; color: #CBD5E1;">
-            <span>📅 De: <strong style="color: #93C5FD;">${String(dIni).padStart(2,'0')}/${String(mIni).padStart(2,'0')}/${yIni}</strong></span>
-            <span>🏁 Até: <strong style="color: #6EE7B7;">${String(mFim).padStart(2,'0')}/${yFim}</strong></span>
-            <span>💰 Aporte: <strong style="color: #FFFFFF;">${formatBRL(valOrc)}</strong></span>
+        <div style="display: flex; gap: 4px 10px; flex-wrap: wrap; font-size: 0.76rem; color: var(--text-secondary);">
+            <span>📅 De: <strong style="color: #3B82F6;">${String(dIni).padStart(2,'0')}/${String(mIni).padStart(2,'0')}/${yIni}</strong></span>
+            <span>🏁 Até: <strong style="color: #10B981;">${String(mFim).padStart(2,'0')}/${yFim}</strong></span>
+            <span>💰 Aporte: <strong style="color: var(--text-primary);">${formatBRL(valOrc)}</strong></span>
         </div>
-        <div style="font-size: 0.72rem; color: #94A3B8; margin-top: 6px; line-height: 1.3;">
+        <div style="font-size: 0.72rem; color: var(--text-secondary); margin-top: 6px; line-height: 1.3;">
             ℹ️ Ao salvar, o sistema atualizará ou criará automaticamente as movimentações no seu plano financeiro.
         </div>
     `;

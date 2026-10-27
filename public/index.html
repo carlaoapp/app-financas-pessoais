@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="app-build-version" content="1.8.43">
+    <meta name="app-build-version" content="1.8.44">
     <script>
-        window.APP_BUILD_VERSION = '1.8.43';
+        window.APP_BUILD_VERSION = '1.8.44';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -70,8 +70,8 @@
     <script src="lucide.min.js"></script>
     
     <!-- Estilos -->
-    <link rel="stylesheet" href="finance-style.css?v=1.8.43">
-    <link rel="stylesheet" href="app-custom.css?v=1.8.43">
+    <link rel="stylesheet" href="finance-style.css?v=1.8.44">
+    <link rel="stylesheet" href="app-custom.css?v=1.8.44">
 </head>
 <body class="mode-desktop">
 
@@ -238,9 +238,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.43" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.44" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.43</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.44</span>
                 </div>
             </div>
 
@@ -384,7 +384,7 @@
 
                     <!-- Botão de Filtro de Despesa/Demonstrativo Totalmente Centralizado -->
                     <div style="display: flex; justify-content: center; align-items: center; width: 100%; margin-top: 4px;">
-                        <button type="button" id="btnDemoDropdownToggle" onclick="abrirModalFiltroDemo(event)" style="background: linear-gradient(135deg, #1E293B, #0F172A); border: 1.5px solid #3B82F6; color: #FFFFFF; padding: 11px 22px; border-radius: 14px; font-size: 0.95rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25); transition: all 0.2s; min-width: 260px; max-width: 100%;">
+                        <button type="button" id="btnDemoDropdownToggle" onclick="abrirModalFiltroDemo(event)" style="background: var(--bg-secondary); border: 1.5px solid #3B82F6; color: var(--text-primary); padding: 11px 22px; border-radius: 14px; font-size: 0.95rem; font-weight: 800; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 10px; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.25); transition: all 0.2s; min-width: 260px; max-width: 100%;">
                             <span style="font-size: 1.15rem;">⚙️</span>
                             <span id="lblDemoFiltroSelecionado">Ver Tudo (Completo)</span>
                             <span style="font-size: 0.82rem; color: #60A5FA;">▼</span>
@@ -394,7 +394,7 @@
 
                 <!-- MODAL EXPANDIDO DE SELEÇÃO DE PERÍODO (ANOS/MESES) E CATEGORIAS -->
                 <div id="modalFiltroDemo" style="display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.84); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); z-index: 99999; align-items: center; justify-content: center; padding: 12px;">
-                    <div style="background: #0B1120; border: 1.5px solid #334155; border-radius: 22px; width: 100%; max-width: 540px; max-height: 92vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.9); padding: 20px 18px; box-sizing: border-box; animation: modalFadeIn 0.2s ease;">
+                    <div style="background: var(--bg-modal, var(--bg-card)); border: 1.5px solid var(--border-color); border-radius: 22px; width: 100%; max-width: 540px; max-height: 92vh; overflow-y: auto; box-shadow: 0 25px 60px rgba(0,0,0,0.9); padding: 20px 18px; box-sizing: border-box; animation: modalFadeIn 0.2s ease;">
                         
                         <!-- Cabeçalho do Modal com Título e Botão de Saída Superior -->
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; border-bottom: 1px solid #1E293B; padding-bottom: 12px;">
@@ -409,8 +409,8 @@
                         <!-- ============================================================
                              BLOCO 1: SELEÇÃO DE PERÍODO (1 OU MAIS ANOS E 1 OU MAIS MESES)
                              ============================================================ -->
-                        <div style="background: #111A2E; border: 1.5px solid #1E293B; border-radius: 16px; padding: 14px; margin-bottom: 16px;">
-                            <div style="font-size: 0.92rem; font-weight: 800; color: #F8FAFC; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                        <div style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 16px; padding: 14px; margin-bottom: 16px;">
+                            <div style="font-size: 0.92rem; font-weight: 800; color: var(--text-primary); margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
                                 <span>📅</span> <span>1. Escolha o Período (Anos e Meses)</span>
                             </div>
                             <div style="font-size: 0.76rem; color: #94A3B8; margin-bottom: 12px; line-height: 1.35;">
@@ -422,8 +422,8 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                                     <span style="font-size: 0.78rem; font-weight: 700; color: #93C5FD; text-transform: uppercase;">Anos (toque em 1 ou mais):</span>
                                     <div style="display: flex; gap: 6px;">
-                                        <button type="button" onclick="selecionarAnosDemoRapido('atual')" style="background: #1E293B; border: 1px solid #3B82F6; color: #93C5FD; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Ano Atual</button>
-                                        <button type="button" onclick="selecionarAnosDemoRapido('todos')" style="background: #1E293B; border: 1px solid #475569; color: #CBD5E1; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Todos os Anos</button>
+                                        <button type="button" onclick="selecionarAnosDemoRapido('atual')" style="background: var(--bg-card); border: 1px solid #3B82F6; color: #3B82F6; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Ano Atual</button>
+                                        <button type="button" onclick="selecionarAnosDemoRapido('todos')" style="background: var(--bg-card); border: 1px solid var(--border-color); color: var(--text-secondary); border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Todos os Anos</button>
                                     </div>
                                 </div>
                                 <div id="gridAnosFiltroDemo" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px;">
@@ -436,7 +436,7 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; flex-wrap: wrap; gap: 6px;">
                                     <span style="font-size: 0.78rem; font-weight: 700; color: #93C5FD; text-transform: uppercase;">Meses (toque em 1 ou mais):</span>
                                     <div style="display: flex; gap: 6px;">
-                                        <button type="button" onclick="selecionarMesesDemoRapido('atual')" style="background: #1E293B; border: 1px solid #3B82F6; color: #93C5FD; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Só Mês Atual</button>
+                                        <button type="button" onclick="selecionarMesesDemoRapido('atual')" style="background: var(--bg-card); border: 1px solid #3B82F6; color: #3B82F6; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Só Mês Atual</button>
                                         <button type="button" onclick="selecionarMesesDemoRapido('todos')" style="background: rgba(16, 185, 129, 0.18); border: 1px solid #10B981; color: #6EE7B7; border-radius: 6px; padding: 3px 8px; font-size: 0.7rem; font-weight: 700; cursor: pointer;">Todos os 12 Meses</button>
                                     </div>
                                 </div>
@@ -446,7 +446,7 @@
                             </div>
 
                             <!-- Resumo do Período Selecionado -->
-                            <div id="lblResumoPeriodoModalDemo" style="margin-top: 10px; padding: 8px 10px; background: rgba(37, 99, 235, 0.15); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 10px; font-size: 0.78rem; font-weight: 700; color: #BFDBFE; text-align: center;">
+                            <div id="lblResumoPeriodoModalDemo" style="margin-top: 10px; padding: 8px 10px; background: rgba(37, 99, 235, 0.12); border: 1px solid rgba(59, 130, 246, 0.4); border-radius: 10px; font-size: 0.78rem; font-weight: 700; color: #3B82F6; text-align: center;">
                                 Período selecionado: Mês Atual
                             </div>
                         </div>
@@ -455,7 +455,7 @@
                              BLOCO 2: SELEÇÃO DE CATEGORIAS
                              ============================================================ -->
                         <div style="font-size: 0.92rem; font-weight: 800; color: #F8FAFC; margin-bottom: 8px; display: flex; align-items: center; gap: 6px;">
-                            <span>📊</span> <span>2. Marque o que deseja ver nesse período:</span>
+                            <span>📊</span> <span style="color: var(--text-primary);">2. Marque o que deseja ver nesse período:</span>
                         </div>
 
                         <!-- LISTA DE ESCOLHAS AMPLA, MAIOR E CONFORTÁVEL -->
@@ -465,7 +465,7 @@
                             <div onclick="selecionarFiltroDemoTudo(event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: rgba(37, 99, 235, 0.18); border: 1.5px solid #2563EB; transition: all 0.2s;">
                                 <input type="checkbox" id="chkDemoTudo" checked style="cursor: pointer; width: 22px; height: 22px; accent-color: #2563EB;" onchange="selecionarFiltroDemoTudo(event)">
                                 <div style="flex: 1;">
-                                    <div style="font-size: 1rem; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 6px;">🌐 Ver Tudo (Completo)</div>
+                                    <div style="font-size: 1rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">🌐 Ver Tudo (Completo)</div>
                                     <div style="font-size: 0.78rem; color: #93C5FD; margin-top: 2px;">Exibir todas as receitas, despesas, investimentos e reserva</div>
                                 </div>
                             </div>
@@ -473,7 +473,7 @@
                             <div style="height: 1px; background: #1E293B; margin: 2px 0;"></div>
 
                             <!-- Opção 1: Receitas -->
-                            <div onclick="toggleOpcaoFiltroDemo('receitas', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                            <div onclick="toggleOpcaoFiltroDemo('receitas', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: var(--bg-secondary); border: 1px solid var(--border-color); transition: all 0.2s;">
                                 <input type="checkbox" id="chkDemoRec" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #10B981;" onchange="toggleOpcaoFiltroDemo('receitas', event)">
                                 <div style="flex: 1;">
                                     <div style="font-size: 0.96rem; font-weight: 800; color: #34D399; display: flex; align-items: center; gap: 6px;">🟢 Receitas (Entradas)</div>
@@ -482,7 +482,7 @@
                             </div>
 
                             <!-- Opção 2: Despesas -->
-                            <div onclick="toggleOpcaoFiltroDemo('despesas', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                            <div onclick="toggleOpcaoFiltroDemo('despesas', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: var(--bg-secondary); border: 1px solid var(--border-color); transition: all 0.2s;">
                                 <input type="checkbox" id="chkDemoDes" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #EF4444;" onchange="toggleOpcaoFiltroDemo('despesas', event)">
                                 <div style="flex: 1;">
                                     <div style="font-size: 0.96rem; font-weight: 800; color: #F87171; display: flex; align-items: center; gap: 6px;">🔴 Despesas (Saídas)</div>
@@ -491,7 +491,7 @@
                             </div>
 
                             <!-- Opção 3: Investimentos -->
-                            <div onclick="toggleOpcaoFiltroDemo('investimentos', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                            <div onclick="toggleOpcaoFiltroDemo('investimentos', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: var(--bg-secondary); border: 1px solid var(--border-color); transition: all 0.2s;">
                                 <input type="checkbox" id="chkDemoInv" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #8B5CF6;" onchange="toggleOpcaoFiltroDemo('investimentos', event)">
                                 <div style="flex: 1;">
                                     <div style="font-size: 0.96rem; font-weight: 800; color: #A78BFA; display: flex; align-items: center; gap: 6px;">🟣 Investimentos</div>
@@ -500,7 +500,7 @@
                             </div>
 
                             <!-- Opção 4: Reserva de Emergência -->
-                            <div onclick="toggleOpcaoFiltroDemo('reserva', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: #141F36; border: 1px solid #1E293B; transition: all 0.2s;">
+                            <div onclick="toggleOpcaoFiltroDemo('reserva', event)" style="display: flex; align-items: center; gap: 14px; padding: 13px 16px; border-radius: 14px; cursor: pointer; background: var(--bg-secondary); border: 1px solid var(--border-color); transition: all 0.2s;">
                                 <input type="checkbox" id="chkDemoRes" checked style="cursor: pointer; width: 20px; height: 20px; accent-color: #F59E0B;" onchange="toggleOpcaoFiltroDemo('reserva', event)">
                                 <div style="flex: 1;">
                                     <div style="font-size: 0.96rem; font-weight: 800; color: #FBBF24; display: flex; align-items: center; gap: 6px;">🟡 Reserva de Emergência</div>
@@ -628,7 +628,7 @@
                         <div id="pbiChartGauge" class="demo-chart-canvas" style="min-height: 240px; max-width: 480px;"></div>
                         
                         <!-- CARD INTERATIVO DE VALORES E PRAZOS DA RESERVA (CLIQUE PARA EDITAR/GERENCIAR) -->
-                        <div class="card-meta-interativo" onclick="abrirGerenciadorMeta('Reserva de Emergência')" title="Clique para editar valores, prazos e meta da Reserva de Emergência" style="width: 100%; max-width: 500px; background: rgba(30, 41, 59, 0.7); border: 1.5px solid rgba(245, 158, 11, 0.4); border-radius: 12px; padding: 12px 14px; margin-top: -10px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;">
+                        <div class="card-meta-interativo" onclick="abrirGerenciadorMeta('Reserva de Emergência')" title="Clique para editar valores, prazos e meta da Reserva de Emergência" style="width: 100%; max-width: 500px; background: var(--bg-secondary); border: 1.5px solid rgba(245, 158, 11, 0.45); border-radius: 12px; padding: 12px 14px; margin-top: -10px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;">
                             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
                                 <span style="font-size: 0.76rem; font-weight: 700; color: #FCD34D; text-transform: uppercase; letter-spacing: 0.5px;">🛡️ Valores & Prazos da Meta</span>
                                 <span style="font-size: 0.74rem; background: rgba(245, 158, 11, 0.2); border: 1px solid #F59E0B; color: #FDE68A; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
@@ -638,8 +638,8 @@
                             <div id="lblResumoGaugeReserva" style="font-size: 0.92rem; font-weight: 700; color: #FBBF24; margin-bottom: 6px; text-align: center;"></div>
                             <div id="lblPeriodoMetaReserva" style="text-align: center; width: 100%;"></div>
                         </div>
-                        <div style="text-align: center; max-width: 500px; padding: 10px 14px; background: rgba(245, 158, 11, 0.1); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 10px; font-size: 0.82rem; color: #FCD34D;">
-                            💡 <strong>Dica de Segurança:</strong> Uma reserva ideal cobre de 3 a 6 meses do seu custo fixo para imprevistos.
+                        <div style="text-align: center; max-width: 500px; padding: 10px 14px; background: rgba(245, 158, 11, 0.12); border: 1px solid rgba(245, 158, 11, 0.35); border-radius: 10px; font-size: 0.82rem; color: var(--text-primary);">
+                            💡 <strong style="color: #D97706;">Dica de Segurança:</strong> Uma reserva ideal cobre de 3 a 6 meses do seu custo fixo para imprevistos.
                         </div>
                     </div>
                 </div>
@@ -654,7 +654,7 @@
                     </div>
                     <div style="display: flex; flex-direction: column; align-items: center; padding: 10px 0; width: 100%;">
                         <!-- CARD INTERATIVO DE VALORES E PRAZOS DE INVESTIMENTOS (CLIQUE PARA EDITAR/GERENCIAR) -->
-                        <div class="card-meta-interativo" onclick="abrirGerenciadorMeta('Investimento')" title="Clique para editar valores, prazos e meta de Investimentos" style="width: 100%; max-width: 500px; background: rgba(30, 41, 59, 0.7); border: 1.5px solid rgba(139, 92, 246, 0.4); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;">
+                        <div class="card-meta-interativo" onclick="abrirGerenciadorMeta('Investimento')" title="Clique para editar valores, prazos e meta de Investimentos" style="width: 100%; max-width: 500px; background: var(--bg-secondary); border: 1.5px solid rgba(139, 92, 246, 0.45); border-radius: 12px; padding: 12px 14px; margin-bottom: 12px; cursor: pointer; transition: all 0.2s; display: flex; flex-direction: column; align-items: center; box-sizing: border-box;">
                             <div style="display: flex; justify-content: space-between; align-items: center; width: 100%; margin-bottom: 8px;">
                                 <span style="font-size: 0.76rem; font-weight: 700; color: #C084FC; text-transform: uppercase; letter-spacing: 0.5px;">📈 Total Geral de Investimentos</span>
                                 <span style="font-size: 0.74rem; background: rgba(139, 92, 246, 0.2); border: 1px solid #8B5CF6; color: #DDD6FE; padding: 2px 8px; border-radius: 6px; font-weight: 700; display: flex; align-items: center; gap: 4px;">
@@ -670,7 +670,7 @@
                                     <span>Progresso dos Aportes</span>
                                     <span id="lblPercentualMetaInvestimento" style="color: #C084FC;">0%</span>
                                 </div>
-                                <div style="width: 100%; height: 10px; background: #1E293B; border-radius: 6px; overflow: hidden; border: 1px solid #334155;">
+                                <div style="width: 100%; height: 10px; background: var(--bg-card); border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color);">
                                     <div id="barraProgressoInvestimento" style="width: 0%; height: 100%; background: linear-gradient(90deg, #8B5CF6, #A855F7); border-radius: 6px; transition: width 0.5s;"></div>
                                 </div>
                             </div>
@@ -682,8 +682,8 @@
                         <!-- Lista Detalhada de Investimentos por Nome (Vários Investimentos com Prazos Individuais) -->
                         <div id="listaInvestimentosDetalhados" style="width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;"></div>
 
-                        <div style="text-align: center; max-width: 500px; padding: 10px 14px; background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.3); border-radius: 10px; font-size: 0.82rem; color: #DDD6FE;">
-                            💎 <strong>Planejamento Patrimonial:</strong> Você pode cadastrar múltiplos investimentos com nomes diferentes (ex: CDB, Tesouro, Ações). Cada um terá seu valor, progresso e prazo de início e fim independentes.
+                        <div style="text-align: center; max-width: 500px; padding: 10px 14px; background: rgba(139, 92, 246, 0.12); border: 1px solid rgba(139, 92, 246, 0.35); border-radius: 10px; font-size: 0.82rem; color: var(--text-primary);">
+                            💎 <strong style="color: #8B5CF6;">Planejamento Patrimonial:</strong> Você pode cadastrar múltiplos investimentos com nomes diferentes (ex: CDB, Tesouro, Ações). Cada um terá seu valor, progresso e prazo de início e fim independentes.
                         </div>
                     </div>
                 </div>
@@ -707,14 +707,14 @@
                             <button type="button" onclick="abrirModalTransferenciaContas()" style="width: 100%; height: 42px; background: linear-gradient(135deg, #059669, #10B981); color: #0F172A; border: none; padding: 0 8px; border-radius: 10px; font-weight: 800; font-size: clamp(0.75rem, 2.8vw, 0.85rem); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3); transition: all 0.2s; white-space: nowrap; box-sizing: border-box;">
                                 <span>🔄</span> <span>Transferir Contas</span>
                             </button>
-                            <button type="button" onclick="abrirModalCentralNotificacoes()" style="width: 100%; height: 42px; background: linear-gradient(135deg, rgba(37,99,235,0.25), rgba(139,92,246,0.3)); border: 1.5px solid #3B82F6; color: #93C5FD; padding: 0 8px; border-radius: 10px; font-weight: 800; font-size: clamp(0.75rem, 2.8vw, 0.85rem); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.25); transition: all 0.2s; white-space: nowrap; box-sizing: border-box;">
+                            <button type="button" id="btnNotificacoesTabCartoes" onclick="abrirModalCentralNotificacoes()" style="width: 100%; height: 42px; background: linear-gradient(135deg, #2563EB, #4F46E5); border: none; color: #FFFFFF; padding: 0 8px; border-radius: 10px; font-weight: 800; font-size: clamp(0.75rem, 2.8vw, 0.85rem); cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(37,99,235,0.25); transition: all 0.2s; white-space: nowrap; box-sizing: border-box;">
                                 <span>⚡</span> <span>Notificações</span>
                             </button>
                         </div>
                     </div>
 
                     <!-- Sub-abas de Navegação Interna Organizadas (Cada tela com sua função e foco) -->
-                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; background: #0F172A; padding: 6px; border-radius: 12px; border: 1.5px solid #334155;">
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; background: var(--bg-primary); padding: 6px; border-radius: 12px; border: 1.5px solid var(--border-color);">
                         <button type="button" id="subtabCartoesCredito" onclick="alternarSubAbaCartoes('credito')" style="flex: 1; min-width: 140px; padding: 10px 12px; border-radius: 8px; font-weight: 800; font-size: 0.84rem; cursor: pointer; border: 1px solid transparent; transition: all 0.2s; display: flex; align-items: center; justify-content: center; gap: 6px;">
                             <span>💳</span> Cartões de Crédito
                         </button>
@@ -731,25 +731,25 @@
 
                     <!-- Cards de Métricas com Exibição Dinâmica por Sub-aba -->
                     <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px;">
-                        <div id="metricBoxContas" style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
-                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Saldo em Contas Correntes</div>
+                        <div id="metricBoxContas" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Saldo em Contas Correntes</div>
                             <div id="metricSaldoTotalContas" style="font-size: 1.25rem; font-weight: 800; color: #10B981; margin-top: 4px;">R$ 0,00</div>
                         </div>
-                        <div id="metricBoxAlimentacao" style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
-                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Saldo Cartão Alimentação</div>
+                        <div id="metricBoxAlimentacao" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Saldo Cartão Alimentação</div>
                             <div id="metricSaldoTotalAlimentacao" style="font-size: 1.25rem; font-weight: 800; color: #F59E0B; margin-top: 4px;">R$ 0,00</div>
                         </div>
 
-                        <div id="metricBoxFatura" style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
-                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Fatura Total dos Cartões (Mês)</div>
+                        <div id="metricBoxFatura" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Fatura Total dos Cartões (Mês)</div>
                             <div id="metricFaturaTotalMes" style="font-size: 1.25rem; font-weight: 800; color: #F59E0B; margin-top: 4px;">R$ 0,00</div>
                         </div>
-                        <div id="metricBoxLimite" style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
-                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Limite Total dos Cartões</div>
+                        <div id="metricBoxLimite" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Limite Total dos Cartões</div>
                             <div id="metricLimiteTotalCartoes" style="font-size: 1.25rem; font-weight: 800; color: #A78BFA; margin-top: 4px;">R$ 0,00</div>
                         </div>
-                        <div id="metricBoxDisponivel" style="background: #0F172A; border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px;">
-                            <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Limite Disponível Geral</div>
+                        <div id="metricBoxDisponivel" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 12px; padding: 12px 14px;">
+                            <div style="font-size: 0.74rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Limite Disponível Geral</div>
                             <div id="metricLimiteDisponivelTotal" style="font-size: 1.25rem; font-weight: 800; color: #60A5FA; margin-top: 4px;">R$ 0,00</div>
                         </div>
                     </div>
@@ -758,10 +758,10 @@
                 <!-- Seção 1: Meus Cartões de Crédito & Débito -->
                 <div id="secaoCartoesCredito" style="margin-bottom: 24px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
-                        <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <h3 style="font-size: 1.1rem; color: var(--text-primary); font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
                             <span>💳</span> Meus Cartões de Crédito & Débito
                         </h3>
-                        <span id="badgeQtdCartoes" style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.2); color: #93C5FD; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
+                        <span id="badgeQtdCartoes" style="font-size: 0.75rem; background: rgba(59, 130, 246, 0.18); border: 1px solid rgba(59, 130, 246, 0.4); color: #3B82F6; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
                     </div>
                     <div id="gridCartoesCreditoContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px;">
                         <!-- Preenchido dinamicamente via JS -->
@@ -771,10 +771,10 @@
                 <!-- Seção 2: Cartões Alimentação & Benefícios (Alelo, Ticket, Sodexo, VR, Flash, etc.) -->
                 <div id="secaoCartoesAlimentacao" style="margin-bottom: 24px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
-                        <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <h3 style="font-size: 1.1rem; color: var(--text-primary); font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
                             <span>🍽️</span> Cartões Alimentação & Benefícios
                         </h3>
-                        <span id="badgeQtdAlimentacao" style="font-size: 0.75rem; background: rgba(245, 158, 11, 0.2); color: #FCD34D; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
+                        <span id="badgeQtdAlimentacao" style="font-size: 0.75rem; background: rgba(245, 158, 11, 0.18); border: 1px solid rgba(245, 158, 11, 0.4); color: #D97706; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 cartões</span>
                     </div>
                     <div id="gridCartoesAlimentacaoContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(310px, 1fr)); gap: 16px;">
                         <!-- Preenchido dinamicamente via JS -->
@@ -784,10 +784,10 @@
                 <!-- Seção 3: Contas Correntes & Saldos Bancários -->
                 <div id="secaoCartoesBancos" style="margin-bottom: 24px;">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 14px;">
-                        <h3 style="font-size: 1.1rem; color: #FFFFFF; font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
+                        <h3 style="font-size: 1.1rem; color: var(--text-primary); font-weight: 800; display: flex; align-items: center; gap: 8px; margin: 0;">
                             <span>🏦</span> Contas Correntes & Bancos
                         </h3>
-                        <span id="badgeQtdContas" style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.2); color: #6EE7B7; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 contas</span>
+                        <span id="badgeQtdContas" style="font-size: 0.75rem; background: rgba(16, 185, 129, 0.18); border: 1px solid rgba(16, 185, 129, 0.4); color: #10B981; padding: 2px 8px; border-radius: 12px; font-weight: 700;">0 contas</span>
                     </div>
                     <div id="gridContasBancariasContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 16px;">
                         <!-- Preenchido dinamicamente via JS -->
@@ -805,8 +805,8 @@
                     <input type="hidden" id="idContaEmEdicao" value="">
                     <div style="display: flex; flex-direction: column; gap: 10px; margin-top: 14px;">
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <input type="text" id="novaContaDesc" placeholder="Descrição da Conta (Ex: IPTU, Seguro)" style="flex: 2; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white; font-size: 0.95rem;">
-                            <input type="text" inputmode="numeric" id="novaContaValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 120px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: #0F172A; color: white; font-weight: 700; font-size: 0.95rem;">
+                            <input type="text" id="novaContaDesc" placeholder="Descrição da Conta (Ex: IPTU, Seguro)" style="flex: 2; min-width: 200px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.95rem;">
+                            <input type="text" inputmode="numeric" id="novaContaValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 120px; padding: 10px 14px; border: 1px solid var(--border-color); border-radius: 8px; background: var(--bg-secondary); color: var(--text-primary); font-weight: 700; font-size: 0.95rem;">
                         </div>
                         <div id="acoesContaFormContainer" style="display: flex; gap: 10px; flex-wrap: wrap;">
                             <button id="btnSalvarConta" type="button" onclick="salvarContaFormulario()" style="flex: 2; min-width: 140px; background: #F59E0B; color: #0F172A; border: none; padding: 11px 20px; border-radius: 8px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3);">
@@ -815,7 +815,7 @@
                             <button id="btnExcluirContaForm" type="button" onclick="excluirContaEmEdicao()" style="display: none; flex: 1; min-width: 110px; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 11px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
                                 🗑️ Excluir
                             </button>
-                            <button id="btnCancelarContaForm" type="button" onclick="cancelarEdicaoConta()" style="display: none; background: #1E293B; border: 1px solid #475569; color: #94A3B8; padding: 11px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                            <button id="btnCancelarContaForm" type="button" onclick="cancelarEdicaoConta()" style="display: none; background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-primary); padding: 11px 16px; border-radius: 8px; font-weight: 700; font-size: 0.9rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
                                 ✕ Cancelar
                             </button>
                         </div>
@@ -823,7 +823,7 @@
                 </div>
 
                 <!-- Card de Fatura do Cartão de Crédito -->
-                <div id="cardFaturaCartao" class="card" style="margin-bottom: 16px; cursor: pointer; display: none; background: #1E293B; border-left: 5px solid #10B981; padding: 16px; border-radius: 10px;" onclick="abrirModalFatura()">
+                <div id="cardFaturaCartao" class="card" style="margin-bottom: 16px; cursor: pointer; display: none; background: var(--bg-secondary); border: 1px solid var(--border-color); border-left: 5px solid #10B981; padding: 16px; border-radius: 10px;" onclick="abrirModalFatura()">
                     <div style="display: flex; justify-content: space-between; align-items: center;">
                         <div>
                             <h3 style="color: #34D399; font-weight: 600; margin: 0; font-size: 1.1rem;">💳 Fatura Atual do Cartão</h3>
@@ -859,42 +859,42 @@
                     <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 14px;">
                         <!-- Linha 1: Descrição e Valor -->
                         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-                            <input type="text" id="novoDesejoDesc" placeholder="O que você quer conquistar? (Ex: iPhone 16, Viagem a Gramado, Sofá Novo)" style="flex: 2; min-width: 200px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.95rem;">
-                            <input type="text" inputmode="numeric" id="novoDesejoValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 140px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.95rem; font-weight: 700;">
+                            <input type="text" id="novoDesejoDesc" placeholder="O que você quer conquistar? (Ex: iPhone 16, Viagem a Gramado, Sofá Novo)" style="flex: 2; min-width: 200px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.95rem;">
+                            <input type="text" inputmode="numeric" id="novoDesejoValor" class="input-money-mask" placeholder="R$ 0,00" style="flex: 1; min-width: 140px; padding: 12px 14px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.95rem; font-weight: 700;">
                         </div>
 
                         <!-- Linha 2: Link da Fonte Pesquisada -->
                         <div style="display: flex; gap: 10px; align-items: center;">
                             <div style="flex: 1; position: relative;">
-                                <input type="url" id="novoDesejoLink" placeholder="🔗 Link da fonte (Ex: https://mercadolivre.com.br/... ou site pesquisado)" style="width: 100%; padding: 12px 14px 12px 38px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.9rem; box-sizing: border-box;">
+                                <input type="url" id="novoDesejoLink" placeholder="🔗 Link da fonte (Ex: https://mercadolivre.com.br/... ou site pesquisado)" style="width: 100%; padding: 12px 14px 12px 38px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.9rem; box-sizing: border-box;">
                                 <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 1.1rem; pointer-events: none;">🌐</span>
                             </div>
-                            <button type="button" onclick="colarLinkClipboard()" title="Colar link da área de transferência" style="background: #1E293B; border: 1px solid #334155; color: #94A3B8; padding: 11px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
+                            <button type="button" onclick="colarLinkClipboard()" title="Colar link da área de transferência" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-primary); padding: 11px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 700; cursor: pointer; white-space: nowrap; display: flex; align-items: center; gap: 6px;">
                                 📋 Colar
                             </button>
                         </div>
 
                         <!-- Linha 3: Botões de Captura de Mídia (Anexe quantas fotos e vídeos quiser) -->
-                        <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; background: rgba(15, 23, 42, 0.6); border: 1px dashed var(--border-color); border-radius: 12px;">
+                        <div style="display: flex; flex-direction: column; gap: 6px; padding: 10px; background: var(--bg-secondary); border: 1px dashed var(--border-color); border-radius: 12px;">
                             <div style="font-size: 0.76rem; color: #C084FC; font-weight: 700; display: flex; align-items: center; justify-content: space-between;">
                                 <span>📸 Adicione quantas fotos e vídeos quiser:</span>
                                 <span id="badgeContadorMidiasDesejo" style="display: none; background: rgba(139, 92, 246, 0.25); border: 1px solid #8B5CF6; color: #E9D5FF; padding: 1px 8px; border-radius: 999px; font-size: 0.72rem;">0 anexos</span>
                             </div>
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; box-sizing: border-box;">
                                 <!-- Botão Tirar Foto -->
-                                <button type="button" onclick="document.getElementById('inputCapturaFoto').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #8B5CF6; color: #DDD6FE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                <button type="button" onclick="document.getElementById('inputCapturaFoto').click()" class="btn-midia-captura btn-midia-foto" style="width: 100%; box-sizing: border-box; background: rgba(139, 92, 246, 0.14); border: 1.5px solid #8B5CF6; color: var(--text-primary); padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
                                     <span>📷</span> <span>Tirar Foto</span>
                                 </button>
                                 <input type="file" id="inputCapturaFoto" accept="image/*" capture="environment" style="display: none;" onchange="capturarMidiaDesejo(this, 'foto')">
 
                                 <!-- Botão Filmar -->
-                                <button type="button" onclick="document.getElementById('inputCapturaVideo').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #EC4899; color: #FBCFE8; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                <button type="button" onclick="document.getElementById('inputCapturaVideo').click()" class="btn-midia-captura btn-midia-video" style="width: 100%; box-sizing: border-box; background: rgba(236, 72, 153, 0.14); border: 1.5px solid #EC4899; color: var(--text-primary); padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
                                     <span>🎥</span> <span>Filmar</span>
                                 </button>
                                 <input type="file" id="inputCapturaVideo" accept="video/*" capture="camcorder" style="display: none;" onchange="capturarMidiaDesejo(this, 'video')">
 
                                 <!-- Botão Galeria (Múltiplos arquivos) -->
-                                <button type="button" onclick="document.getElementById('inputCapturaGaleria').click()" class="btn-midia-captura" style="width: 100%; box-sizing: border-box; background: #1E293B; border: 1px solid #3B82F6; color: #BFDBFE; padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
+                                <button type="button" onclick="document.getElementById('inputCapturaGaleria').click()" class="btn-midia-captura btn-midia-galeria" style="width: 100%; box-sizing: border-box; background: rgba(59, 130, 246, 0.14); border: 1.5px solid #3B82F6; color: var(--text-primary); padding: 10px 4px; border-radius: 8px; font-size: 0.82rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap; transition: all 0.2s;">
                                     <span>📁</span> <span>Galeria</span>
                                 </button>
                                 <input type="file" id="inputCapturaGaleria" accept="image/*,video/*" multiple style="display: none;" onchange="capturarMidiaDesejo(this, 'auto')">
@@ -902,10 +902,10 @@
                         </div>
 
                         <!-- Pré-visualização de Múltiplas Mídias Anexadas -->
-                        <div id="previewMidiaContainer" style="display: none; flex-direction: column; background: #0F172A; border: 1px solid #8B5CF6; border-radius: 12px; padding: 12px; gap: 10px;">
+                        <div id="previewMidiaContainer" style="display: none; flex-direction: column; background: var(--bg-secondary); border: 1px solid #8B5CF6; border-radius: 12px; padding: 12px; gap: 10px;">
                             <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
                                 <div>
-                                    <div id="previewMidiaTitulo" style="color: #F8FAFC; font-weight: 700; font-size: 0.9rem;">Mídias Anexadas</div>
+                                    <div id="previewMidiaTitulo" style="color: var(--text-primary); font-weight: 700; font-size: 0.9rem;">Mídias Anexadas</div>
                                     <div id="previewMidiaInfo" style="color: #94A3B8; font-size: 0.74rem;">Toque em Tirar Foto, Filmar ou Galeria para anexar mais</div>
                                 </div>
                                 <button type="button" onclick="removerMidiaDesejo()" style="background: rgba(239, 68, 68, 0.2); border: 1px solid #EF4444; color: #FCA5A5; padding: 5px 10px; border-radius: 8px; font-size: 0.75rem; font-weight: 700; cursor: pointer;">
@@ -924,7 +924,7 @@
                             <button id="btnExcluirDesejoForm" type="button" onclick="excluirDesejoEmEdicao()" style="display: none; flex: 1; min-width: 110px; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 13px 16px; border-radius: 10px; font-weight: 700; font-size: 0.92rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
                                 🗑️ Excluir
                             </button>
-                            <button id="btnCancelarDesejoForm" type="button" onclick="cancelarEdicaoDesejo()" style="display: none; background: #1E293B; border: 1px solid #475569; color: #94A3B8; padding: 13px 16px; border-radius: 10px; font-weight: 700; font-size: 0.92rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
+                            <button id="btnCancelarDesejoForm" type="button" onclick="cancelarEdicaoDesejo()" style="display: none; background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-primary); padding: 13px 16px; border-radius: 10px; font-weight: 700; font-size: 0.92rem; cursor: pointer; align-items: center; justify-content: center; gap: 6px;">
                                 ✕ Cancelar
                             </button>
                         </div>
@@ -947,7 +947,7 @@
                             Cadastre a renda extra, de onde veio, onde será aplicada e abata os gastos até zerar o saldo
                         </p>
                         <!-- Filtro/Botão para abrir ou fechar o que está abaixo da escrita -->
-                        <button id="btnToggleFormRendaExtra" type="button" onclick="toggleFormularioRendaExtra()" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; color: #34D399; padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;">
+                        <button id="btnToggleFormRendaExtra" type="button" onclick="toggleFormularioRendaExtra()" style="background: rgba(16, 185, 129, 0.15); border: 1px solid #10B981; color: #10B981; padding: 8px 14px; border-radius: 10px; font-weight: 700; font-size: 0.85rem; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; transition: all 0.2s ease;">
                             <span id="txtBtnToggleFormRendaExtra">➕ Nova Renda Extra</span>
                             <span id="icoBtnToggleFormRendaExtra" style="font-size: 0.75rem;">▼</span>
                         </button>
@@ -967,7 +967,7 @@
                                     if (btn) {
                                         btn.style.background = 'rgba(239, 68, 68, 0.15)';
                                         btn.style.borderColor = '#EF4444';
-                                        btn.style.color = '#FCA5A5';
+                                        btn.style.color = '#EF4444';
                                     }
                                 } else {
                                     container.style.display = 'none';
@@ -976,7 +976,7 @@
                                     if (btn) {
                                         btn.style.background = 'rgba(16, 185, 129, 0.15)';
                                         btn.style.borderColor = '#10B981';
-                                        btn.style.color = '#34D399';
+                                        btn.style.color = '#10B981';
                                     }
                                 }
                             }
@@ -992,11 +992,11 @@
                             <div style="display: grid; grid-template-columns: 1.45fr 1fr; gap: 8px; align-items: end;">
                                 <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
                                     <label style="font-size: 0.75rem; font-weight: 700; color: #34D399; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">📋 Do que é a Renda Extra?</label>
-                                    <input type="text" id="inputRendaExtraDesc" placeholder="Ex: 13º Salário, Bônus, Venda..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.9rem;">
+                                    <input type="text" id="inputRendaExtraDesc" placeholder="Ex: 13º Salário, Bônus, Venda..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.9rem;">
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
                                     <label style="font-size: 0.75rem; font-weight: 700; color: #10B981; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">💵 Valor (R$)</label>
-                                    <input type="text" inputmode="numeric" id="inputRendaExtraValor" class="input-money-mask" placeholder="R$ 0,00" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #10B981; border-radius: 10px; background: #0F172A; color: #34D399; font-size: 0.95rem; font-weight: 800;">
+                                    <input type="text" inputmode="numeric" id="inputRendaExtraValor" class="input-money-mask" placeholder="R$ 0,00" style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid #10B981; border-radius: 10px; background: var(--bg-secondary); color: #10B981; font-size: 0.95rem; font-weight: 800;">
                                 </div>
                             </div>
 
@@ -1004,11 +1004,11 @@
                             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; align-items: end;">
                                 <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
                                     <label style="font-size: 0.75rem; font-weight: 700; color: #60A5FA; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">👤 De onde veio?</label>
-                                    <input type="text" id="inputRendaExtraOrigem" placeholder="Ex: Carlos, Empresa, Cliente..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.88rem;">
+                                    <input type="text" id="inputRendaExtraOrigem" placeholder="Ex: Carlos, Empresa, Cliente..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.88rem;">
                                 </div>
                                 <div style="display: flex; flex-direction: column; gap: 4px; min-width: 0;">
                                     <label style="font-size: 0.75rem; font-weight: 700; color: #F59E0B; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🎯 Onde será aplicada?</label>
-                                    <input type="text" id="inputRendaExtraAplicacao" placeholder="Ex: Reforma casa, Viagem..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: #0F172A; color: white; font-size: 0.88rem;">
+                                    <input type="text" id="inputRendaExtraAplicacao" placeholder="Ex: Reforma casa, Viagem..." style="width: 100%; box-sizing: border-box; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 10px; background: var(--bg-secondary); color: var(--text-primary); font-size: 0.88rem;">
                                 </div>
                             </div>
 
@@ -1020,7 +1020,7 @@
                                 <button id="btnExcluirRendaExtraForm" type="button" onclick="excluirRendaExtraEmEdicao()" style="display: none; flex: 1; background: rgba(239, 68, 68, 0.15); border: 1px solid #EF4444; color: #FCA5A5; padding: 11px 12px; border-radius: 10px; font-weight: 700; font-size: 0.86rem; cursor: pointer; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
                                     🗑️ Excluir
                                 </button>
-                                <button id="btnCancelarRendaExtraForm" type="button" onclick="cancelarEdicaoRendaExtra()" style="flex: 1; background: #1E293B; border: 1px solid #475569; color: #CBD5E1; padding: 11px 12px; border-radius: 10px; font-weight: 700; font-size: 0.86rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
+                                <button id="btnCancelarRendaExtraForm" type="button" onclick="cancelarEdicaoRendaExtra()" style="flex: 1; background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-primary); padding: 11px 12px; border-radius: 10px; font-weight: 700; font-size: 0.86rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
                                     ✕ Limpar
                                 </button>
                             </div>
@@ -1276,7 +1276,7 @@
                 <input type="hidden" id="inputIdMovimentacao" value="">
 
                 <!-- PAINEL INTELIGENTE: LEITOR DE COMPROVANTES E NOTAS FISCAIS -->
-                <div id="boxLeitorComprovante" class="box-leitor-comprovante" style="margin-bottom: 16px; background: linear-gradient(135deg, rgba(30, 41, 59, 0.7), rgba(15, 23, 42, 0.9)); border: 1.5px dashed #3B82F6; border-radius: 14px; padding: 12px 14px; transition: all 0.2s;">
+                <div id="boxLeitorComprovante" class="box-leitor-comprovante" style="margin-bottom: 16px; background: var(--bg-secondary); border: 1.5px dashed #3B82F6; border-radius: 14px; padding: 12px 14px; transition: all 0.2s;">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <div style="display: flex; align-items: center; gap: 7px; color: #60A5FA; font-weight: 700; font-size: 0.85rem;">
                             <span>📷</span>
@@ -1294,7 +1294,7 @@
                         <input type="file" id="inputComprovanteCamera" accept="image/*" capture="environment" style="display: none;" onchange="processarArquivoComprovante(this)">
 
                         <!-- Botão Selecionar Arquivo / Galeria -->
-                        <button type="button" onclick="document.getElementById('inputComprovanteGaleria').click()" style="height: 38px; background: rgba(255,255,255,0.08); color: #E2E8F0; border: 1.5px solid #334155; padding: 0 4px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
+                        <button type="button" onclick="document.getElementById('inputComprovanteGaleria').click()" style="height: 38px; background: var(--bg-card); color: var(--text-primary); border: 1.5px solid var(--border-color); padding: 0 4px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px; white-space: nowrap;">
                             <span>📁</span> Galeria
                         </button>
                         <input type="file" id="inputComprovanteGaleria" accept="image/*" style="display: none;" onchange="processarArquivoComprovante(this)">
@@ -1312,7 +1312,7 @@
                     </div>
 
                     <!-- Container de Pré-visualização do Comprovante Anexado -->
-                    <div id="previewComprovanteContainer" style="display: none; align-items: center; justify-content: space-between; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: #0F172A; border: 1px solid #334155;">
+                    <div id="previewComprovanteContainer" style="display: none; align-items: center; justify-content: space-between; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: var(--bg-card); border: 1px solid var(--border-color);">
                         <div style="display: flex; align-items: center; gap: 10px; overflow: hidden;">
                             <img id="thumbComprovante" src="" alt="Comprovante" style="width: 44px; height: 44px; object-fit: cover; border-radius: 6px; border: 1px solid #475569; cursor: pointer;" onclick="abrirModalVisualizarComprovante(this.src)" title="Clique para ver o comprovante em tamanho real">
                             <div style="overflow: hidden;">
@@ -1435,8 +1435,8 @@
 
                 <div class="form-group-row" id="rowParcelado" style="display: flex; gap: 10px; align-items: center; margin-bottom: 14px;">
                     <div class="form-group" style="flex: 1; margin-bottom: 0;">
-                        <div style="height: 44px; background: rgba(30, 41, 59, 0.5); border: 1.5px solid #334155; border-radius: 10px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; cursor: pointer;" onclick="const cb = document.getElementById('inputParcelado'); if(event.target !== cb) { cb.checked = !cb.checked; toggleParcelas(); }">
-                            <label for="inputParcelado" class="checkbox-label" style="cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.82rem; font-weight: 700; color: #E2E8F0; text-transform: uppercase; letter-spacing: 0.5px;">
+                        <div style="height: 44px; background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 10px; padding: 0 12px; display: flex; align-items: center; justify-content: space-between; box-sizing: border-box; cursor: pointer;" onclick="const cb = document.getElementById('inputParcelado'); if(event.target !== cb) { cb.checked = !cb.checked; toggleParcelas(); }">
+                            <label for="inputParcelado" class="checkbox-label" style="cursor: pointer; display: flex; align-items: center; gap: 8px; margin: 0; font-size: 0.82rem; font-weight: 700; color: var(--text-primary); text-transform: uppercase; letter-spacing: 0.5px;">
                                 <span>🔄</span> Parcelado?
                             </label>
                             <input type="checkbox" id="inputParcelado" onchange="toggleParcelas()" style="width: 20px; height: 20px; cursor: pointer; accent-color: #2563EB; margin: 0;">
@@ -1511,7 +1511,7 @@
                 </div>
 
                 <div style="display: flex; gap: 10px; margin-top: 18px;">
-                    <button type="button" class="btn-modal-cancel" style="flex: 1; height: 46px; border-radius: 10px; background: #1E293B; border: 1.5px solid #334155; color: #E2E8F0; font-weight: 700; font-size: 0.92rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; box-sizing: border-box;" onclick="fecharModalLancamento()">
+                    <button type="button" class="btn-modal-cancel" style="flex: 1; height: 46px; border-radius: 10px; background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-primary); font-weight: 700; font-size: 0.92rem; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; justify-content: center; box-sizing: border-box;" onclick="fecharModalLancamento()">
                         Cancelar
                     </button>
                     <button type="button" id="btnExcluir" style="display: none; flex: 1; height: 46px; border-radius: 10px; background: rgba(239, 68, 68, 0.15); border: 1.5px solid #EF4444; color: #FCA5A5; font-weight: 700; font-size: 0.92rem; cursor: pointer; transition: all 0.2s; align-items: center; justify-content: center; box-sizing: border-box;" onclick="excluirLancamentoAtual()">
@@ -1529,11 +1529,11 @@
     <!-- MODAL DE GESTÃO DIRETA DE METAS E PRAZOS (RESERVA E INVESTIMENTOS) -->
         <!-- MODAL PARA CADASTRAR OU EDITAR CONTA OU CARTÃO -->
     <div id="modalGerenciarContaBancaria" class="modal-overlay" onclick="if(event.target === this) fecharModalGerenciarConta()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
-        <div class="modal-content" style="max-width: 440px; width: 100%; max-height: 90vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #334155; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 20px; box-sizing: border-box;">
+        <div class="modal-content" style="max-width: 440px; width: 100%; max-height: 90vh; overflow-y: auto; background: var(--bg-modal, var(--bg-card)); border: 1.5px solid var(--border-color); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 20px; box-sizing: border-box;">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span id="iconeModalConta" style="font-size: 1.3rem;">💳</span>
-                    <h3 id="tituloModalConta" style="color: #FFFFFF; font-size: 1.1rem; margin: 0; font-weight: 800;">Adicionar Cartão / Conta</h3>
+                    <h3 id="tituloModalConta" style="color: var(--text-primary); font-size: 1.1rem; margin: 0; font-weight: 800;">Adicionar Cartão / Conta</h3>
                 </div>
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <button type="button" onclick="abrirModalLancamentoComLeitura()" title="Ler notificação ou print bancário" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 5px 10px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 5px;">
@@ -1663,7 +1663,7 @@
                         <span>💾</span> Salvar Cartão / Conta
                     </button>
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <button type="button" onclick="fecharModalGerenciarConta()" style="height: 42px; background: #1E293B; border: 1.5px solid #334155; color: #E2E8F0; font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer;">
+                        <button type="button" onclick="fecharModalGerenciarConta()" style="height: 42px; background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-primary); font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer;">
                             ✕ Cancelar
                         </button>
                         <button type="button" id="btnExcluirContaBancaria" onclick="excluirContaBancariaConfirmar()" style="height: 42px; background: rgba(239, 68, 68, 0.15); border: 1.5px solid #EF4444; color: #FCA5A5; font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
@@ -1677,12 +1677,12 @@
 
     <!-- MODAL: TRANSFERÊNCIA ENTRE CONTAS BANCÁRIAS (FLUXO DE CAIXA INTRA-CONTAS) -->
     <div id="modalTransferenciaContas" class="modal-overlay" onclick="if(event.target === this) fecharModalTransferenciaContas()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
-        <div class="modal-content" style="max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #334155; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 20px; box-sizing: border-box;">
+        <div class="modal-content" style="max-width: 480px; width: 100%; max-height: 90vh; overflow-y: auto; background: var(--bg-modal, var(--bg-card)); border: 1.5px solid var(--border-color); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 20px; box-sizing: border-box;">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 1.4rem;">🔄</span>
                     <div>
-                        <h3 style="color: #FFFFFF; font-size: 1.1rem; margin: 0; font-weight: 800;">Transferir entre Contas</h3>
+                        <h3 style="color: var(--text-primary); font-size: 1.1rem; margin: 0; font-weight: 800;">Transferir entre Contas</h3>
                         <p style="font-size: 0.78rem; color: #94A3B8; margin: 2px 0 0 0;">Mova valores entre contas sem distorcer seu orçamento do mês</p>
                     </div>
                 </div>
@@ -1735,7 +1735,7 @@
                 </div>
 
                 <!-- Box Resumo / Simulação ao Vivo dos Saldos -->
-                <div id="boxResumoTransferencia" style="background: rgba(15, 23, 42, 0.7); border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px;">
+                <div id="boxResumoTransferencia" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 12px; padding: 12px 14px; margin-bottom: 16px;">
                     <div style="font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 8px;">
                         📊 Simulação dos Novos Saldos
                     </div>
@@ -1751,7 +1751,7 @@
                     <button type="submit" id="btnConfirmarTransferencia" style="width: 100%; height: 44px; background: linear-gradient(135deg, #059669, #10B981); color: #0F172A; border: none; border-radius: 10px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 14px rgba(16,185,129,0.35);">
                         <span>✓</span> Confirmar Transferência
                     </button>
-                    <button type="button" onclick="fecharModalTransferenciaContas()" style="width: 100%; height: 40px; background: #1E293B; border: 1.5px solid #334155; color: #E2E8F0; font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer;">
+                    <button type="button" onclick="fecharModalTransferenciaContas()" style="width: 100%; height: 40px; background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-primary); font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer;">
                         ✕ Cancelar
                     </button>
                 </div>
@@ -1760,11 +1760,11 @@
     </div>
 
     <div id="modalGerenciarPlanoMeta" class="modal-overlay" onclick="if(event.target === this) fecharModalGerenciarMeta()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
-        <div class="modal-content" style="max-width: 440px; width: 100%; max-height: 90vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #334155; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 18px; box-sizing: border-box;">
+        <div class="modal-content" style="max-width: 440px; width: 100%; max-height: 90vh; overflow-y: auto; background: var(--bg-modal, var(--bg-card)); border: 1.5px solid var(--border-color); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 18px; box-sizing: border-box;">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 10px; margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 8px; min-width: 0;">
                     <span id="iconeModalGerenciarMeta" style="font-size: 1.3rem; flex-shrink: 0;">🎯</span>
-                    <h3 id="tituloModalGerenciarMeta" style="color: #FFFFFF; font-size: 1.05rem; margin: 0; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Gerenciar Meta</h3>
+                    <h3 id="tituloModalGerenciarMeta" style="color: var(--text-primary); font-size: 1.05rem; margin: 0; font-weight: 800; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Gerenciar Meta</h3>
                 </div>
                 <button type="button" class="close-btn" onclick="fecharModalGerenciarMeta()" title="Fechar" style="background: none; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer; padding: 0 4px;">✕</button>
             </div>
@@ -1803,7 +1803,7 @@
                 </div>
 
                 <!-- Card de Resumo do Cálculo da Meta -->
-                <div id="boxResumoCalculoMeta" style="background: rgba(30, 41, 59, 0.7); border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 0.82rem; box-sizing: border-box;">
+                <div id="boxResumoCalculoMeta" style="background: var(--bg-secondary); border: 1.5px solid var(--border-color); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; font-size: 0.82rem; box-sizing: border-box;">
                     <!-- Preenchido dinamicamente -->
                 </div>
 
@@ -1814,7 +1814,7 @@
                     </button>
 
                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                        <button type="button" onclick="fecharModalGerenciarMeta()" style="height: 42px; background: #1E293B; border: 1.5px solid #334155; color: #E2E8F0; font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
+                        <button type="button" onclick="fecharModalGerenciarMeta()" style="height: 42px; background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-primary); font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center;">
                             ✕ Cancelar
                         </button>
                         <button type="button" id="btnExcluirPlanoMeta" onclick="excluirPlanoMetaConfirmar()" style="height: 42px; background: rgba(239, 68, 68, 0.15); border: 1.5px solid #EF4444; color: #FCA5A5; font-weight: 700; font-size: 0.88rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;">
@@ -2325,11 +2325,11 @@
 
     <!-- MODAL DE ESCOLHA DA ORIGEM DO COMPROVANTE OU PRINT -->
     <div id="modalEscolhaOrigemComprovante" class="modal-overlay" onclick="if(event.target === this) fecharModalEscolhaComprovante()" style="display: none; z-index: 1000000; align-items: center; justify-content: center; padding: 16px;">
-        <div class="modal-content" style="max-width: 440px; width: 100%; background: #0F172A; border: 1.5px solid #334155; border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 20px; box-sizing: border-box;">
+        <div class="modal-content" style="max-width: 440px; width: 100%; background: var(--bg-modal, var(--bg-card)); border: 1.5px solid var(--border-color); border-radius: 16px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); padding: 20px; box-sizing: border-box;">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 16px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 1.3rem;">⚡</span>
-                    <h3 style="color: #FFFFFF; font-size: 1.1rem; margin: 0; font-weight: 800;">Lançar por Print ou Comprovante</h3>
+                    <h3 style="color: var(--text-primary); font-size: 1.1rem; margin: 0; font-weight: 800;">Lançar por Print ou Comprovante</h3>
                 </div>
                 <button type="button" onclick="fecharModalEscolhaComprovante()" title="Fechar" style="background: none; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer;">✕</button>
             </div>
@@ -2337,21 +2337,21 @@
                 O sistema lê notificações, prints de aplicativos e comprovantes (Pix, Débito, Crédito, Boletos) e faz o lançamento automático com atualização de saldo e limite.
             </p>
             <div style="display: flex; flex-direction: column; gap: 10px;">
-                <button type="button" onclick="acionarOrigemComprovante('camera')" style="height: 52px; background: linear-gradient(135deg, #1E293B, #0F172A); border: 1.5px solid #3B82F6; color: #FFFFFF; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 0 16px; text-align: left;">
+                <button type="button" onclick="acionarOrigemComprovante('camera')" style="height: 52px; background: var(--bg-secondary); border: 1.5px solid #3B82F6; color: var(--text-primary); border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 0 16px; text-align: left;">
                     <span style="font-size: 1.5rem;">📷</span>
                     <div>
                         <div style="color: #60A5FA;">Tirar Foto com a Câmera</div>
                         <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 500;">Comprovantes em papel, cupons de maquininha</div>
                     </div>
                 </button>
-                <button type="button" onclick="acionarOrigemComprovante('galeria')" style="height: 52px; background: linear-gradient(135deg, #1E293B, #0F172A); border: 1.5px solid #10B981; color: #FFFFFF; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 0 16px; text-align: left;">
+                <button type="button" onclick="acionarOrigemComprovante('galeria')" style="height: 52px; background: var(--bg-secondary); border: 1.5px solid #10B981; color: var(--text-primary); border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 0 16px; text-align: left;">
                     <span style="font-size: 1.5rem;">🖼️</span>
                     <div>
                         <div style="color: #34D399;">Escolher Print ou Imagem da Galeria</div>
                         <div style="font-size: 0.72rem; color: #94A3B8; font-weight: 500;">Prints de notificações, comprovantes do banco</div>
                     </div>
                 </button>
-                <button type="button" onclick="acionarOrigemComprovante('texto')" style="height: 52px; background: linear-gradient(135deg, #1E293B, #0F172A); border: 1.5px solid #8B5CF6; color: #FFFFFF; border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 0 16px; text-align: left;">
+                <button type="button" onclick="acionarOrigemComprovante('texto')" style="height: 52px; background: var(--bg-secondary); border: 1.5px solid #8B5CF6; color: var(--text-primary); border-radius: 12px; font-weight: 800; font-size: 0.95rem; cursor: pointer; display: flex; align-items: center; gap: 12px; padding: 0 16px; text-align: left;">
                     <span style="font-size: 1.5rem;">📋</span>
                     <div>
                         <div style="color: #C084FC;">Colar Texto do Comprovante / Pix</div>
@@ -2364,16 +2364,16 @@
 
     <!-- MODAL DE CONFIRMAÇÃO EXPRESSA DE LANÇAMENTO AUTOMÁTICO -->
     <div id="modalConfirmacaoComprovanteExpresso" class="modal-overlay" onclick="if(event.target === this) fecharModalConfirmacaoExpresso()" style="display: none; z-index: 1000000; align-items: center; justify-content: center; padding: 16px;">
-        <div class="modal-content" style="max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #10B981; border-radius: 18px; box-shadow: 0 12px 36px rgba(0,0,0,0.7); padding: 20px; box-sizing: border-box;">
+        <div class="modal-content" style="max-width: 460px; width: 100%; max-height: 90vh; overflow-y: auto; background: var(--bg-modal, var(--bg-card)); border: 1.5px solid #10B981; border-radius: 18px; box-shadow: 0 12px 36px rgba(0,0,0,0.7); padding: 20px; box-sizing: border-box;">
             <div class="modal-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 14px;">
                 <div style="display: flex; align-items: center; gap: 8px;">
                     <span style="font-size: 1.3rem;">⚡</span>
-                    <h3 style="color: #FFFFFF; font-size: 1.1rem; margin: 0; font-weight: 800;">Lançamento Automático Identificado</h3>
+                    <h3 style="color: var(--text-primary); font-size: 1.1rem; margin: 0; font-weight: 800;">Lançamento Automático Identificado</h3>
                 </div>
                 <button type="button" onclick="fecharModalConfirmacaoExpresso()" title="Fechar" style="background: none; border: none; color: #94A3B8; font-size: 1.3rem; cursor: pointer;">✕</button>
             </div>
 
-            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; background: #1E293B; border-radius: 12px; padding: 12px; border: 1px solid #334155;">
+            <div style="display: flex; gap: 12px; align-items: center; margin-bottom: 16px; background: var(--bg-secondary); border-radius: 12px; padding: 12px; border: 1px solid var(--border-color);">
                 <img id="imgPreviaComprovanteExpresso" src="" alt="Comprovante" style="width: 64px; height: 64px; object-fit: cover; border-radius: 8px; border: 1.5px solid #475569; flex-shrink: 0; cursor: pointer;" onclick="abrirModalVisualizarComprovante(this.src)" title="Clique para ampliar">
                 <div style="overflow: hidden; flex: 1;">
                     <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 4px;">
@@ -2384,7 +2384,7 @@
                             2x Parcelado
                         </span>
                     </div>
-                    <div id="txtEstabelecimentoExpresso" style="font-size: 1rem; font-weight: 800; color: #FFFFFF; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <div id="txtEstabelecimentoExpresso" style="font-size: 1rem; font-weight: 800; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         Satsom Componentes Ele
                     </div>
                     <div id="txtDataHoraExpresso" style="font-size: 0.75rem; color: #94A3B8; margin-top: 2px;">
@@ -2396,7 +2396,7 @@
             </div>
 
             <!-- Card com Valor em Destaque -->
-            <div style="text-align: center; background: linear-gradient(135deg, rgba(16,185,129,0.1), rgba(15,23,42,0.8)); border: 1.5px solid #10B981; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
+            <div style="text-align: center; background: var(--bg-secondary); border: 1.5px solid #10B981; border-radius: 14px; padding: 14px; margin-bottom: 16px;">
                 <div style="font-size: 0.74rem; font-weight: 700; color: #94A3B8; text-transform: uppercase;">Valor da Transação</div>
                 <div id="txtValorExpresso" style="font-size: 1.9rem; font-weight: 900; color: #10B981; margin: 2px 0;">
                     R$ 4,50
@@ -2440,10 +2440,10 @@
                     <span>⚡</span> Confirmar Lançamento Automático
                 </button>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <button type="button" onclick="abrirNoFormularioCompletoExpresso()" style="height: 40px; background: #1E293B; border: 1.5px solid #334155; color: #E2E8F0; font-weight: 700; font-size: 0.82rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
+                    <button type="button" onclick="abrirNoFormularioCompletoExpresso()" style="height: 40px; background: var(--bg-secondary); border: 1.5px solid var(--border-color); color: var(--text-primary); font-weight: 700; font-size: 0.82rem; border-radius: 10px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 4px;">
                         <span>✏️</span> Ajustar Detalhes
                     </button>
-                    <button type="button" onclick="fecharModalConfirmacaoExpresso()" style="height: 40px; background: #0F172A; border: 1.5px solid #334155; color: #94A3B8; font-weight: 700; font-size: 0.82rem; border-radius: 10px; cursor: pointer;">
+                    <button type="button" onclick="fecharModalConfirmacaoExpresso()" style="height: 40px; background: var(--bg-card); border: 1.5px solid var(--border-color); color: var(--text-secondary); font-weight: 700; font-size: 0.82rem; border-radius: 10px; cursor: pointer;">
                         ✕ Cancelar
                     </button>
                 </div>
@@ -2628,15 +2628,15 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.43"></script>
-    <script src="finance-auto-notificacoes.js?v=1.8.43"></script>
-    <script src="finance-db.js?v=1.8.43"></script>
-    <script src="finance-sync.js?v=1.8.43"></script>
-    <script src="finance-powerbi.js?v=1.8.43"></script>
-    <script src="finance-dashboard.js?v=1.8.43"></script>
-    <script src="finance-cartoes.js?v=1.8.43"></script>
-    <script src="auth.js?v=1.8.43"></script>
-    <script src="auto-update.js?v=1.8.43"></script>
+    <script src="finance-ocr.js?v=1.8.44"></script>
+    <script src="finance-auto-notificacoes.js?v=1.8.44"></script>
+    <script src="finance-db.js?v=1.8.44"></script>
+    <script src="finance-sync.js?v=1.8.44"></script>
+    <script src="finance-powerbi.js?v=1.8.44"></script>
+    <script src="finance-dashboard.js?v=1.8.44"></script>
+    <script src="finance-cartoes.js?v=1.8.44"></script>
+    <script src="auth.js?v=1.8.44"></script>
+    <script src="auto-update.js?v=1.8.44"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>

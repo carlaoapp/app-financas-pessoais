@@ -568,42 +568,42 @@ function abrirModalCentralNotificacoes() {
     const webhookUrl = `${hostAtual}/api/notificacoes/receber?user_id=${userId}`;
 
     modal.innerHTML = `
-        <div style="background: linear-gradient(135deg, #0B1120, #0F172A); border: 1.5px solid #3B82F6; border-radius: 20px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; padding: 22px; box-sizing: border-box; box-shadow: 0 20px 50px rgba(0,0,0,0.85); animation: modalFadeIn 0.25s ease;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid #1E293B; padding-bottom: 12px;">
+        <div style="background: var(--bg-modal, var(--bg-card)); border: 1.5px solid #3B82F6; border-radius: 20px; width: 100%; max-width: 540px; max-height: 90vh; overflow-y: auto; padding: 22px; box-sizing: border-box; box-shadow: 0 20px 50px rgba(0,0,0,0.85); animation: modalFadeIn 0.25s ease;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; border-bottom: 1px solid var(--border-color); padding-bottom: 12px;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 1.5rem;">⚡</span>
                     <div>
-                        <h3 style="font-size: 1.10rem; font-weight: 900; color: #FFFFFF; margin: 0;">Central de Notificações e Comprovantes</h3>
-                        <p style="font-size: 0.74rem; color: #94A3B8; margin: 2px 0 0;">Leitura automática de compras de bancos e comprovantes</p>
+                        <h3 style="font-size: 1.10rem; font-weight: 900; color: var(--text-primary); margin: 0;">Central de Notificações e Comprovantes</h3>
+                        <p style="font-size: 0.74rem; color: var(--text-secondary); margin: 2px 0 0;">Leitura automática de compras de bancos e comprovantes</p>
                     </div>
                 </div>
-                <button type="button" onclick="fecharModalCentralNotificacoes()" style="background: none; border: none; color: #94A3B8; font-size: 1.4rem; cursor: pointer; padding: 4px;">&times;</button>
+                <button type="button" onclick="fecharModalCentralNotificacoes()" style="background: none; border: none; color: var(--text-secondary); font-size: 1.4rem; cursor: pointer; padding: 4px;">&times;</button>
             </div>
 
             <!-- Card 1: Como enviar Comprovante direto do Banco -->
-            <div style="background: rgba(30, 41, 59, 0.5); border: 1px solid #334155; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
-                <div style="font-size: 0.88rem; font-weight: 800; color: #60A5FA; display: flex; align-items: center; gap: 6px;">
+            <div style="background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+                <div style="font-size: 0.88rem; font-weight: 800; color: #3B82F6; display: flex; align-items: center; gap: 6px;">
                     <span>📤</span> 1. Compartilhar Comprovante Direto do Banco para o App
                 </div>
-                <p style="font-size: 0.78rem; color: #CBD5E1; margin: 6px 0 0; line-height: 1.4;">
+                <p style="font-size: 0.78rem; color: var(--text-secondary); margin: 6px 0 0; line-height: 1.4;">
                     Ao gerar o comprovante em qualquer app de banco (Pix, Cartão, Boleto), clique em <strong>Compartilhar</strong> e escolha o <strong>Finanças Pessoais</strong>. O app abrirá e preencherá tudo automaticamente para sua confirmação com 1 clique!
                 </p>
             </div>
 
             <!-- Card 2: Leitor Direto de Notificação / Print (Sem Aplicativo de Terceiros) -->
             <div style="background: rgba(16, 185, 129, 0.08); border: 1.5px solid #10B981; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
-                <div style="font-size: 0.88rem; font-weight: 800; color: #34D399; display: flex; align-items: center; gap: 6px;">
+                <div style="font-size: 0.88rem; font-weight: 800; color: #10B981; display: flex; align-items: center; gap: 6px;">
                     <span>⚡</span> 2. Leitor Direto de Notificação / Print (Nativo)
                 </div>
-                <p style="font-size: 0.76rem; color: #CBD5E1; margin: 6px 0 8px; line-height: 1.4;">
+                <p style="font-size: 0.76rem; color: var(--text-secondary); margin: 6px 0 8px; line-height: 1.4;">
                     Cole abaixo o texto da notificação do banco (ex: Sicredi, Nubank, Itaú) ou carregue o print da tela do celular para lançamento instantâneo:
                 </p>
-                <textarea id="txtInputNotificacaoManual" rows="2" placeholder="Cole aqui o texto da notificação (ex: Compra débito Visa Gold 26/10 Livraria Maranatha R$ 4,99)..." style="width: 100%; box-sizing: border-box; background: #0F172A; border: 1px solid #334155; border-radius: 8px; color: #F8FAFC; padding: 8px 10px; font-size: 0.78rem; resize: vertical; margin-bottom: 8px; font-family: inherit;"></textarea>
+                <textarea id="txtInputNotificacaoManual" rows="2" placeholder="Cole aqui o texto da notificação (ex: Compra débito Visa Gold 26/10 Livraria Maranatha R$ 4,99)..." style="width: 100%; box-sizing: border-box; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 8px; color: var(--text-primary); padding: 8px 10px; font-size: 0.78rem; resize: vertical; margin-bottom: 8px; font-family: inherit;"></textarea>
                 <div style="display: flex; gap: 8px; flex-wrap: wrap;">
                     <button type="button" onclick="processarNotificacaoTextoInput()" style="background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 800; font-size: 0.76rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                         <span>⚡</span> Lançar Notificação Agora
                     </button>
-                    <label style="background: #1E293B; border: 1px solid #475569; color: #E2E8F0; padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.76rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <label style="background: var(--bg-secondary); border: 1px solid var(--border-color); color: var(--text-primary); padding: 8px 12px; border-radius: 8px; font-weight: 700; font-size: 0.76rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                         <span>📷</span> Carregar Print / Foto
                         <input type="file" accept="image/*" style="display: none;" onchange="if(this.files[0]) processarPrintNotificacaoInput(this.files[0])">
                     </label>
@@ -611,38 +611,38 @@ function abrirModalCentralNotificacoes() {
             </div>
 
             <!-- Card 3: Automação Inteligente com Python (Payton) -->
-            <div style="background: rgba(30, 41, 59, 0.6); border: 1px solid #3B82F6; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
-                <div style="font-size: 0.88rem; font-weight: 800; color: #60A5FA; display: flex; align-items: center; gap: 6px;">
+            <div style="background: var(--bg-secondary); border: 1px solid #3B82F6; border-radius: 12px; padding: 12px; margin-bottom: 14px;">
+                <div style="font-size: 0.88rem; font-weight: 800; color: #3B82F6; display: flex; align-items: center; gap: 6px;">
                     <span>🐍</span> 3. Automação Avançada com Python (Payton)
                 </div>
-                <p style="font-size: 0.76rem; color: #CBD5E1; margin: 6px 0 6px; line-height: 1.4;">
+                <p style="font-size: 0.76rem; color: var(--text-secondary); margin: 6px 0 6px; line-height: 1.4;">
                     Nosso módulo Python nativo (<strong>automacao_bancaria_python.py</strong>) faz a leitura automática de capturas de tela e da área de transferência em segundo plano sem exigir aplicativos de terceiros.
                 </p>
-                <div style="font-size: 0.72rem; color: #94A3B8; background: #0B1120; border: 1px solid #1E293B; padding: 6px 10px; border-radius: 6px; font-family: monospace;">
+                <div style="font-size: 0.72rem; color: var(--text-secondary); background: var(--bg-card); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 6px; font-family: monospace;">
                     Execute: <strong>leitor_cartao_python.bat</strong> ou <strong>iniciar_automacao_python.bat</strong>
                 </div>
             </div>
 
             <!-- Card 4: SIMULADOR DE TESTES EM TEMPO REAL -->
             <div style="background: rgba(139, 92, 246, 0.08); border: 1.5px solid #8B5CF6; border-radius: 12px; padding: 12px;">
-                <div style="font-size: 0.88rem; font-weight: 800; color: #C084FC; display: flex; align-items: center; gap: 6px;">
+                <div style="font-size: 0.88rem; font-weight: 800; color: #8B5CF6; display: flex; align-items: center; gap: 6px;">
                     <span>🧪</span> 4. Teste o Lançamento Automático Agora
                 </div>
-                <p style="font-size: 0.76rem; color: #CBD5E1; margin: 4px 0 10px;">
+                <p style="font-size: 0.76rem; color: var(--text-secondary); margin: 4px 0 10px;">
                     Clique em qualquer botão abaixo para simular uma notificação real de banco e testar o funcionamento automático imediatamente:
                 </p>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
-                    <button type="button" onclick="testarNotificacaoSimulada('sicredi_debito_maranatha')" style="background: rgba(16,185,129,0.22); border: 1.5px solid #10B981; color: #A7F3D0; padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
-                        💳 <strong>Sicredi Débito</strong><br><span style="font-size:0.68rem; color:#6EE7B7;">R$ 4,99 Livraria Maranatha</span>
+                    <button type="button" onclick="testarNotificacaoSimulada('sicredi_debito_maranatha')" style="background: rgba(16,185,129,0.15); border: 1.5px solid #10B981; color: var(--text-primary); padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
+                        💳 <strong>Sicredi Débito</strong><br><span style="font-size:0.68rem; color:#10B981;">R$ 4,99 Livraria Maranatha</span>
                     </button>
-                    <button type="button" onclick="testarNotificacaoSimulada('nubank_credito')" style="background: rgba(139,92,246,0.18); border: 1px solid #8B5CF6; color: #E9D5FF; padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
-                        💳 <strong>Nubank Crédito</strong><br><span style="font-size:0.68rem; color:#A78BFA;">R$ 89,90 Mercado Livre</span>
+                    <button type="button" onclick="testarNotificacaoSimulada('nubank_credito')" style="background: rgba(139,92,246,0.15); border: 1px solid #8B5CF6; color: var(--text-primary); padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
+                        💳 <strong>Nubank Crédito</strong><br><span style="font-size:0.68rem; color:#8B5CF6;">R$ 89,90 Mercado Livre</span>
                     </button>
-                    <button type="button" onclick="testarNotificacaoSimulada('sicredi_pix')" style="background: rgba(16,185,129,0.18); border: 1px solid #10B981; color: #A7F3D0; padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
-                        📥 <strong>Sicredi Pix</strong><br><span style="font-size:0.68rem; color:#6EE7B7;">+ R$ 350,00 Receita</span>
+                    <button type="button" onclick="testarNotificacaoSimulada('sicredi_pix')" style="background: rgba(16,185,129,0.15); border: 1px solid #10B981; color: var(--text-primary); padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
+                        📥 <strong>Sicredi Pix</strong><br><span style="font-size:0.68rem; color:#10B981;">+ R$ 350,00 Receita</span>
                     </button>
-                    <button type="button" onclick="testarNotificacaoSimulada('ticket_alimentacao')" style="background: rgba(249,115,22,0.18); border: 1px solid #F97316; color: #FFEDD5; padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
-                        🍽️ <strong>Ticket Alimentação</strong><br><span style="font-size:0.68rem; color:#FDBA74;">R$ 145,20 Supermercado</span>
+                    <button type="button" onclick="testarNotificacaoSimulada('ticket_alimentacao')" style="background: rgba(249,115,22,0.15); border: 1px solid #F97316; color: var(--text-primary); padding: 8px; border-radius: 8px; font-size: 0.74rem; font-weight: 700; cursor: pointer; text-align: left;">
+                        🍽️ <strong>Ticket Alimentação</strong><br><span style="font-size:0.68rem; color:#F97316;">R$ 145,20 Supermercado</span>
                     </button>
                 </div>
             </div>

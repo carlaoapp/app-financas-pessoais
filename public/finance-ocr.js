@@ -1236,16 +1236,27 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
             opt.innerText = 'Conta Principal (Padrão)';
             selConta.appendChild(opt);
         } else {
+            const vistasExp = new Set();
             contas.forEach(c => {
+                let nomeLimpo = String(c.nome_conta || '')
+                    .replace(/\b(Conta\s+Corrente|Conta\s+Poupan[cç]a|Conta\s+Sal[aá]rio|Cart[aã]o\s+Alimenta[cç][aã]o|Cart[aã]o\s+Refei[cç][aã]o|Cart[aã]o\s+de\s+Cr[eé]dito|Carteira\s+F[ií]sica)\b/gi, '')
+                    .replace(/\s*-\s*$/g, '')
+                    .replace(/\s+/g, ' ')
+                    .trim();
+                if (!nomeLimpo) nomeLimpo = c.banco || c.tipo_conta || 'Conta';
+                const chaveUnica = `${nomeLimpo.toLowerCase()}|${(c.tipo_conta || '').toLowerCase()}|${(c.titular || '').toLowerCase()}`;
+                if (vistasExp.has(chaveUnica) && String(c.id) !== String(contaSelecionadaId)) return;
+                vistasExp.add(chaveUnica);
+
                 const opt = document.createElement('option');
                 opt.value = c.id;
                 opt.dataset.tipo = c.tipo_conta;
                 opt.dataset.saldo = c.saldo_atual || 0;
                 opt.dataset.limite = c.limite_cartao || 0;
                 const icone = c.tipo_conta === 'Cartão de Crédito' ? '💳' : (c.tipo_conta === 'Cartão Alimentação' ? '🍽️' : '🏦');
-                const titInfo = c.titular ? ` [👤 ${c.titular}]` : '';
-                const detalhe = c.tipo_conta === 'Cartão de Crédito' ? `(Limite: ${formatBRL(c.limite_cartao || 0)})` : `(Saldo: ${formatBRL(c.saldo_atual || 0)})`;
-                opt.innerText = `${icone} ${c.nome_conta}${titInfo} ${detalhe}`;
+                const titInfo = c.titular ? ` • ${c.titular}` : '';
+                const detalhe = c.tipo_conta === 'Cartão de Crédito' ? `(Lim: ${formatBRL(c.limite_cartao || 0)})` : `(${formatBRL(c.saldo_atual || 0)})`;
+                opt.innerText = `${icone} ${nomeLimpo}${titInfo} ${detalhe}`;
                 if (String(c.id) === String(contaSelecionadaId)) opt.selected = true;
                 selConta.appendChild(opt);
             });
@@ -1294,25 +1305,25 @@ function renderizarSeletorCartoesAlimentacaoExpresso(contasAlim, contaSelecionad
     grid.innerHTML = contasAlim.map(c => {
         const isSel = String(c.id) === String(contaSelecionadaId);
         const sal = parseFloat(c.saldo_atual) || 0;
-        const corBorda = isSel ? '#F97316' : '#334155';
-        const corFundo = isSel ? 'rgba(249, 115, 22, 0.22)' : 'rgba(30, 41, 59, 0.7)';
+        const corBorda = isSel ? '#F97316' : 'var(--border-color)';
+        const corFundo = isSel ? 'rgba(249, 115, 22, 0.18)' : 'var(--bg-secondary)';
         const tit = c.titular ? c.titular : c.nome_conta;
         const checkIcon = isSel ? '✅' : '⚪';
 
         return `
-            <div onclick="selecionarCartaoAlimentacaoExpresso('${c.id}')" style="cursor: pointer; border: 2px solid ${corBorda}; background: ${corFundo}; border-radius: 12px; padding: 10px 12px; transition: all 0.2s; display: flex; flex-direction: column; justify-content: space-between; box-shadow: ${isSel ? '0 0 12px rgba(249,115,22,0.35)' : 'none'};" onmouseover="if(!${isSel}) this.style.borderColor='#F97316';" onmouseout="if(!${isSel}) this.style.borderColor='#334155';">
+            <div onclick="selecionarCartaoAlimentacaoExpresso('${c.id}')" style="cursor: pointer; border: 2px solid ${corBorda}; background: ${corFundo}; border-radius: 12px; padding: 10px 12px; transition: all 0.2s; display: flex; flex-direction: column; justify-content: space-between; box-shadow: ${isSel ? '0 0 12px rgba(249,115,22,0.35)' : 'none'};" onmouseover="if(!${isSel}) this.style.borderColor='#F97316';" onmouseout="if(!${isSel}) this.style.borderColor='var(--border-color)';">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                    <div style="font-size: 0.92rem; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 6px;">
+                    <div style="font-size: 0.92rem; font-weight: 800; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
                         <span>👤</span> <span>${tit}</span>
                     </div>
                     <span style="font-size: 1.05rem;">${checkIcon}</span>
                 </div>
-                <div style="font-size: 0.72rem; color: #FED7AA; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                <div style="font-size: 0.72rem; color: #F97316; font-weight: 700; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
                     ${c.nome_conta}
                 </div>
-                <div style="font-size: 0.75rem; font-weight: 700; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px; margin-top: 2px;">
-                    <span>Saldo: <strong style="color: #FFFFFF;">${formatBRL(sal)}</strong></span>
-                    ${isSel ? `<span style="color: #F87171; font-weight: 800;">-${formatBRL(val)}</span>` : ''}
+                <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 4px; margin-top: 2px;">
+                    <span>Saldo: <strong style="color: var(--text-primary);">${formatBRL(sal)}</strong></span>
+                    ${isSel ? `<span style="color: #EF4444; font-weight: 800;">-${formatBRL(val)}</span>` : ''}
                 </div>
             </div>
         `;

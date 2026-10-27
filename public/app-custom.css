@@ -812,7 +812,7 @@ body {
         gap: 2px !important;
         height: 36px !important;
         padding: 0 8px !important;
-        background: rgba(15, 23, 42, 0.75) !important;
+        background: var(--bg-secondary) !important;
         border: 1px solid var(--border-color) !important;
         border-radius: 8px !important;
         flex-shrink: 0 !important;
@@ -825,10 +825,10 @@ body {
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        background: rgba(255, 255, 255, 0.08) !important;
-        border: none !important;
+        background: var(--bg-card) !important;
+        border: 1px solid var(--border-color) !important;
         border-radius: 6px !important;
-        color: #E2E8F0 !important;
+        color: var(--text-primary) !important;
         cursor: pointer !important;
     }
     .zoom-controls-group .btn-sub-tool svg {
@@ -839,7 +839,7 @@ body {
         font-size: 0.70rem !important;
         min-width: 32px !important;
         text-align: center !important;
-        color: #94A3B8 !important;
+        color: var(--text-secondary) !important;
         font-weight: 700 !important;
         user-select: none !important;
     }
@@ -943,7 +943,7 @@ body.mode-mobbi .zoom-controls-group {
     gap: 2px !important;
     height: 36px !important;
     padding: 0 8px !important;
-    background: rgba(15, 23, 42, 0.75) !important;
+    background: var(--bg-secondary) !important;
     border: 1px solid var(--border-color) !important;
     border-radius: 8px !important;
     flex-shrink: 0 !important;
@@ -956,17 +956,17 @@ body.mode-mobbi .zoom-controls-group .btn-sub-tool {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    background: rgba(255, 255, 255, 0.08) !important;
-    border: none !important;
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border-color) !important;
     border-radius: 6px !important;
-    color: #E2E8F0 !important;
+    color: var(--text-primary) !important;
     cursor: pointer !important;
 }
 body.mode-mobbi .zoom-controls-group #lblZoomPercent {
     font-size: 0.70rem !important;
     min-width: 32px !important;
     text-align: center !important;
-    color: #94A3B8 !important;
+    color: var(--text-secondary) !important;
     font-weight: 700 !important;
 }
 body.mode-mobbi .sub-actions-group {
@@ -2362,6 +2362,8 @@ body.theme-claro .filters-header-row .mes-select-box {
 [data-theme="claro"] input[type="text"],
 [data-theme="claro"] input[type="number"],
 [data-theme="claro"] input[type="date"],
+[data-theme="claro"] input[type="month"],
+[data-theme="claro"] input[type="url"],
 [data-theme="claro"] input[type="password"],
 [data-theme="claro"] input[type="email"],
 [data-theme="claro"] select,
@@ -2370,6 +2372,8 @@ body.theme-claro .filters-header-row .mes-select-box {
 body.theme-claro input[type="text"],
 body.theme-claro input[type="number"],
 body.theme-claro input[type="date"],
+body.theme-claro input[type="month"],
+body.theme-claro input[type="url"],
 body.theme-claro input[type="password"],
 body.theme-claro input[type="email"],
 body.theme-claro select,
@@ -3242,6 +3246,8 @@ body.theme-claro .mobile-nav-item.active svg {
 input[type="text"],
 input[type="number"],
 input[type="date"],
+input[type="month"],
+input[type="url"],
 input[type="password"],
 input[type="email"],
 select,
@@ -3291,4 +3297,68 @@ textarea:focus {
     }
 }
 
+/* ==========================================================================
+   INTEGRAÇÃO TOTAL DE CORES EM TODOS OS 7 TEMAS (PRETO, VERDE, ROSA, CINZA, AZUL, ROXO, CLARO)
+   ========================================================================== */
+[data-theme="claro"] .btn-midia-foto,
+body.theme-claro .btn-midia-foto {
+    background: #F5F3FF !important;
+    border-color: #8B5CF6 !important;
+    color: #5B21B6 !important;
+}
+
+[data-theme="claro"] .btn-midia-video,
+body.theme-claro .btn-midia-video {
+    background: #FDF2F8 !important;
+    border-color: #EC4899 !important;
+    color: #9D174D !important;
+}
+
+[data-theme="claro"] .btn-midia-galeria,
+body.theme-claro .btn-midia-galeria {
+    background: #EFF6FF !important;
+    border-color: #3B82F6 !important;
+    color: #1E40AF !important;
+}
+
+[data-theme="claro"] .demo-kpi-rec #pbiValReceitas,
+body.theme-claro .demo-kpi-rec #pbiValReceitas {
+    color: #059669 !important;
+}
+
+[data-theme="claro"] .demo-kpi-des #pbiValDespesas,
+body.theme-claro .demo-kpi-des #pbiValDespesas {
+    color: #DC2626 !important;
+}
+
+[data-theme="claro"] .demo-kpi-inv #pbiValInvestimentos,
+body.theme-claro .demo-kpi-inv #pbiValInvestimentos {
+    color: #7C3AED !important;
+}
+
+[data-theme="claro"] .demo-kpi-res #pbiValReserva,
+body.theme-claro .demo-kpi-res #pbiValReserva {
+    color: #D97706 !important;
+}
+
+[data-theme="claro"] #badgePeriodoInvestimentoKpi,
+body.theme-claro #badgePeriodoInvestimentoKpi {
+    background: #F5F3FF !important;
+    border-color: #C4B5FD !important;
+    color: #5B21B6 !important;
+}
+
+[data-theme="claro"] #badgePeriodoReservaKpi,
+body.theme-claro #badgePeriodoReservaKpi {
+    background: #FFFBEB !important;
+    border-color: #FDE68A !important;
+    color: #B45309 !important;
+}
+
+[data-theme="claro"] .modal-overlay > div,
+body.theme-claro .modal-overlay > div {
+    background: var(--bg-modal, #FFFFFF) !important;
+    color: var(--text-primary, #0F172A) !important;
+    border-color: var(--border-color, #CBD5E1) !important;
+}
 

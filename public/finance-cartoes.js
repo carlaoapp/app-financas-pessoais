@@ -42,9 +42,9 @@ function alternarSubAbaCartoes(subAba) {
             btn.style.color = '#FFFFFF';
             btn.style.boxShadow = `0 4px 12px ${cfg.color}55`;
         } else {
-            btn.style.background = '#1E293B';
-            btn.style.borderColor = '#334155';
-            btn.style.color = '#94A3B8';
+            btn.style.background = 'var(--bg-secondary)';
+            btn.style.borderColor = 'var(--border-color)';
+            btn.style.color = 'var(--text-secondary)';
             btn.style.boxShadow = 'none';
         }
     });
@@ -110,10 +110,40 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
         return;
     }
 
+    // Função auxiliar para limpar sufixos redundantes de nomes de contas
+    const limparNomeOpcaoConta = (c) => {
+        let nome = (c.nome_conta || c.banco || 'Conta').trim();
+        const sufixos = ['Conta Corrente', 'Conta Salário', 'Conta Poupança', 'Cartão de Crédito', 'Cartão de Débito', 'Cartão Alimentação', 'Conta Investimento'];
+        sufixos.forEach(s => {
+            if (nome.toLowerCase().endsWith(s.toLowerCase())) {
+                const cortado = nome.slice(0, nome.length - s.length).trim();
+                if (cortado.length > 0) nome = cortado;
+            }
+        });
+        return nome;
+    };
+
+    // Deduplica contas idênticas (mesmo nome limpo, tipo e titular) priorizando a que tem saldo != 0 ou foi selecionada
+    const mapaUnico = new Map();
+    contas.forEach(c => {
+        const chave = `${limparNomeOpcaoConta(c).toLowerCase()}|${(c.tipo_conta || '').toLowerCase()}|${(c.titular || '').trim().toLowerCase()}`;
+        if (!mapaUnico.has(chave)) {
+            mapaUnico.set(chave, c);
+        } else {
+            const existente = mapaUnico.get(chave);
+            const salExistente = Math.abs(parseFloat(existente.saldo_atual) || 0) + Math.abs(parseFloat(existente.limite_cartao) || 0);
+            const salNovo = Math.abs(parseFloat(c.saldo_atual) || 0) + Math.abs(parseFloat(c.limite_cartao) || 0);
+            if (String(c.id) === String(contaIdSelecionada) || (salNovo > salExistente && String(existente.id) !== String(contaIdSelecionada))) {
+                mapaUnico.set(chave, c);
+            }
+        }
+    });
+    const contasUnicas = Array.from(mapaUnico.values());
+
     // Agrupa por Cartões de Crédito, Cartões Alimentação & Benefícios e Contas Correntes
-    const cartoes = contas.filter(c => c.tipo_conta === 'Cartão de Crédito');
-    const alimentacao = contas.filter(c => c.tipo_conta === 'Cartão Alimentação');
-    const correntes = contas.filter(c => c.tipo_conta !== 'Cartão de Crédito' && c.tipo_conta !== 'Cartão Alimentação');
+    const cartoes = contasUnicas.filter(c => c.tipo_conta === 'Cartão de Crédito');
+    const alimentacao = contasUnicas.filter(c => c.tipo_conta === 'Cartão Alimentação');
+    const correntes = contasUnicas.filter(c => c.tipo_conta !== 'Cartão de Crédito' && c.tipo_conta !== 'Cartão Alimentação');
 
     // Se nenhuma conta foi pré-selecionada e o tipo for Receita ou despesa de débito, sugere Sicredi por padrão
     if (!contaIdSelecionada) {
@@ -132,8 +162,9 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
             opt.value = c.id;
             opt.dataset.tipo = c.tipo_conta;
             const lim = parseFloat(c.limite_cartao) || 0;
-            const tit = c.titular ? ` [👤 ${c.titular}]` : '';
-            opt.innerText = `💳 ${c.nome_conta}${tit} (Limite: ${formatBRL(lim)})`;
+            const nomeLimpo = limparNomeOpcaoConta(c);
+            const tit = c.titular ? ` • ${c.titular}` : '';
+            opt.innerText = `💳 ${nomeLimpo}${tit} (${formatBRL(lim)})`;
             if (String(c.id) === String(contaIdSelecionada)) opt.selected = true;
             grp.appendChild(opt);
         });
@@ -148,8 +179,9 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
             opt.value = c.id;
             opt.dataset.tipo = c.tipo_conta;
             const sal = parseFloat(c.saldo_atual) || 0;
-            const tit = c.titular ? ` [👤 ${c.titular}]` : '';
-            opt.innerText = `🍽️ ${c.nome_conta}${tit} (Saldo: ${formatBRL(sal)})`;
+            const nomeLimpo = limparNomeOpcaoConta(c);
+            const tit = c.titular ? ` • ${c.titular}` : '';
+            opt.innerText = `🍽️ ${nomeLimpo}${tit} (${formatBRL(sal)})`;
             if (String(c.id) === String(contaIdSelecionada)) opt.selected = true;
             grp.appendChild(opt);
         });
@@ -164,8 +196,9 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
             opt.value = c.id;
             opt.dataset.tipo = c.tipo_conta;
             const sal = parseFloat(c.saldo_atual) || 0;
-            const tit = c.titular ? ` [👤 ${c.titular}]` : '';
-            opt.innerText = `🏦 ${c.nome_conta}${tit} (Saldo: ${formatBRL(sal)})`;
+            const nomeLimpo = limparNomeOpcaoConta(c);
+            const tit = c.titular ? ` • ${c.titular}` : '';
+            opt.innerText = `🏦 ${nomeLimpo}${tit} (${formatBRL(sal)})`;
             if (String(c.id) === String(contaIdSelecionada)) opt.selected = true;
             grp.appendChild(opt);
         });
@@ -229,13 +262,13 @@ async function atualizarSeletorCartaoAlimentacaoManual() {
         const isSel = String(c.id) === String(contaAtualId);
         const sal = parseFloat(c.saldo_atual) || 0;
         const tit = c.titular ? c.titular : c.nome_conta;
-        const corBorda = isSel ? '#F97316' : '#334155';
-        const corFundo = isSel ? 'rgba(249, 115, 22, 0.25)' : 'rgba(30, 41, 59, 0.7)';
+        const corBorda = isSel ? '#F97316' : 'var(--border-color)';
+        const corFundo = isSel ? 'rgba(249, 115, 22, 0.2)' : 'var(--bg-secondary)';
         return `
             <div onclick="selecionarCartaoAlimentacaoManual('${c.id}')" style="cursor: pointer; border: 2px solid ${corBorda}; background: ${corFundo}; border-radius: 8px; padding: 6px 10px; text-align: left; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;">
                 <div>
-                    <div style="font-weight: 800; color: #FFFFFF; font-size: 0.82rem;">👤 ${tit}</div>
-                    <div style="font-size: 0.7rem; color: #94A3B8;">Saldo: <strong style="color: #6EE7B7;">${formatBRL(sal)}</strong></div>
+                    <div style="font-weight: 800; color: var(--text-primary); font-size: 0.82rem;">👤 ${tit}</div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Saldo: <strong style="color: #10B981;">${formatBRL(sal)}</strong></div>
                 </div>
                 <span style="font-size: 0.9rem;">${isSel ? '✅' : '⚪'}</span>
             </div>
@@ -434,15 +467,15 @@ async function carregarCartoesEContas() {
         cartoesGrid.innerHTML = '';
         if (cartoesList.length === 0) {
             cartoesGrid.innerHTML = `
-                <div style="grid-column: 1/-1; padding: 26px; text-align: center; background: #0F172A; border: 1.5px dashed #334155; border-radius: 14px; color: #94A3B8;">
+                <div style="grid-column: 1/-1; padding: 26px; text-align: center; background: var(--bg-secondary); border: 1.5px dashed var(--border-color); border-radius: 14px; color: var(--text-secondary);">
                     <div style="font-size: 2rem; margin-bottom: 6px;">💳</div>
-                    <div style="font-weight: 700; color: #FFFFFF; font-size: 1rem;">Nenhum cartão cadastrado</div>
+                    <div style="font-weight: 700; color: var(--text-primary); font-size: 1rem;">Nenhum cartão cadastrado</div>
                     <p style="font-size: 0.82rem; margin: 4px 0 14px 0;">Cadastre seus cartões de crédito ou débito (ex: Sicredi Visa Gold, Nubank, Itaú) para controlar limites e faturas.</p>
                     <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                         <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão de Crédito')" style="background: #2563EB; color: white; border: none; padding: 9px 18px; border-radius: 9px; font-weight: 800; cursor: pointer; font-size: 0.88rem; box-shadow: 0 4px 12px rgba(37,99,235,0.3);">
                             ➕ Cadastrar Novo Cartão
                         </button>
-                        <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 9px 18px; border-radius: 9px; font-weight: 800; cursor: pointer; font-size: 0.88rem;">
+                        <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #10B981; padding: 9px 18px; border-radius: 9px; font-weight: 800; cursor: pointer; font-size: 0.88rem;">
                             📷 Ler Notificação / Print
                         </button>
                     </div>
@@ -567,7 +600,7 @@ async function carregarCartoesEContas() {
             // Card de Adicionar Novo Cartão / Ler Print ao final da lista
             const cardAddEl = document.createElement('div');
             cardAddEl.style.cssText = `
-                border: 2px dashed #334155;
+                border: 2px dashed var(--border-color);
                 border-radius: 16px;
                 padding: 18px;
                 display: flex;
@@ -575,7 +608,7 @@ async function carregarCartoesEContas() {
                 align-items: center;
                 justify-content: center;
                 gap: 10px;
-                background: rgba(15, 23, 42, 0.4);
+                background: var(--bg-secondary);
                 text-align: center;
                 min-height: 180px;
             `;
@@ -584,7 +617,7 @@ async function carregarCartoesEContas() {
                 <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão de Crédito')" style="background: #2563EB; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 800; font-size: 0.85rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                     ➕ Novo Cartão
                 </button>
-                <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 7px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #10B981; padding: 7px 14px; border-radius: 8px; font-weight: 700; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                     📷 Ler Notificação / Print
                 </button>
             `;
@@ -602,15 +635,15 @@ async function carregarCartoesEContas() {
         alimGrid.innerHTML = '';
         if (alimList.length === 0) {
             alimGrid.innerHTML = `
-                <div style="grid-column: 1/-1; padding: 22px; text-align: center; background: #0F172A; border: 1.5px dashed #334155; border-radius: 14px; color: #94A3B8;">
+                <div style="grid-column: 1/-1; padding: 22px; text-align: center; background: var(--bg-secondary); border: 1.5px dashed var(--border-color); border-radius: 14px; color: var(--text-secondary);">
                     <div style="font-size: 1.8rem; margin-bottom: 6px;">🍽️</div>
-                    <div style="font-weight: 700; color: #FFFFFF; font-size: 0.95rem;">Nenhum cartão alimentação ou benefício cadastrado</div>
+                    <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">Nenhum cartão alimentação ou benefício cadastrado</div>
                     <p style="font-size: 0.8rem; margin: 4px 0 12px 0;">Cadastre seus cartões Alelo, Sodexo/Pluxee, Ticket, VR, Flash ou Caju para controlar o saldo disponível.</p>
                     <div style="display: flex; gap: 10px; justify-content: center; flex-wrap: wrap;">
                         <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão Alimentação')" style="background: linear-gradient(135deg, #EA580C, #F97316); color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.82rem; box-shadow: 0 4px 12px rgba(249,115,22,0.3);">
                             ➕ Cadastrar Cartão Alimentação
                         </button>
-                        <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 8px 16px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.82rem;">
+                        <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #10B981; padding: 8px 16px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.82rem;">
                             📷 Ler Notificação / Print
                         </button>
                     </div>
@@ -703,7 +736,7 @@ async function carregarCartoesEContas() {
             // Card de Adicionar Novo Cartão Alimentação / Ler Print ao final da lista
             const addAlimEl = document.createElement('div');
             addAlimEl.style.cssText = `
-                border: 2px dashed #334155;
+                border: 2px dashed var(--border-color);
                 border-radius: 14px;
                 padding: 16px;
                 display: flex;
@@ -711,7 +744,7 @@ async function carregarCartoesEContas() {
                 align-items: center;
                 justify-content: center;
                 gap: 8px;
-                background: rgba(15, 23, 42, 0.4);
+                background: var(--bg-secondary);
                 text-align: center;
                 min-height: 150px;
             `;
@@ -720,7 +753,7 @@ async function carregarCartoesEContas() {
                 <button type="button" onclick="abrirModalGerenciarConta('novo', 'Cartão Alimentação')" style="background: linear-gradient(135deg, #EA580C, #F97316); color: white; border: none; padding: 7px 14px; border-radius: 8px; font-weight: 800; font-size: 0.82rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                     ➕ Novo Cartão Alimentação
                 </button>
-                <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <button type="button" onclick="abrirModalLancamentoComLeitura()" style="background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #10B981; padding: 6px 12px; border-radius: 8px; font-weight: 700; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                     📷 Ler Notificação / Print
                 </button>
             `;
@@ -738,8 +771,8 @@ async function carregarCartoesEContas() {
         contasGrid.innerHTML = '';
         if (contasCorrentesList.length === 0) {
             contasGrid.innerHTML = `
-                <div style="grid-column: 1/-1; padding: 22px; text-align: center; background: #0F172A; border: 1.5px dashed #334155; border-radius: 14px; color: #94A3B8;">
-                    <div style="font-weight: 700; color: #FFFFFF; font-size: 0.95rem;">Nenhuma conta corrente cadastrada</div>
+                <div style="grid-column: 1/-1; padding: 22px; text-align: center; background: var(--bg-secondary); border: 1.5px dashed var(--border-color); border-radius: 14px; color: var(--text-secondary);">
+                    <div style="font-weight: 700; color: var(--text-primary); font-size: 0.95rem;">Nenhuma conta corrente cadastrada</div>
                     <p style="font-size: 0.8rem; margin: 4px 0 12px 0;">Cadastre sua conta bancária para subtrair compras no débito e registrar rendas com saldo em tempo real.</p>
                     <button type="button" onclick="abrirModalGerenciarConta('novo', 'Conta Corrente')" style="background: #10B981; color: #0F172A; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 800; cursor: pointer; font-size: 0.82rem;">
                         ➕ Cadastrar Conta Corrente
@@ -909,7 +942,7 @@ async function carregarCartoesEContas() {
             // Card de Adicionar Nova Conta Bancária ao final da lista
             const addContaEl = document.createElement('div');
             addContaEl.style.cssText = `
-                border: 2px dashed #334155;
+                border: 2px dashed var(--border-color);
                 border-radius: 16px;
                 padding: 18px;
                 display: flex;
@@ -917,7 +950,7 @@ async function carregarCartoesEContas() {
                 align-items: center;
                 justify-content: center;
                 gap: 10px;
-                background: rgba(15, 23, 42, 0.4);
+                background: var(--bg-secondary);
                 text-align: center;
                 min-height: 180px;
             `;
@@ -1074,8 +1107,8 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
 
         const row = document.createElement('div');
         row.style.cssText = `
-            background: #0F172A;
-            border: 1px solid #334155;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
             border-left: 4px solid ${corCartao};
             border-radius: 10px;
             padding: 12px 14px;
@@ -1091,17 +1124,17 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
 
         let parcText = '';
         if (item.parcelado === 'Sim') {
-            parcText = ` <span style="font-size: 0.74rem; color: #94A3B8;">(${item.parcela_atual}/${item.total_parcelas})</span>`;
+            parcText = ` <span style="font-size: 0.74rem; color: var(--text-secondary);">(${item.parcela_atual}/${item.total_parcelas})</span>`;
         }
 
         row.innerHTML = `
             <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
                 <span style="font-size: 1.15rem; flex-shrink: 0;">${iconeItem}</span>
                 <div style="min-width: 0;">
-                    <div style="color: #FFFFFF; font-weight: 700; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                    <div style="color: var(--text-primary); font-weight: 700; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         ${item.descricao.split(' (')[0]}${parcText}
                     </div>
-                    <div style="font-size: 0.74rem; color: #94A3B8; display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                    <div style="font-size: 0.74rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-top: 2px;">
                         <span style="color: ${corCartao}; font-weight: 700;">${nomeCartao}</span>
                         <span>•</span>
                         <span>${dataStr}</span>
@@ -1111,8 +1144,8 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
                 </div>
             </div>
             <div style="text-align: right; flex-shrink: 0; padding-left: 10px;">
-                <div style="font-size: 1rem; font-weight: 800; color: #FFFFFF;">${formatBRL(val)}</div>
-                <span style="font-size: 0.72rem; color: #60A5FA;">Editar ➔</span>
+                <div style="font-size: 1rem; font-weight: 800; color: var(--text-primary);">${formatBRL(val)}</div>
+                <span style="font-size: 0.72rem; color: #3B82F6; font-weight: 600;">Editar ➔</span>
             </div>
         `;
         container.appendChild(row);
