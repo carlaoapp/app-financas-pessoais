@@ -2086,6 +2086,8 @@ async function executarConfirmacaoExclusao() {
     }
 
     carregarPlanejamento();
+    if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
+    if (typeof carregarSelectContasModal === 'function') carregarSelectContasModal();
     if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
     if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
     if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
@@ -2253,6 +2255,8 @@ async function executarConfirmacaoEdicao() {
 
         // Atualiza a tela e sincroniza com o servidor
         carregarPlanejamento();
+        if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
+        if (typeof carregarSelectContasModal === 'function') carregarSelectContasModal();
         if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
         if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
         if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
@@ -2282,8 +2286,8 @@ async function aplicarAjusteSaldoBancario(itemOriginal, itemNovo, timestamp) {
         const tipoNovo = itemNovo ? itemNovo.tipo_gasto : null;
         const statusOrig = itemOriginal ? itemOriginal.status : null;
         const statusNovo = itemNovo ? itemNovo.status : null;
-        const valOrig = (itemOriginal && statusOrig === 'Pago') ? (parseFloat(itemOriginal.valor_realizado) || 0) : 0;
-        const valNovo = (itemNovo && statusNovo === 'Pago') ? (parseFloat(itemNovo.valor_realizado) || 0) : 0;
+        const valOrig = (itemOriginal && statusOrig === 'Pago') ? (parseFloat(itemOriginal.valor_realizado) || parseFloat(itemOriginal.valor_total) || 0) : 0;
+        const valNovo = (itemNovo && statusNovo === 'Pago') ? (parseFloat(itemNovo.valor_realizado) || parseFloat(itemNovo.valor_total) || 0) : 0;
 
         // Se nada mudou em relação ao status de pagamento, valor pago ou conta, não altera o saldo
         if (idOrig === idNovo && statusOrig === statusNovo && valOrig === valNovo && tipoOrig === tipoNovo) {

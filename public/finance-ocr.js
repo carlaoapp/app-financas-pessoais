@@ -1074,7 +1074,14 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
         estabelecimento = isAlimentacao ? "Supermercado / Alimentação (Ticket)" : (isCredito ? "Compra no Cartão" : (isBoleto ? "Pagamento de Boleto" : "Pagamento / Compra"));
     }
 
-    // 5. BANCO OU CARTÃO
+    // 5. BANCO OU CARTÃO E DETECÇÃO INTELIGENTE DE TITULAR (Carlos vs Jaqueline)
+    let titularDetectado = "";
+    if (/\b(JAQUELINE|JAQUE)\b/i.test(textoLimpo) || /\b(JAQUELINE|JAQUE)\b/i.test(texto)) {
+        titularDetectado = "Jaqueline";
+    } else if (/\bCARLOS\b/i.test(textoLimpo) || /\bCARLOS\b/i.test(texto)) {
+        titularDetectado = "Carlos";
+    }
+
     let cartaoDetectado = "";
     const bancos = ["Ticket Flex", "Ticket", "Alelo", "Sodexo", "Pluxee", "VR", "Flash", "Caju", "Swile", "Visa Gold", "Visa", "Mastercard", "Elo", "Sicredi", "Nubank", "Inter", "Itaú", "Bradesco", "Santander", "Banco do Brasil", "Caixa", "C6 Bank", "PagBank", "Mercado Pago", "PicPay", "Sicoob"];
     for (let b of bancos) {
@@ -1090,16 +1097,58 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
         contas = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1).toArray();
     }
 
-    // Seleciona a melhor conta
+    if (!titularDetectado && contas.length > 0) {
+        for (let c of contas) {
+            if (c.titular && c.titular.length > 2) {
+                const reg = new RegExp('\\b' + c.titular.trim() + '\\b', 'i');
+                if (reg.test(textoLimpo) || reg.test(texto)) {
+                    titularDetectado = c.titular.trim();
+                    break;
+                }
+            }
+        }
+    }
+
+    // Seleciona a melhor conta com prioridade ao titular correto
     let contaSelecionadaId = "";
-    if (cartaoDetectado && contas.length > 0) {
+    const contasAlim = contas.filter(c => c.tipo_conta === 'Cartão Alimentação');
+
+    if (tipoGasto === 'Cartão Alimentação' || isAlimentacao) {
+        if (titularDetectado && contasAlim.length > 0) {
+            const matchTit = contasAlim.find(c => ocrNormalizarTexto(c.titular || '').includes(ocrNormalizarTexto(titularDetectado)));
+            if (matchTit) contaSelecionadaId = matchTit.id;
+        }
+        if (!contaSelecionadaId && cartaoDetectado && contasAlim.length > 0) {
+            const tBusca = ocrNormalizarTexto(cartaoDetectado);
+            const matchC = contasAlim.find(c => {
+                const n = ocrNormalizarTexto(c.nome_conta || '');
+                const b = ocrNormalizarTexto(c.banco || '');
+                return n.includes(tBusca) || b.includes(tBusca);
+            });
+            if (matchC) contaSelecionadaId = matchC.id;
+        }
+        if (!contaSelecionadaId && contasAlim.length > 0) {
+            contaSelecionadaId = contasAlim[0].id;
+        }
+    } else if (cartaoDetectado && contas.length > 0) {
         const tBusca = ocrNormalizarTexto(cartaoDetectado);
-        const matchC = contas.find(c => {
-            const n = ocrNormalizarTexto(c.nome_conta || '');
-            const b = ocrNormalizarTexto(c.banco || '');
-            return n.includes(tBusca) || b.includes(tBusca) || tBusca.includes(n);
-        });
-        if (matchC) contaSelecionadaId = matchC.id;
+        if (titularDetectado) {
+            const matchC = contas.find(c => {
+                const n = ocrNormalizarTexto(c.nome_conta || '');
+                const b = ocrNormalizarTexto(c.banco || '');
+                const tit = ocrNormalizarTexto(c.titular || '');
+                return (n.includes(tBusca) || b.includes(tBusca)) && tit.includes(ocrNormalizarTexto(titularDetectado));
+            });
+            if (matchC) contaSelecionadaId = matchC.id;
+        }
+        if (!contaSelecionadaId) {
+            const matchC = contas.find(c => {
+                const n = ocrNormalizarTexto(c.nome_conta || '');
+                const b = ocrNormalizarTexto(c.banco || '');
+                return n.includes(tBusca) || b.includes(tBusca) || tBusca.includes(n);
+            });
+            if (matchC) contaSelecionadaId = matchC.id;
+        }
     }
 
     if (!contaSelecionadaId && contas.length > 0) {
@@ -1203,6 +1252,14 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
         }
     }
 
+    // Renderiza seletor dedicado de Cartão Alimentação se houver cartões desse tipo
+    if (tipoGasto === 'Cartão Alimentação' || isAlimentacao || contasAlim.length > 0) {
+        renderizarSeletorCartoesAlimentacaoExpresso(contasAlim, contaSelecionadaId, titularDetectado, valorNum);
+    } else {
+        const contAlimEl = document.getElementById('seletorCartoesAlimentacaoExpresso');
+        if (contAlimEl) contAlimEl.style.display = 'none';
+    }
+
     atualizarImpactoSaldoExpresso();
 
     const m = document.getElementById('modalConfirmacaoComprovanteExpresso');
@@ -1210,6 +1267,76 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
     document.body.style.overflow = 'hidden';
 }
 window.abrirModalConfirmacaoExpressoComTexto = abrirModalConfirmacaoExpressoComTexto;
+
+// Renderiza seletor visual e direto de Cartão Alimentação (Carlos vs Jaqueline)
+function renderizarSeletorCartoesAlimentacaoExpresso(contasAlim, contaSelecionadaId, titularDetectado, valorCompra) {
+    const container = document.getElementById('seletorCartoesAlimentacaoExpresso');
+    const grid = document.getElementById('gridCartoesAlimentacaoExpresso');
+    const badgeAuto = document.getElementById('badgeOrigemIdentificacaoAlim');
+    if (!container || !grid) return;
+
+    if (!contasAlim || contasAlim.length === 0) {
+        container.style.display = 'none';
+        return;
+    }
+
+    container.style.display = 'block';
+
+    if (titularDetectado && badgeAuto) {
+        badgeAuto.style.display = 'inline-block';
+        badgeAuto.innerText = `🤖 Auto: ${titularDetectado}`;
+    } else if (badgeAuto) {
+        badgeAuto.style.display = 'none';
+    }
+
+    const val = typeof valorCompra === 'number' ? valorCompra : (parseFloat(valorCompra) || 0);
+
+    grid.innerHTML = contasAlim.map(c => {
+        const isSel = String(c.id) === String(contaSelecionadaId);
+        const sal = parseFloat(c.saldo_atual) || 0;
+        const corBorda = isSel ? '#F97316' : '#334155';
+        const corFundo = isSel ? 'rgba(249, 115, 22, 0.22)' : 'rgba(30, 41, 59, 0.7)';
+        const tit = c.titular ? c.titular : c.nome_conta;
+        const checkIcon = isSel ? '✅' : '⚪';
+
+        return `
+            <div onclick="selecionarCartaoAlimentacaoExpresso('${c.id}')" style="cursor: pointer; border: 2px solid ${corBorda}; background: ${corFundo}; border-radius: 12px; padding: 10px 12px; transition: all 0.2s; display: flex; flex-direction: column; justify-content: space-between; box-shadow: ${isSel ? '0 0 12px rgba(249,115,22,0.35)' : 'none'};" onmouseover="if(!${isSel}) this.style.borderColor='#F97316';" onmouseout="if(!${isSel}) this.style.borderColor='#334155';">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                    <div style="font-size: 0.92rem; font-weight: 800; color: #FFFFFF; display: flex; align-items: center; gap: 6px;">
+                        <span>👤</span> <span>${tit}</span>
+                    </div>
+                    <span style="font-size: 1.05rem;">${checkIcon}</span>
+                </div>
+                <div style="font-size: 0.72rem; color: #FED7AA; margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    ${c.nome_conta}
+                </div>
+                <div style="font-size: 0.75rem; font-weight: 700; color: #94A3B8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(255,255,255,0.08); padding-top: 4px; margin-top: 2px;">
+                    <span>Saldo: <strong style="color: #FFFFFF;">${formatBRL(sal)}</strong></span>
+                    ${isSel ? `<span style="color: #F87171; font-weight: 800;">-${formatBRL(val)}</span>` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+window.renderizarSeletorCartoesAlimentacaoExpresso = renderizarSeletorCartoesAlimentacaoExpresso;
+
+function selecionarCartaoAlimentacaoExpresso(cardId) {
+    const sel = document.getElementById('selectContaExpresso');
+    if (sel) {
+        sel.value = cardId;
+        sel.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    if (window.dadosComprovanteExpressoTemp) {
+        window.dadosComprovanteExpressoTemp.contaId = cardId;
+    }
+    if (typeof dbLocal !== 'undefined' && dbLocal && dbLocal.contas_bancarias) {
+        dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão Alimentação').toArray().then(contasAlim => {
+            const val = window.dadosComprovanteExpressoTemp ? (window.dadosComprovanteExpressoTemp.valor || 0) : 0;
+            renderizarSeletorCartoesAlimentacaoExpresso(contasAlim, cardId, null, val);
+        });
+    }
+}
+window.selecionarCartaoAlimentacaoExpresso = selecionarCartaoAlimentacaoExpresso;
 
 function fecharModalConfirmacaoExpresso() {
     const m = document.getElementById('modalConfirmacaoComprovanteExpresso');
@@ -1242,9 +1369,17 @@ async function atualizarImpactoSaldoExpresso() {
     if (conta.tipo_conta === 'Cartão Alimentação' || dados.tipoGasto === 'Cartão Alimentação') {
         const saldoAtual = parseFloat(conta.saldo_atual) || 0;
         const novoSaldo = saldoAtual - val;
-        box.innerHTML = `🍽️ <strong>Cartão Alimentação:</strong> Saldo do benefício <strong>${conta.nome_conta}</strong> será subtraído de ${formatBRL(saldoAtual)} para <strong style="color: #F97316;">${formatBRL(novoSaldo)}</strong> (-${formatBRL(val)}). <em>Não deduz do orçamento em dinheiro.</em>`;
+        const titTxt = conta.titular ? ` [👤 ${conta.titular}]` : '';
+        box.innerHTML = `🍽️ <strong>Cartão Alimentação:</strong> Saldo de <strong>${conta.nome_conta}${titTxt}</strong> será subtraído de ${formatBRL(saldoAtual)} para <strong style="color: #F97316;">${formatBRL(novoSaldo)}</strong> (-${formatBRL(val)}). <em>Não deduz do orçamento em dinheiro.</em>`;
         box.style.color = '#F97316';
         box.style.background = 'rgba(249, 115, 22, 0.12)';
+
+        // Sincroniza visualização dos botões
+        if (typeof dbLocal !== 'undefined' && dbLocal && dbLocal.contas_bancarias) {
+            dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão Alimentação').toArray().then(contasAlim => {
+                renderizarSeletorCartoesAlimentacaoExpresso(contasAlim, contaId, null, val);
+            });
+        }
     } else if (conta.tipo_conta === 'Cartão de Crédito' || dados.tipoGasto === 'Cartão de Crédito') {
         const limTotal = parseFloat(conta.limite_cartao) || 0;
         const parcTxt = dados.totalParcelas > 1 ? ` (${dados.totalParcelas}x parcelado)` : '';
@@ -1378,6 +1513,8 @@ async function confirmarLancamentoAutomaticoExpresso() {
 
     if (typeof carregarPlanejamento === 'function') carregarPlanejamento();
     if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
+    if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
+    if (typeof carregarSelectContasModal === 'function') carregarSelectContasModal();
     if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
 }
 window.confirmarLancamentoAutomaticoExpresso = confirmarLancamentoAutomaticoExpresso;
@@ -1392,7 +1529,10 @@ function abrirNoFormularioCompletoExpresso() {
 
         if (dados) {
             const selTipo = document.getElementById('inputTipoGasto');
-            if (selTipo) selTipo.value = dados.tipoGasto;
+            if (selTipo) {
+                selTipo.value = dados.tipoGasto;
+                if (typeof aoMudarTipoGastoLancamento === 'function') aoMudarTipoGastoLancamento(dados.tipoGasto);
+            }
 
             const inpDesc = document.getElementById('inputDescricao');
             const inpCustom = document.getElementById('inputDescricaoPersonalizada');
@@ -1418,7 +1558,10 @@ function abrirNoFormularioCompletoExpresso() {
             if (selStatus) selStatus.value = 'Pago';
 
             const selConta = document.getElementById('inputContaId');
-            if (selConta && dados.contaId) selConta.value = dados.contaId;
+            if (selConta && dados.contaId) {
+                selConta.value = dados.contaId;
+                if (typeof aoMudarContaLancamento === 'function') aoMudarContaLancamento(dados.contaId);
+            }
 
             // Parcelamento
             if (dados.totalParcelas > 1) {

@@ -171,12 +171,18 @@ async function carregarSelectContasModal(contaIdSelecionada = '') {
         });
         sel.appendChild(grp);
     }
+    if (typeof atualizarSeletorCartaoAlimentacaoManual === 'function') {
+        setTimeout(atualizarSeletorCartaoAlimentacaoManual, 50);
+    }
 }
 window.carregarSelectContasModal = carregarSelectContasModal;
 
 // Sincronização automática entre o seletor de contas e o tipo de gasto no modal de lançamento
 async function aoMudarContaLancamento(contaId) {
-    if (!contaId) return;
+    if (!contaId) {
+        if (typeof atualizarSeletorCartaoAlimentacaoManual === 'function') atualizarSeletorCartaoAlimentacaoManual();
+        return;
+    }
     try {
         const conta = await dbLocal.contas_bancarias.get(contaId);
         if (!conta) return;
@@ -189,9 +195,64 @@ async function aoMudarContaLancamento(contaId) {
             }
             if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
         }
+        if (typeof atualizarSeletorCartaoAlimentacaoManual === 'function') {
+            atualizarSeletorCartaoAlimentacaoManual();
+        }
     } catch(e) {}
 }
 window.aoMudarContaLancamento = aoMudarContaLancamento;
+
+async function atualizarSeletorCartaoAlimentacaoManual() {
+    const cont = document.getElementById('seletorCartoesAlimentacaoManual');
+    const grid = document.getElementById('gridBotoesAlimentacaoManual');
+    if (!cont || !grid) return;
+
+    const selTipo = document.getElementById('inputTipoGasto');
+    const isAlim = selTipo && selTipo.value === 'Cartão Alimentação';
+    if (!isAlim) {
+        cont.style.display = 'none';
+        return;
+    }
+
+    if (typeof dbLocal === 'undefined' || !dbLocal || !dbLocal.contas_bancarias) return;
+    const alimList = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão Alimentação').toArray();
+    if (alimList.length === 0) {
+        cont.style.display = 'none';
+        return;
+    }
+
+    cont.style.display = 'block';
+    const selConta = document.getElementById('inputContaId');
+    const contaAtualId = selConta ? selConta.value : '';
+
+    grid.innerHTML = alimList.map(c => {
+        const isSel = String(c.id) === String(contaAtualId);
+        const sal = parseFloat(c.saldo_atual) || 0;
+        const tit = c.titular ? c.titular : c.nome_conta;
+        const corBorda = isSel ? '#F97316' : '#334155';
+        const corFundo = isSel ? 'rgba(249, 115, 22, 0.25)' : 'rgba(30, 41, 59, 0.7)';
+        return `
+            <div onclick="selecionarCartaoAlimentacaoManual('${c.id}')" style="cursor: pointer; border: 2px solid ${corBorda}; background: ${corFundo}; border-radius: 8px; padding: 6px 10px; text-align: left; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <div style="font-weight: 800; color: #FFFFFF; font-size: 0.82rem;">👤 ${tit}</div>
+                    <div style="font-size: 0.7rem; color: #94A3B8;">Saldo: <strong style="color: #6EE7B7;">${formatBRL(sal)}</strong></div>
+                </div>
+                <span style="font-size: 0.9rem;">${isSel ? '✅' : '⚪'}</span>
+            </div>
+        `;
+    }).join('');
+}
+window.atualizarSeletorCartaoAlimentacaoManual = atualizarSeletorCartaoAlimentacaoManual;
+
+function selecionarCartaoAlimentacaoManual(contaId) {
+    const selConta = document.getElementById('inputContaId');
+    if (selConta) {
+        selConta.value = contaId;
+        selConta.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    atualizarSeletorCartaoAlimentacaoManual();
+}
+window.selecionarCartaoAlimentacaoManual = selecionarCartaoAlimentacaoManual;
 
 async function aoMudarTipoGastoLancamento(tipoGasto) {
     if (typeof atualizarTextoStatus === 'function') atualizarTextoStatus();
@@ -210,11 +271,12 @@ async function aoMudarTipoGastoLancamento(tipoGasto) {
             }
         } else if (tipoGasto === 'Cartão Alimentação') {
             const optAtual = selConta.selectedOptions[0];
-            if (optAtual && optAtual.dataset.tipo === 'Cartão Alimentação') return;
-            for (let i = 0; i < selConta.options.length; i++) {
-                if (selConta.options[i].dataset.tipo === 'Cartão Alimentação') {
-                    selConta.selectedIndex = i;
-                    break;
+            if (!optAtual || optAtual.dataset.tipo !== 'Cartão Alimentação') {
+                for (let i = 0; i < selConta.options.length; i++) {
+                    if (selConta.options[i].dataset.tipo === 'Cartão Alimentação') {
+                        selConta.selectedIndex = i;
+                        break;
+                    }
                 }
             }
         } else if (tipoGasto === 'Receita') {
@@ -228,6 +290,7 @@ async function aoMudarTipoGastoLancamento(tipoGasto) {
             }
         }
     } catch(e) {}
+    atualizarSeletorCartaoAlimentacaoManual();
 }
 window.aoMudarTipoGastoLancamento = aoMudarTipoGastoLancamento;
 

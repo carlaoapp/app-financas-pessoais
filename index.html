@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="app-build-version" content="1.8.40">
+    <meta name="app-build-version" content="1.8.41">
     <script>
-        window.APP_BUILD_VERSION = '1.8.40';
+        window.APP_BUILD_VERSION = '1.8.41';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -70,8 +70,8 @@
     <script src="lucide.min.js"></script>
     
     <!-- Estilos -->
-    <link rel="stylesheet" href="finance-style.css?v=1.8.40">
-    <link rel="stylesheet" href="app-custom.css?v=1.8.40">
+    <link rel="stylesheet" href="finance-style.css?v=1.8.41">
+    <link rel="stylesheet" href="app-custom.css?v=1.8.41">
 </head>
 <body class="mode-desktop">
 
@@ -238,9 +238,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.40" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.41" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.40</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.41</span>
                 </div>
             </div>
 
@@ -1384,6 +1384,11 @@
                     <select id="inputContaId" onchange="aoMudarContaLancamento(this.value)" style="width: 100%; height: 44px; background: #1E293B; border: 1.5px solid #3B82F6; color: #FFFFFF; font-weight: 600; padding: 0 12px; border-radius: 10px; font-size: 0.92rem; box-sizing: border-box;">
                         <option value="">🏦 Selecione o Cartão ou Conta Corrente...</option>
                     </select>
+                    <!-- Seletor Rápido de Cartão Alimentação no Modal Manual -->
+                    <div id="seletorCartoesAlimentacaoManual" style="display: none; margin-top: 8px; background: rgba(249, 115, 22, 0.08); border: 1.5px solid #F97316; border-radius: 10px; padding: 10px;">
+                        <div style="font-size: 0.74rem; font-weight: 800; color: #FED7AA; margin-bottom: 6px; text-transform: uppercase;">🍽️ Debitar de qual Cartão Alimentação?</div>
+                        <div id="gridBotoesAlimentacaoManual" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 8px;"></div>
+                    </div>
                 </div>
 
                 <div class="form-group" style="margin-bottom: 14px;">
@@ -2411,8 +2416,23 @@
                 </div>
             </div>
 
+            <!-- Seletor Dedicado e Visual de Cartão Alimentação (Carlos vs Jaqueline) -->
+            <div id="seletorCartoesAlimentacaoExpresso" style="display: none; margin-bottom: 16px; background: rgba(249, 115, 22, 0.08); border: 1.5px solid #F97316; border-radius: 14px; padding: 12px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                    <span style="font-size: 0.8rem; font-weight: 800; color: #FED7AA; display: flex; align-items: center; gap: 6px;">
+                        <span>🍽️</span> Debitar de qual Cartão Alimentação?
+                    </span>
+                    <span id="badgeOrigemIdentificacaoAlim" style="display: none; font-size: 0.7rem; font-weight: 700; background: rgba(16, 185, 129, 0.2); border: 1px solid #10B981; color: #6EE7B7; padding: 2px 7px; border-radius: 6px;">
+                        ✓ Detectado
+                    </span>
+                </div>
+                <div id="gridCartoesAlimentacaoExpresso" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px;">
+                    <!-- Preenchido dinamicamente com os cartões disponíveis -->
+                </div>
+            </div>
+
             <!-- Seleção da Conta / Cartão com Impacto de Saldo -->
-            <div style="margin-bottom: 16px;">
+            <div id="boxSelectContaExpresso" style="margin-bottom: 16px;">
                 <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 6px;">
                     💳 Conta Bancária ou Cartão Vinculado:
                 </label>
@@ -2618,15 +2638,15 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.40"></script>
-    <script src="finance-auto-notificacoes.js?v=1.8.40"></script>
-    <script src="finance-db.js?v=1.8.40"></script>
-    <script src="finance-sync.js?v=1.8.40"></script>
-    <script src="finance-powerbi.js?v=1.8.40"></script>
-    <script src="finance-dashboard.js?v=1.8.40"></script>
-    <script src="finance-cartoes.js?v=1.8.40"></script>
-    <script src="auth.js?v=1.8.40"></script>
-    <script src="auto-update.js?v=1.8.40"></script>
+    <script src="finance-ocr.js?v=1.8.41"></script>
+    <script src="finance-auto-notificacoes.js?v=1.8.41"></script>
+    <script src="finance-db.js?v=1.8.41"></script>
+    <script src="finance-sync.js?v=1.8.41"></script>
+    <script src="finance-powerbi.js?v=1.8.41"></script>
+    <script src="finance-dashboard.js?v=1.8.41"></script>
+    <script src="finance-cartoes.js?v=1.8.41"></script>
+    <script src="auth.js?v=1.8.41"></script>
+    <script src="auto-update.js?v=1.8.41"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
