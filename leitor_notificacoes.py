@@ -223,21 +223,25 @@ class LeitorNotificacaoBancaria:
         # 5. IDENTIFICAR ESTABELECIMENTO / BENEFICIÁRIO
         estabelecimento = ""
 
+        # Padrão Sicredi / Visa / Mastercard / Nubank ("APROVADA em POSTO PARANA, às 18:26 no cartão...")
+        match_aprovada = re.search(r'APROVAD[AO]?\s+(?:em|na|no)\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{2,45}?)(?=\s*(?:,\s*[aà]s\b|\s+[aà]s\s+[0-2]?[0-9]:[0-5][0-9]|\s+no\s+cart[aã]o\b|\s+cart[aã]o\b|\s+final\s+\d{3,4}|\s+em\s+\d+\s*x|\s+d[uú]vidas|[\.\-,;]|$))', texto_limpo, re.IGNORECASE)
+        if match_aprovada:
+            estabelecimento = match_aprovada.group(1).strip()
+
         # Padrão Sicredi (ex: "26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99 - Dúvidas...")
-        match_sicredi = re.search(r'[0-3]?[0-9]/[0-1]?[0-9]\s+([A-Z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|-|\d{4}))', texto_limpo, re.IGNORECASE)
-        if match_sicredi:
-            estabelecimento = match_sicredi.group(1).strip()
+        if not estabelecimento:
+            match_sicredi = re.search(r'[0-3]?[0-9]/[0-1]?[0-9]\s+([A-Z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|-|\d{4}))', texto_limpo, re.IGNORECASE)
+            if match_sicredi:
+                estabelecimento = match_sicredi.group(1).strip()
 
         # Padrão Nubank / Itaú / Inter / Bradesco: "em Estabelecimento" ou "na Estabelecimento"
         if not estabelecimento:
-            match_em = re.search(r'\b(?:em|na|no)\s+([A-Za-z0-9\s\.\-_&]{3,35})(?:[\.\-,]|$)', texto_limpo, re.IGNORECASE)
-            # Se deu o banco (ex: "no Nubank em Padaria Bella"), busca o "em" específico
-            match_em_especifico = re.search(r'\bem\s+([A-Za-z0-9\s\.\-_&]{3,35})(?:[\.\-,]|$)', texto_limpo, re.IGNORECASE)
-            if match_em_especifico:
-                estabelecimento = match_em_especifico.group(1).strip()
-            elif match_em:
+            texto_sem_rodape = re.sub(r'd[uú]vidas.*$', '', texto_limpo, flags=re.IGNORECASE)
+            texto_sem_rodape = re.sub(r'entre\s+em\s+contato.*$', '', texto_sem_rodape, flags=re.IGNORECASE).strip()
+            match_em = re.search(r'\b(?:em|na|no)\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{3,35})(?=\s*(?:,\s*[aà]s\b|\s+[aà]s\s+[0-2]?[0-9]:[0-5][0-9]|\s+no\s+cart[aã]o\b|\s+final\s+\d{3,4}|[\.\-,;]|$))', texto_sem_rodape, re.IGNORECASE)
+            if match_em:
                 cand = match_em.group(1).strip()
-                if not re.search(r'^(NUBANK|CART[AÃ]O|SICREDI|ITA[UÚ]|BRADESCO|SANTANDER|INTER|BANCO|OUROCARD|CAIXA|C6)\b', cand, re.IGNORECASE):
+                if not re.search(r'^(NUBANK|CART[AÃ]O|SICREDI|ITA[UÚ]|BRADESCO|SANTANDER|INTER|BANCO|OUROCARD|CAIXA|C6|CONTATO)\b', cand, re.IGNORECASE):
                     estabelecimento = cand
 
         # Padrão Favorecido / Destinatário / Para
@@ -315,6 +319,8 @@ class LeitorNotificacaoBancaria:
                     c_nome = (c.get('nome_conta') or '').lower()
                     c_banco = (c.get('banco') or '').lower()
                     if termo and (termo in c_nome or termo in c_banco or c_nome in termo):
+                        return c
+                    if ("sicred" in termo or "visa" in termo) and ("sicred" in c_nome or "sicred" in c_banco):
                         return c
             for c in contas:
                 if c.get('tipo_conta') == 'Cartão de Crédito':

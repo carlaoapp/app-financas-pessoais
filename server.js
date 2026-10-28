@@ -564,6 +564,176 @@ app.get('/api/export', (req, res) => {
 // ENDPOINTS DE NOTIFICAÇÕES E WEBHOOKS BANCÁRIOS (LANÇAMENTO AUTOMÁTICO)
 // ==========================================================================
 
+function normalizarTextoNotifServer(txt) {
+    if (!txt) return '';
+    return String(txt).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toUpperCase();
+}
+
+function interpretarNotificacaoNoServidor(titulo, texto, appPacote, contas) {
+    const textoBruto = `${titulo || ''} ${texto || ''}`.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+    const textoLimpo = normalizarTextoNotifServer(textoBruto);
+
+    // 1. Valor
+    const mVal = textoBruto.match(/(?:R\$|\$)\s*([0-9]{1,3}(?:\.[0-9]{3})*,[0-9]{2})/i) ||
+                 textoBruto.match(/(?:R\$|\$)\s*([0-9]+[,\.][0-9]{2})/i) ||
+                 textoBruto.match(/\b([0-9]{1,5},[0-9]{2})\b/);
+    if (!mVal) return null;
+    const valorNum = parseFloat(mVal[1].replace(/\./g, '').replace(',', '.')) || 0;
+    if (valorNum <= 0) return null;
+
+    // 2. Parcelas
+    let totalParcelas = 1;
+    const mParc = textoBruto.match(/\b([0-9]{1,2})\s*X\b/i) ||
+                  textoBruto.match(/\bEM\s+([0-9]{1,2})\s*(?:X|VEZES|PARCELAS)\b/i) ||
+                  textoBruto.match(/\bPARCELA(?:DO)?\s+(?:EM\s+)?([0-9]{1,2})\b/i);
+    if (mParc && mParc[1]) {
+        const p = parseInt(mParc[1], 10);
+        if (p > 1 && p <= 48) totalParcelas = p;
+    }
+
+    // 3. Tipo de Gasto
+    const isPixRecebido = /\b(PIX\s+RECEBIDO|TRANSFERENCIA\s+RECEBIDA|VOCE\s+RECEBEU\s+UM\s+PIX|CREDITO\s+EM\s+CONTA|SALARIO|PROVENTOS)\b/i.test(textoLimpo);
+    const isAlimentacao = /\b(TICKET|ALELO|SODEXO|PLUXEE|VR|FLASH|CAJU|SWILE|ALIMENTACAO|REFEICAO)\b/i.test(textoLimpo) || /ticket|alelo|sodexo|pluxee|vr|flash|caju/i.test(appPacote || '');
+    const isCredito = (totalParcelas > 1) || /\b(CREDITO|COMPRA\s+NO\s+CREDITO|CARTAO\s+DE\s+CREDITO|FATURA|NO\s+CREDITO)\b/i.test(textoLimpo);
+    const isDebito = /\b(DEBITO|COMPRA\s+NO\s+DEBITO|CARTAO\s+DE\s+DEBITO|NO\s+DEBITO|CONTA\s+CORRENTE)\b/i.test(textoLimpo);
+    const isBoleto = /\b(BOLETO|PAGAMENTO\s+DE\s+CONTA|FATURA\s+PAGA|PAGO\s+COM\s+SUCESSO)\b/i.test(textoLimpo);
+
+    let tipoGasto = 'Despesa Variável';
+    let status = 'Pago';
+    if (isPixRecebido) { tipoGasto = 'Receita'; status = 'Pago'; }
+    else if (isAlimentacao) { tipoGasto = 'Cartão Alimentação'; status = 'Pago'; }
+    else if (isCredito) { tipoGasto = 'Cartão de Crédito'; status = 'Pendente'; }
+    else if (isBoleto) { tipoGasto = 'Despesa Fixa'; status = 'Pago'; }
+    else if (isDebito) { tipoGasto = 'Despesa Variável'; status = 'Pago'; }
+
+    // 4. Banco e Conta
+    const listaBancos = [
+        { nome: 'Sicredi', regex: /\b(SICREDI|SICRED|VISA\s+GOLD|OUROCARD\s+SICREDI)\b/i, pacote: /sicred/i },
+        { nome: 'Nubank', regex: /\bNUBANK|NU\b/i, pacote: /nu\.production|nubank/i },
+        { nome: 'Inter', regex: /\b(BANCO\s+INTER|INTER)\b/i, pacote: /intermedium|bancointer/i },
+        { nome: 'Itaú', regex: /\bITA[UÚ]\b/i, pacote: /itau/i },
+        { nome: 'Bradesco', regex: /\bBRADESCO\b/i, pacote: /bradesco/i },
+        { nome: 'Santander', regex: /\bSANTANDER\b/i, pacote: /santander/i },
+        { nome: 'Banco do Brasil', regex: /\b(BANCO\s+DO\s+BRASIL|OUROCARD|BB)\b/i, pacote: /bancodobrasil/i },
+        { nome: 'Caixa', regex: /\bCAIXA\b/i, pacote: /caixa/i },
+        { nome: 'C6 Bank', regex: /\b(C6\s*BANK|C6)\b/i, pacote: /c6bank/i },
+        { nome: 'Ticket Flex', regex: /\bTICKET(?:\s+FLEX)?\b/i, pacote: /ticket/i },
+        { nome: 'Alelo', regex: /\bALELO\b/i, pacote: /alelo/i }
+    ];
+
+    let nomeBanco = '';
+    for (const b of listaBancos) {
+        if (b.regex.test(textoLimpo) || (appPacote && b.pacote.test(appPacote))) {
+            nomeBanco = b.nome;
+            break;
+        }
+    }
+
+    let contaId = null;
+    const contasAtivas = (contas || []).filter(c => !c.deleted);
+    if (contasAtivas.length > 0) {
+        if (nomeBanco) {
+            const bNorm = normalizarTextoNotifServer(nomeBanco);
+            const candidatas = contasAtivas.filter(c => {
+                const n = normalizarTextoNotifServer(c.nome_conta || '');
+                const b = normalizarTextoNotifServer(c.banco || '');
+                return n.includes(bNorm) || b.includes(bNorm) || bNorm.includes(n) || (bNorm === 'SICREDI' && /SICRED/i.test(n + ' ' + b));
+            });
+            if (isCredito) {
+                const cCred = candidatas.find(c => c.tipo_conta === 'Cartão de Crédito');
+                if (cCred) contaId = cCred.id;
+            } else if (isDebito) {
+                const cDeb = candidatas.find(c => c.tipo_conta === 'Conta Corrente' || c.tipo_conta === 'Conta Salário');
+                if (cDeb) contaId = cDeb.id;
+            } else if (isAlimentacao) {
+                const cAlim = candidatas.find(c => c.tipo_conta === 'Cartão Alimentação');
+                if (cAlim) contaId = cAlim.id;
+            }
+            if (!contaId && candidatas.length > 0) contaId = candidatas[0].id;
+        }
+        if (!contaId) {
+            if (tipoGasto === 'Cartão de Crédito') {
+                const cCred = contasAtivas.find(c => c.tipo_conta === 'Cartão de Crédito');
+                if (cCred) contaId = cCred.id;
+            } else if (tipoGasto === 'Cartão Alimentação') {
+                const cAlim = contasAtivas.find(c => c.tipo_conta === 'Cartão Alimentação');
+                if (cAlim) contaId = cAlim.id;
+            } else {
+                const cCorr = contasAtivas.find(c => c.tipo_conta !== 'Cartão de Crédito' && c.tipo_conta !== 'Cartão Alimentação');
+                if (cCorr) contaId = cCorr.id;
+            }
+            if (!contaId) contaId = contasAtivas[0].id;
+        }
+    }
+
+    // 5. Estabelecimento
+    let estabelecimento = '';
+    const mAprovada = textoBruto.match(/APROVAD[AO]?\s+(?:em|na|no)\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{2,45}?)(?=\s*(?:,\s*[aà]s\b|\s+[aà]s\s+[0-2]?[0-9]:[0-5][0-9]|\s+no\s+cart[aã]o\b|\s+cart[aã]o\b|\s+final\s+\d{3,4}|\s+em\s+\d+\s*x|\s+d[uú]vidas|[\.\-,;]|$))/i);
+    if (mAprovada && mAprovada[1]) {
+        estabelecimento = mAprovada[1].trim();
+    }
+    if (!estabelecimento) {
+        const mSicredi = textoBruto.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|\-|\d{4}))/i);
+        if (mSicredi && mSicredi[1]) estabelecimento = mSicredi[1].trim();
+    }
+    if (!estabelecimento) {
+        const textoSemRodape = textoBruto.replace(/d[uú]vidas.*$/i, '').replace(/entre\s+em\s+contato.*$/i, '').trim();
+        const mEst = textoSemRodape.match(/\b(?:em|para|no|na)\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{3,40}?)(?=\s*(?:,\s*[aà]s\b|\s+[aà]s\s+[0-2]?[0-9]:[0-5][0-9]|\s+no\s+cart[aã]o\b|\s+no\s+cr[eé]dito|\s+no\s+d[eé]bito|\s+final\s+\d{3,4}|[\.\-,;]|$))/i);
+        if (mEst && mEst[1] && !/^(contato|duvidas|cartao|credito|debito)$/i.test(mEst[1].trim())) {
+            estabelecimento = mEst[1].trim();
+        }
+    }
+    if (!estabelecimento) {
+        estabelecimento = isPixRecebido ? 'Recebimento Pix' : (isAlimentacao ? 'Supermercado / Refeição' : (isCredito ? 'Compra no Cartão' : 'Pagamento / Compra'));
+    }
+    estabelecimento = estabelecimento.split(' ')
+        .filter(Boolean)
+        .map(p => p.length > 2 ? (p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()) : p.toUpperCase())
+        .join(' ');
+
+    // 6. Data, Hora e Final do Cartão
+    let dataIso = new Date().toISOString().split('T')[0];
+    const mDataCompleta = textoBruto.match(/\b([0-3]?[0-9])[\/\.\-]([0-1]?[0-9])[\/\.\-](20[2-3][0-9]|[2-3][0-9])\b/);
+    if (mDataCompleta) {
+        const d = mDataCompleta[1].padStart(2, '0');
+        const m = mDataCompleta[2].padStart(2, '0');
+        let a = mDataCompleta[3];
+        if (a.length === 2) a = '20' + a;
+        dataIso = `${a}-${m}-${d}`;
+    } else {
+        const mDataCurta = textoBruto.match(/\b([0-3]?[0-9])\/([0-1]?[0-9])\b/);
+        if (mDataCurta) {
+            const d = mDataCurta[1].padStart(2, '0');
+            const m = mDataCurta[2].padStart(2, '0');
+            const a = new Date().getFullYear();
+            dataIso = `${a}-${m}-${d}`;
+        }
+    }
+    const mHora = textoBruto.match(/\b([0-2]?[0-9]:[0-5][0-9])\b/);
+    const hora = mHora ? mHora[1] : '';
+    const mFinal = textoBruto.match(/final\s+([0-9]{3,4})\b/i);
+    const finalCartao = mFinal ? mFinal[1] : '';
+
+    const partesObs = [];
+    if (nomeBanco) partesObs.push(`Cartão/Banco: ${nomeBanco}`);
+    if (finalCartao) partesObs.push(`Final ${finalCartao}`);
+    if (hora) partesObs.push(`Hora: ${hora}`);
+    partesObs.push(`🤖 Notificação: "${textoBruto.slice(0, 120)}"`);
+
+    return {
+        descricao: estabelecimento,
+        valor_total: valorNum,
+        valor_realizado: status === 'Pago' ? valorNum : 0,
+        data_lancamento: dataIso,
+        tipo_gasto: tipoGasto,
+        status: status,
+        conta_id: contaId,
+        parcelado: totalParcelas > 1 ? 'Sim' : 'Não',
+        total_parcelas: totalParcelas,
+        observacoes: partesObs.join(' • ')
+    };
+}
+
 // 1. Receber Notificação Bancária (via Python, Telegram, API ou Automação Direta)
 app.post(['/api/notificacoes/receber', '/api/webhook/notificacoes'], (req, res) => {
     try {
@@ -583,21 +753,77 @@ app.post(['/api/notificacoes/receber', '/api/webhook/notificacoes'], (req, res) 
         const id = 'notif_' + Date.now() + '_' + Math.random().toString(36).substr(2, 6);
         const timestamp = Date.now();
 
-        const sql = `INSERT INTO notificacoes_bancarias (id, user_id, app_pacote, titulo, texto, data_hora, status, lancamento_id, created_at)
-                     VALUES (?, ?, ?, ?, ?, ?, 'pendente', NULL, ?)`;
+        db.all('SELECT * FROM contas_bancarias WHERE deleted = 0', [], (errC, contasRows) => {
+            const dadosParsed = interpretarNotificacaoNoServidor(titulo, texto, appPacote, contasRows || []);
+            const lancamentoId = dadosParsed ? ('mov_auto_' + timestamp + '_' + Math.random().toString(36).substr(2, 5)) : null;
 
-        db.run(sql, [id, userId, appPacote, titulo, texto, dataHora, timestamp], function(err) {
-            if (err) {
-                console.error('[NOTIFICAÇÃO RECEBER ERRO]', err);
-                return res.status(500).json({ error: err.message });
+            const salvarNotificacao = (idLanc) => {
+                const sql = `INSERT INTO notificacoes_bancarias (id, user_id, app_pacote, titulo, texto, data_hora, status, lancamento_id, created_at)
+                             VALUES (?, ?, ?, ?, ?, ?, 'pendente', ?, ?)`;
+                db.run(sql, [id, userId, appPacote, titulo, texto, dataHora, idLanc, timestamp], function(err) {
+                    if (err) {
+                        console.error('[NOTIFICAÇÃO RECEBER ERRO]', err);
+                        return res.status(500).json({ error: err.message });
+                    }
+                    console.log(`[NOTIFICAÇÃO BANCÁRIA RECEBIDA] ID: ${id} | Lançamento: ${idLanc || 'N/A'} | Título: ${titulo}`);
+                    res.json({
+                        success: true,
+                        message: 'Notificação recebida e lançada automaticamente no sistema.',
+                        id: id,
+                        lancamento_id: idLanc,
+                        dados: dadosParsed,
+                        received_at: timestamp
+                    });
+                });
+            };
+
+            if (!dadosParsed) {
+                return salvarNotificacao(null);
             }
-            console.log(`[NOTIFICAÇÃO BANCÁRIA RECEBIDA] ID: ${id} | App: ${appPacote || 'N/A'} | Título: ${titulo}`);
-            res.json({
-                success: true,
-                message: 'Notificação recebida com sucesso e aguardando processamento.',
-                id: id,
-                received_at: timestamp
-            });
+
+            // Verifica se já existe lançamento idêntico no mesmo dia para evitar duplicação
+            db.get(
+                'SELECT id FROM movimentacoes WHERE deleted = 0 AND data_lancamento = ? AND ABS(valor_total - ?) < 0.01 AND UPPER(descricao) = UPPER(?) LIMIT 1',
+                [dadosParsed.data_lancamento, dadosParsed.valor_total, dadosParsed.descricao],
+                (errDup, rowDup) => {
+                    if (rowDup && rowDup.id) {
+                        return salvarNotificacao(rowDup.id);
+                    }
+                    const sqlMov = `INSERT INTO movimentacoes (id, descricao, valor_total, valor_realizado, data_lancamento, tipo_gasto, status, conta_id, parcelado, total_parcelas, parcela_atual, id_grupo, observacoes, user_id, updated_at, deleted)
+                                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?, 0)`;
+                    db.run(
+                        sqlMov,
+                        [
+                            lancamentoId,
+                            dadosParsed.descricao,
+                            dadosParsed.valor_total,
+                            dadosParsed.valor_realizado,
+                            dadosParsed.data_lancamento,
+                            dadosParsed.tipo_gasto,
+                            dadosParsed.status,
+                            dadosParsed.conta_id,
+                            dadosParsed.parcelado,
+                            dadosParsed.total_parcelas,
+                            dadosParsed.parcelado === 'Sim' ? lancamentoId : null,
+                            dadosParsed.observacoes,
+                            userId !== 'default' ? userId : null,
+                            timestamp
+                        ],
+                        function(errIns) {
+                            if (errIns) {
+                                console.warn('[NOTIFICAÇÃO AUTO-INSERT AVISO]', errIns.message);
+                                return salvarNotificacao(null);
+                            }
+                            // Se for débito em conta ou cartão alimentação, atualiza o saldo da conta no servidor
+                            if (dadosParsed.conta_id && dadosParsed.tipo_gasto !== 'Cartão de Crédito' && dadosParsed.status === 'Pago') {
+                                const delta = dadosParsed.tipo_gasto === 'Receita' ? dadosParsed.valor_total : -dadosParsed.valor_total;
+                                db.run('UPDATE contas_bancarias SET saldo_atual = COALESCE(saldo_atual, 0) + ?, updated_at = ? WHERE id = ?', [delta, timestamp, dadosParsed.conta_id]);
+                            }
+                            salvarNotificacao(lancamentoId);
+                        }
+                    );
+                }
+            );
         });
     } catch (e) {
         console.error('[NOTIFICAÇÃO ERRO GERAL]', e);

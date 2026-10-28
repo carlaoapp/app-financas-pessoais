@@ -402,17 +402,18 @@ window.extrairSaldoFinalComprovante = extrairSaldoFinalComprovante;
 function limparNomeEstabelecimento(str) {
     if (!str) return '';
     const sLimpo = str.trim();
-    if (/^(ACESSO|TERMINAL|AUTORIZACAO|TRANSACAO|COMPROVANTE|VIA|REDE|TICKET|CHIP|SENHA|VALE|BENEFICIO|ENERA|VUV)\b/i.test(sLimpo)) {
+    if (/^(ACESSO|TERMINAL|AUTORIZACAO|TRANSACAO|COMPROVANTE|VIA|REDE|TICKET|CHIP|SENHA|VALE|BENEFICIO|ENERA|VUV|MOVIMENTACOES|NOTIFICACOES|COMPRA\s+NO\s+CREDITO|COMPRA\s+NO\s+DEBITO|COMPRA\s+DE\s+R\$|DUVIDAS|ENTRE\s+EM\s+CONTATO|CONTATO)\b/i.test(sLimpo)) {
         return '';
     }
     if (/acesso\s+enera/i.test(sLimpo) || /enera\s+o\s+vuv/i.test(sLimpo)) {
         return '';
     }
     // Ignora termos genéricos de cupom que não são estabelecimentos (ex: "Itens Ficara", "Qtd Itens")
-    if (/\b(ITENS?|QTD|SUBTOTAL|DESCONTO|TROCO|PAGAMENTO|FORMA\s+DE\s+PAGAMENTO|VALOR\s+A\s+PAGAR|CUPOM\s+FISCAL|EXTRATO\s+SAT|DOCUMENTO\s+AUXILIAR|VOLTE\s+SEMPRE|OBRIGADO)\b/i.test(sLimpo)) {
+    if (/\b(ITENS?|QTD|SUBTOTAL|DESCONTO|TROCO|PAGAMENTO|FORMA\s+DE\s+PAGAMENTO|VALOR\s+A\s+PAGAR|CUPOM\s+FISCAL|EXTRATO\s+SAT|DOCUMENTO\s+AUXILIAR|VOLTE\s+SEMPRE|OBRIGADO|ENTRE\s+EM\s+CONTATO|COMPRA\s+NO\s+CR[EÉ]DITO|COMPRA\s+NO\s+D[EÉ]BITO)\b/i.test(sLimpo)) {
         return '';
     }
     const res = sLimpo
+        .replace(/[\r\n]+/g, ' ')
         .replace(/\b(LTDA|EIRELI|S\/?A|S\.A\.|M\.?E\.?|EPP|MEI)\b/gi, '')
         .replace(/^[:\-\s\.\*]+|[:\-\s\.\*]+$/g, '')
         .replace(/\s+/g, ' ')
@@ -422,25 +423,42 @@ function limparNomeEstabelecimento(str) {
         .join(' ')
         .trim();
 
-    if (res.length < 3 || /^(Acesso|Terminal|Via|Transacao|Autorizacao|Comprovante|Rede|Ticket|Chip|Senha|Itens)/i.test(res)) {
+    if (res.length < 3 || /^(Acesso|Terminal|Via|Transacao|Autorizacao|Comprovante|Rede|Ticket|Chip|Senha|Itens|Movimentacoes|Notificacoes|Contato|Duvidas)/i.test(res)) {
         return '';
     }
     return res;
 }
 
-// Extrai o nome real do estabelecimento (mercado, loja, posto) de cupons fiscais e recibos
+// Extrai o nome real do estabelecimento (mercado, loja, posto) de cupons fiscais, recibos e notificações bancárias
 function extrairEstabelecimentoComprovante(texto, textoLimpo) {
     if (!texto) return '';
+
+    const textoUnico = texto.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+    // 0. Padrão prioritário de Notificações Bancárias (Sicredi, Nubank, Itaú, Inter, Bradesco, C6, Santander):
+    // Ex: "Compra de R$ 42,54 APROVADA em POSTO PARANA, às 18:26 no cartão Visa Gold final 9110"
+    const matchCompraAprovada = textoUnico.match(/APROVAD[AO]?\s+(?:em|na|no)\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{2,45}?)(?=\s*(?:,\s*[aà]s\b|\s+[aà]s\s+[0-2]?[0-9]:[0-5][0-9]|\s+no\s+cart[aã]o\b|\s+cart[aã]o\b|\s+final\s+\d{3,4}|\s+em\s+\d+\s*x|\s+d[uú]vidas|[\.\-,;]|$))/i);
+    if (matchCompraAprovada && matchCompraAprovada[1]) {
+        const limpo = limparNomeEstabelecimento(matchCompraAprovada[1]);
+        if (limpo) return limpo;
+    }
+
+    // Padrão Sicredi Push Curto: "26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99"
+    const matchSicrediNotif = textoUnico.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|\-|\d{4}))/i);
+    if (matchSicrediNotif && matchSicrediNotif[1]) {
+        const limpo = limparNomeEstabelecimento(matchSicrediNotif[1]);
+        if (limpo) return limpo;
+    }
 
     const linhas = texto.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
 
     // 1. Procura nas primeiras 6 linhas (cabeçalho de cupom fiscal NFC-e / SAT / ECF)
     for (let i = 0; i < Math.min(linhas.length, 6); i++) {
         let l = linhas[i].trim();
-        if (/^(CNPJ|CPF|IE|IM|AV|AVENIDA|RUA|RODOVIA|TRAVESSA|PRACA|CEP|FONE|TEL|DOCUMENTO|DANFE|EXTRATO|NOTA\s+FISCAL|NFC-?E|SAT|SISTEMA|ACESSO|TERMINAL|AUTORIZACAO|AUTORIZADORA|TRANSACAO|COMPROVANTE|VIA|REDE|CIELO|GETNET|STONE|PAGSEGURO|SUMUP|VALE|TICKET|CONVENIO|DATA|HORA|VALOR|SALDO|WWW|HTTP|SITE|CONSULTE|OBRIGADO|VOLTE\s+SEMPRE|CARTAO|CHIP|SENHA|APROVADA|DEBITO|CREDITO|ALIMENTACAO|REFEICAO|BENEFICIO)/i.test(l)) continue;
+        if (/^(CNPJ|CPF|IE|IM|AV|AVENIDA|RUA|RODOVIA|TRAVESSA|PRACA|CEP|FONE|TEL|DOCUMENTO|DANFE|EXTRATO|NOTA\s+FISCAL|NFC-?E|SAT|SISTEMA|ACESSO|TERMINAL|AUTORIZACAO|AUTORIZADORA|TRANSACAO|COMPROVANTE|VIA|REDE|CIELO|GETNET|STONE|PAGSEGURO|SUMUP|VALE|TICKET|CONVENIO|DATA|HORA|VALOR|SALDO|WWW|HTTP|SITE|CONSULTE|OBRIGADO|VOLTE\s+SEMPRE|CARTAO|CHIP|SENHA|APROVADA|COMPRA|MOVIMENTACOES|NOTIFICACOES|DEBITO|CREDITO|ALIMENTACAO|REFEICAO|BENEFICIO)/i.test(l)) continue;
         if (l.length < 3 || l.length > 50) continue;
 
-        if (/\b(LTDA|EIRELI|S\/?A|M\.?E\.?|EPP|SUPERMERCADO|MERCADO|POSTO|PADARIA|FARMACIA|DROGARIA|LANCHONETE|RESTAURANTE|COMERCIO|DISTRIBUIDORA|CONVENIENCIA)\b/i.test(l)) {
+        if (/\b(LTDA|EIRELI|S\/?A|M\.?E\.?|EPP|SUPERMERCADO|MERCADO|POSTO|PADARIA|FARMACIA|DROGARIA|LANCHONETE|RESTAURANTE|COMERCIO|DISTRIBUIDORA|CONVENIENCIA)\b/i.test(l) && !/\b(APROVADA|CART[AÃ]O|FINAL\s+\d{4})\b/i.test(l)) {
             const limpo = limparNomeEstabelecimento(l);
             if (limpo) return limpo;
         }
@@ -452,8 +470,8 @@ function extrairEstabelecimentoComprovante(texto, textoLimpo) {
 
     // 2. Procura no comprovante TEF (frequentemente "NOME ESTABELECIMENTO DD/MM/AAAA HH:MM")
     for (const linha of linhas) {
-        if (/^(REDE|AUTORIZACAO|AUTORIZADORA|TRANSACAO|CARTAO|COMPRA|SALDO|VALOR|VIA|CLIENTE|ACESSO|TERMINAL|COMPROVANTE|TICKET|BENEFICIO|CHIP|SENHA|ENERA)/i.test(linha)) continue;
-        const matchDataHora = linha.match(/^([A-Za-z0-9\s\.\-_&]{3,40}?)\s+[0-3]?[0-9][\/\.-][0-1]?[0-9][\/\.-]20[2-3][0-9]/i);
+        if (/^(REDE|AUTORIZACAO|AUTORIZADORA|TRANSACAO|CARTAO|COMPRA|SALDO|VALOR|VIA|CLIENTE|ACESSO|TERMINAL|COMPROVANTE|TICKET|BENEFICIO|CHIP|SENHA|ENERA|MOVIMENTACOES|NOTIFICACOES)/i.test(linha)) continue;
+        const matchDataHora = linha.match(/^([A-Za-zÀ-ÿ0-9\s\.\-_&]{3,40}?)\s+[0-3]?[0-9][\/\.-][0-1]?[0-9][\/\.-]20[2-3][0-9]/i);
         if (matchDataHora && matchDataHora[1] && matchDataHora[1].trim().length > 3) {
             const cand = matchDataHora[1].trim();
             if (!/^(ACESSO|TERMINAL|AUTORIZACAO|TRANSACAO|CARTAO|COMPROVANTE|VIA|REDE|TICKET|CHIP|SENHA|VALE|ENERA)/i.test(cand)) {
@@ -463,18 +481,12 @@ function extrairEstabelecimentoComprovante(texto, textoLimpo) {
         }
     }
 
-    // 2.5 Padrão de Notificação Sicredi (ex: "26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99")
-    const matchSicrediNotif = texto.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Za-z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|\-|\d{4}))/i);
-    if (matchSicrediNotif && matchSicrediNotif[1]) {
-        const limpo = limparNomeEstabelecimento(matchSicrediNotif[1]);
-        if (limpo) return limpo;
-    }
-
     // 3. Notificações de Celular (Nubank, Sicredi, Itaú, etc.): "em Loja X", "para Fulano"
-    const matchNotif = texto.match(/\b(?:em|na|no|para|de)\s+([A-Za-z0-9\s\.\-_&]{3,35})(?:[\.\-,]|$)/i);
+    const textoSemContato = textoUnico.replace(/d[uú]vidas.*$/i, '').replace(/entre\s+em\s+contato.*$/i, '').trim();
+    const matchNotif = textoSemContato.match(/\b(?:em|na|no|para)\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{3,40}?)(?=\s*(?:,\s*[aà]s\b|\s+[aà]s\s+[0-2]?[0-9]:[0-5][0-9]|\s+no\s+cart[aã]o\b|\s+no\s+cr[eé]dito\b|\s+no\s+d[eé]bito\b|\s+final\s+\d{3,4}|[\.\-,;]|$))/i);
     if (matchNotif && matchNotif[1]) {
         const cand = matchNotif[1].trim();
-        if (!/^(NUBANK|CART[AÃ]O|SICREDI|ITA[UÚ]|BRADESCO|SANTANDER|INTER|BANCO|OUROCARD|CAIXA|C6|DEBITO|CREDITO|CONTA)\b/i.test(cand)) {
+        if (!/^(NUBANK|CART[AÃ]O|SICREDI|ITA[UÚ]|BRADESCO|SANTANDER|INTER|BANCO|OUROCARD|CAIXA|C6|DEBITO|CREDITO|CONTA|CONTATO)\b/i.test(cand)) {
             return limparNomeEstabelecimento(cand);
         }
     }
@@ -1244,20 +1256,27 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
         }
     } else if (cartaoDetectado && contas.length > 0) {
         const tBusca = ocrNormalizarTexto(cartaoDetectado);
+        const isVisaOuSicredi = /VISA|SICREDI/i.test(tBusca);
+        const poolContas = (tipoGasto === 'Cartão de Crédito' || isCredito)
+            ? contas.filter(c => c.tipo_conta === 'Cartão de Crédito')
+            : contas.filter(c => c.tipo_conta !== 'Cartão de Crédito' && c.tipo_conta !== 'Cartão Alimentação');
+        const listaAlvo = poolContas.length > 0 ? poolContas : contas;
+
         if (titularDetectado) {
-            const matchC = contas.find(c => {
+            const matchC = listaAlvo.find(c => {
                 const n = ocrNormalizarTexto(c.nome_conta || '');
                 const b = ocrNormalizarTexto(c.banco || '');
                 const tit = ocrNormalizarTexto(c.titular || '');
-                return (n.includes(tBusca) || b.includes(tBusca)) && tit.includes(ocrNormalizarTexto(titularDetectado));
+                const matchBanco = n.includes(tBusca) || b.includes(tBusca) || tBusca.includes(n) || (isVisaOuSicredi && /SICRED/i.test(n + ' ' + b));
+                return matchBanco && tit.includes(ocrNormalizarTexto(titularDetectado));
             });
             if (matchC) contaSelecionadaId = matchC.id;
         }
         if (!contaSelecionadaId) {
-            const matchC = contas.find(c => {
+            const matchC = listaAlvo.find(c => {
                 const n = ocrNormalizarTexto(c.nome_conta || '');
                 const b = ocrNormalizarTexto(c.banco || '');
-                return n.includes(tBusca) || b.includes(tBusca) || tBusca.includes(n);
+                return n.includes(tBusca) || b.includes(tBusca) || tBusca.includes(n) || (isVisaOuSicredi && /SICRED/i.test(n + ' ' + b));
             });
             if (matchC) contaSelecionadaId = matchC.id;
         }
@@ -1385,6 +1404,26 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
     }
 
     atualizarImpactoSaldoExpresso();
+
+    // Se for uma notificação bancária de gasto já definida (ex: "Compra no crédito aprovada", "Compra de R$ ... aprovada em", "Compra débito", "Pix recebido/enviado")
+    // e não for Cartão Alimentação com múltiplos cartões sem titular identificado, insere automaticamente no sistema e exibe a tela de confirmação!
+    const isNotificacaoBancariaClara = /\b(COMPRA\s+NO\s+CREDITO\s+APROVADA|COMPRA\s+NO\s+DEBITO\s+APROVADA|COMPRA\s+DE\s+R\$.*APROVADA\s+EM|COMPRA\s+DEBITO|COMPRA\s+CREDITO|PIX\s+RECEBIDO|VOCE\s+RECEBEU\s+UM\s+PIX|FINAL\s+[0-9]{4})\b/i.test(textoLimpo);
+    const precisaEscolherCartaoAlim = (tipoGasto === 'Cartão Alimentação' || isAlimentacao) && contasAlim.length > 1 && !titularDetectado;
+
+    if (isNotificacaoBancariaClara && valorNum > 0 && contaSelecionadaId && !precisaEscolherCartaoAlim && typeof executarLancamentoAutomatico === 'function') {
+        const lancAuto = await executarLancamentoAutomatico({
+            titulo: badgeTitulo,
+            texto: texto,
+            app: cartaoDetectado || '',
+            midiaUrl: base64Imagem || window.midiaComprovanteTemp || ''
+        });
+        if (lancAuto) {
+            if (typeof exibirModalLancamentosAutomaticos === 'function') {
+                exibirModalLancamentosAutomaticos();
+            }
+            return;
+        }
+    }
 
     const m = document.getElementById('modalConfirmacaoComprovanteExpresso');
     if (m) m.style.display = 'flex';

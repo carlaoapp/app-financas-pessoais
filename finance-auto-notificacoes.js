@@ -186,7 +186,7 @@ async function interpretarNotificacaoBancaria(notificacao) {
     let nomeBancoIdentificado = "";
 
     const listaBancos = [
-        { nome: "Sicredi", regex: /\b(SICREDI|VISA\s+GOLD|OUROCARD\s+SICREDI)\b/i, pacote: /sicredi/i },
+        { nome: "Sicredi", regex: /\b(SICREDI|SICRED|VISA\s+GOLD|OUROCARD\s+SICREDI)\b/i, pacote: /sicred/i },
         { nome: "Nubank", regex: /\bNUBANK|NU\b/i, pacote: /nu\.production|nubank/i },
         { nome: "Inter", regex: /\b(BANCO\s+INTER|INTER)\b/i, pacote: /intermedium|bancointer/i },
         { nome: "Itaú", regex: /\bITA[UÚ]\b/i, pacote: /itau/i },
@@ -269,20 +269,30 @@ async function interpretarNotificacaoBancaria(notificacao) {
 
     // 5. Extração de Estabelecimento / Descrição
     let estabelecimento = "";
-    if (typeof extrairEstabelecimentoComprovante === 'function') {
+    const textoUnico = textoBruto.replace(/[\r\n]+/g, ' ').replace(/\s+/g, ' ').trim();
+
+    // Padrão prioritário Sicredi / Visa / Mastercard / Nubank / Itaú:
+    // "Compra de R$ 42,54 APROVADA em POSTO PARANA, às 18:26 no cartão Visa Gold final 9110"
+    const mAprovada = textoUnico.match(/APROVAD[AO]?\s+(?:em|na|no)\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{2,45}?)(?=\s*(?:,\s*[aà]s\b|\s+[aà]s\s+[0-2]?[0-9]:[0-5][0-9]|\s+no\s+cart[aã]o\b|\s+cart[aã]o\b|\s+final\s+\d{3,4}|\s+em\s+\d+\s*x|\s+d[uú]vidas|[\.\-,;]|$))/i);
+    if (mAprovada && mAprovada[1]) {
+        estabelecimento = mAprovada[1].trim();
+    }
+
+    if (!estabelecimento && typeof extrairEstabelecimentoComprovante === 'function') {
         estabelecimento = extrairEstabelecimentoComprovante(textoBruto, textoLimpo);
     }
-    // Padrão Sicredi Notificação: "26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99"
+    // Padrão Sicredi Notificação Curta: "26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99"
     if (!estabelecimento) {
-        const mSicredi = textoBruto.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Za-z0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|\-|\d{4}))/i);
+        const mSicredi = textoUnico.match(/[0-3]?[0-9]\/[0-1]?[0-9]\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{3,40}?)(?:\s+(?:Paranavai|Curitiba|Maringa|Londrina|Cascavel|SP|PR|RJ|SC|RS|MG|BR|R\$|\-|\d{4}))/i);
         if (mSicredi && mSicredi[1]) {
             estabelecimento = mSicredi[1].trim();
         }
     }
-    if (!estabelecimento || /acesso|aprovada|compra|cartao|terminal/i.test(estabelecimento)) {
-        // Padrões comuns em notificações: "Compra de R$ 50 aprovada em PADARIA ESTRELA"
-        const mEst = textoBruto.match(/(?:em|para|no|na)\s+([A-Za-z0-9\s\.\-]{3,35})(?:\s+no|\s+no\s+crédito|\s+no\s+débito|\.|$)/i);
-        if (mEst && mEst[1]) {
+    if (!estabelecimento || /^(acesso|aprovada|compra|cartao|terminal|contato|duvidas|movimentacoes|notificacoes)$/i.test(estabelecimento.trim())) {
+        // Padrões comuns em notificações (removendo rodapé "Dúvidas, entre em contato")
+        const textoSemRodape = textoUnico.replace(/d[uú]vidas.*$/i, '').replace(/entre\s+em\s+contato.*$/i, '').trim();
+        const mEst = textoSemRodape.match(/\b(?:em|para|no|na)\s+([A-Za-zÀ-ÿ0-9\s\.\-_&]{3,40}?)(?=\s*(?:,\s*[aà]s\b|\s+[aà]s\s+[0-2]?[0-9]:[0-5][0-9]|\s+no\s+cart[aã]o\b|\s+no\s+cr[eé]dito|\s+no\s+d[eé]bito|\s+final\s+\d{3,4}|[\.\-,;]|$))/i);
+        if (mEst && mEst[1] && !/^(contato|duvidas|cartao|credito|debito)$/i.test(mEst[1].trim())) {
             estabelecimento = mEst[1].trim();
         }
     }
@@ -296,7 +306,34 @@ async function interpretarNotificacaoBancaria(notificacao) {
         .map(p => p.length > 2 ? (p.charAt(0).toUpperCase() + p.slice(1).toLowerCase()) : p.toUpperCase())
         .join(' ');
 
-    const hojeIso = new Date().toISOString().split('T')[0];
+    // 6. Extração de Data, Hora e Cartão Final da Notificação
+    let dataLancamentoIso = new Date().toISOString().split('T')[0];
+    const mDataCompleta = textoUnico.match(/\b([0-3]?[0-9])[\/\.\-]([0-1]?[0-9])[\/\.\-](20[2-3][0-9]|[2-3][0-9])\b/);
+    if (mDataCompleta) {
+        const d = mDataCompleta[1].padStart(2, '0');
+        const m = mDataCompleta[2].padStart(2, '0');
+        let a = mDataCompleta[3];
+        if (a.length === 2) a = '20' + a;
+        if (parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12 && parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31) {
+            dataLancamentoIso = `${a}-${m}-${d}`;
+        }
+    } else {
+        const mDataCurta = textoUnico.match(/\b([0-3]?[0-9])\/([0-1]?[0-9])\b/);
+        if (mDataCurta) {
+            const d = mDataCurta[1].padStart(2, '0');
+            const m = mDataCurta[2].padStart(2, '0');
+            const a = new Date().getFullYear();
+            if (parseInt(m, 10) >= 1 && parseInt(m, 10) <= 12 && parseInt(d, 10) >= 1 && parseInt(d, 10) <= 31) {
+                dataLancamentoIso = `${a}-${m}-${d}`;
+            }
+        }
+    }
+
+    const mHora = textoUnico.match(/\b([0-2]?[0-9]:[0-5][0-9])\b/);
+    const horaNotif = mHora ? mHora[1] : '';
+    const mFinalCartao = textoUnico.match(/final\s+([0-9]{3,4})\b/i);
+    const finalCartao = mFinalCartao ? mFinalCartao[1] : '';
+
     let saldoFinalComprovante = null;
     if (typeof extrairSaldoFinalComprovante === 'function') {
         const resSaldo = extrairSaldoFinalComprovante(textoBruto);
@@ -310,7 +347,9 @@ async function interpretarNotificacaoBancaria(notificacao) {
         valorTotal: valorNum,
         valorRealizado: (status === 'Pago') ? valorNum : 0,
         saldoFinalComprovante: saldoFinalComprovante,
-        dataLancamento: hojeIso,
+        dataLancamento: dataLancamentoIso,
+        horaNotificacao: horaNotif,
+        finalCartao: finalCartao,
         tipoGasto: tipoGasto,
         status: status,
         contaId: contaId,
@@ -318,7 +357,8 @@ async function interpretarNotificacaoBancaria(notificacao) {
         totalParcelas: totalParcelas,
         parcelaAtual: 1,
         bancoDetectado: nomeBancoIdentificado,
-        textoOrigem: textoBruto
+        midiaUrl: notificacao.midiaUrl || '',
+        textoOrigem: textoUnico
     };
 }
 
@@ -335,8 +375,56 @@ async function executarLancamentoAutomatico(notificacao) {
         return null;
     }
 
-    const novoId = (typeof generateUUID === 'function') ? generateUUID() : ('mov_auto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5));
+    // Proteção anti-duplicidade: verifica se o lançamento já existe (mesma descrição, valor e data, ou mesmo ID do servidor)
+    try {
+        if (notificacao.lancamento_id) {
+            const jaExistePorId = await dbLocal.movimentacoes.get(String(notificacao.lancamento_id));
+            if (jaExistePorId && !jaExistePorId.deleted) {
+                if (notificacao.id) {
+                    fetch('/api/notificacoes/marcar-processada', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: notificacao.id, status: 'processada', lancamento_id: jaExistePorId.id })
+                    }).catch(() => {});
+                }
+                return jaExistePorId;
+            }
+        }
+        const movsMesmoDia = await dbLocal.movimentacoes
+            .where('data_lancamento')
+            .equals(dados.dataLancamento)
+            .filter(m => !m.deleted && Math.abs((parseFloat(m.valor_total) || 0) - dados.valorTotal) < 0.01)
+            .toArray();
+        const descLimpa = limparTextoNotificacao(dados.descricao);
+        const duplicado = movsMesmoDia.find(m => {
+            const mDesc = limparTextoNotificacao(m.descricao || '');
+            return mDesc === descLimpa || mDesc.includes(descLimpa) || descLimpa.includes(mDesc);
+        });
+        if (duplicado) {
+            console.log('[NOTIFICAÇÃO ENGINE] Lançamento já existente no banco local, evitando duplicidade:', duplicado.id);
+            if (notificacao.id) {
+                fetch('/api/notificacoes/marcar-processada', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id: notificacao.id, status: 'processada', lancamento_id: duplicado.id })
+                }).catch(() => {});
+            }
+            return duplicado;
+        }
+    } catch (e) {}
+
+    const novoId = notificacao.lancamento_id
+        ? String(notificacao.lancamento_id)
+        : ((typeof generateUUID === 'function') ? generateUUID() : ('mov_auto_' + Date.now() + '_' + Math.random().toString(36).substr(2, 5)));
     const timestamp = Date.now();
+    const authUser = (typeof getAuthUser === 'function') ? getAuthUser() : null;
+    const currentUserId = authUser ? authUser.id : (localStorage.getItem('financas_current_user_id') || null);
+
+    const partesObs = [];
+    if (dados.bancoDetectado) partesObs.push(`Cartão/Banco: ${dados.bancoDetectado}`);
+    if (dados.finalCartao) partesObs.push(`Final ${dados.finalCartao}`);
+    if (dados.horaNotificacao) partesObs.push(`Hora: ${dados.horaNotificacao}`);
+    partesObs.push(`🤖 Notificação: "${dados.textoOrigem.slice(0, 120)}"`);
 
     const novoLancamento = {
         id: novoId,
@@ -351,7 +439,11 @@ async function executarLancamentoAutomatico(notificacao) {
         total_parcelas: dados.totalParcelas,
         parcela_atual: 1,
         id_grupo: dados.parcelado === 'Sim' ? novoId : null,
-        observacoes: `🤖 Lançamento Automático via Notificação: "${dados.textoOrigem.slice(0, 120)}"`,
+        midia_url: dados.midiaUrl || '',
+        midia_tipo: dados.midiaUrl ? 'foto' : '',
+        observacoes: partesObs.join(' • '),
+        user_id: currentUserId,
+        deleted: 0,
         origem: 'notificacao_automatica',
         sync_status: 'pending_insert',
         updated_at: timestamp
@@ -754,6 +846,12 @@ async function testarNotificacaoSimulada(tipo) {
             texto: '26/10 LIVRARIA MARANATHA PARANAVAI BR R$ 4,99 - Dúvidas: 0800-...',
             app: 'br.com.sicredi.mobile'
         };
+    } else if (tipo === 'sicredi_credito_posto') {
+        payload = {
+            titulo: 'Compra no crédito aprovada',
+            texto: 'Compra de R$ 42,54 APROVADA em POSTO PARANA, às 18:26 no cartão Visa Gold final 9110. Dúvidas, entre em contato 28/10/2026',
+            app: 'br.com.sicredi.mobile'
+        };
     } else if (tipo === 'nubank_credito') {
         payload = {
             titulo: 'Compra no cartão Nubank',
@@ -813,12 +911,23 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Sincroniza notificações pendentes do servidor em segundo plano
     setTimeout(() => {
         sincronizarNotificacoesPendentesDoServidor();
-    }, 1500);
+    }, 1000);
 
-    // 4. Polling periódico silencioso (a cada 30 segundos) para novas notificações
+    // 4. Sincroniza imediatamente sempre que o usuário abrir/voltar para o app no celular
+    document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+            sincronizarNotificacoesPendentesDoServidor();
+            checarComprovanteCompartilhado();
+        }
+    });
+    window.addEventListener('focus', () => {
+        sincronizarNotificacoesPendentesDoServidor();
+    });
+
+    // 5. Polling periódico silencioso (a cada 15 segundos) para novas notificações
     setInterval(() => {
         sincronizarNotificacoesPendentesDoServidor();
-    }, 30000);
+    }, 15000);
 });
 
 // Exportações Globais
