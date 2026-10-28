@@ -297,11 +297,19 @@ async function interpretarNotificacaoBancaria(notificacao) {
         .join(' ');
 
     const hojeIso = new Date().toISOString().split('T')[0];
+    let saldoFinalComprovante = null;
+    if (typeof extrairSaldoFinalComprovante === 'function') {
+        const resSaldo = extrairSaldoFinalComprovante(textoBruto);
+        if (resSaldo && typeof resSaldo.numero === 'number') {
+            saldoFinalComprovante = resSaldo.numero;
+        }
+    }
 
     return {
         descricao: estabelecimento,
         valorTotal: valorNum,
         valorRealizado: (status === 'Pago') ? valorNum : 0,
+        saldoFinalComprovante: saldoFinalComprovante,
         dataLancamento: hojeIso,
         tipoGasto: tipoGasto,
         status: status,
@@ -352,12 +360,14 @@ async function executarLancamentoAutomatico(notificacao) {
     await dbLocal.movimentacoes.put(novoLancamento);
     console.log('[NOTIFICAÇÃO ENGINE] Lançamento criado com sucesso:', novoLancamento);
 
-    // Se for débito imediato de conta bancária ou cartão alimentação, debita do saldo da conta
+    // Se for débito imediato de conta bancária ou cartão alimentação, debita do saldo da conta (ou sincroniza pelo saldo real impresso no comprovante)
     if (dados.contaId && (dados.tipoGasto === 'Cartão Alimentação' || (dados.tipoGasto !== 'Cartão de Crédito' && dados.status === 'Pago'))) {
         const conta = await dbLocal.contas_bancarias.get(dados.contaId);
         if (conta) {
             let saldoAtual = parseFloat(conta.saldo_atual) || 0;
-            if (dados.tipoGasto === 'Receita') {
+            if (typeof dados.saldoFinalComprovante === 'number' && !isNaN(dados.saldoFinalComprovante)) {
+                saldoAtual = dados.saldoFinalComprovante;
+            } else if (dados.tipoGasto === 'Receita') {
                 saldoAtual += dados.valorTotal;
             } else {
                 saldoAtual -= dados.valorTotal;

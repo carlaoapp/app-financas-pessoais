@@ -2700,18 +2700,36 @@ async function salvarLancamento(event) {
             }
             console.log(`Foram salvos ${qtdCriar} lançamentos localmente.`);
 
-            // Subtração ou Adição Automática em Conta Bancária se vinculada
-            // REGRA: Somente debita/credita do saldo real do banco se a movimentação for REALMENTE PAGA!
-            // Lançamentos pendentes/orçados NUNCA alteram o saldo bancário físico.
+            // Subtração, Adição ou Sincronização Exata pelo Saldo do Comprovante
+            // REGRA: Se o comprovante lido trouxe o saldo final real impresso (ex: "SALDO DISP. 100.85 TICKET FLEX"),
+            // atualiza o saldo da conta/cartão exatamente para esse valor real do comprovante!
             if (contaId && status === 'Pago') {
-                const valReal = isParcelado ? (parseFloat(valorRealizadoPorParcela) || 0) : (parseFloat(valorRealizado) || 0);
-                if (valReal > 0) {
-                    await aplicarAjusteSaldoBancario(null, {
-                        conta_id: contaId,
-                        tipo_gasto: tipoGasto,
-                        status: 'Pago',
-                        valor_realizado: valReal
-                    }, timestamp);
+                const temSaldoComprovante = typeof window.saldoComprovanteLidoTemp === 'number' && !isNaN(window.saldoComprovanteLidoTemp);
+                if (temSaldoComprovante) {
+                    try {
+                        const contaRef = await dbLocal.contas_bancarias.get(contaId);
+                        if (contaRef && contaRef.tipo_conta !== 'Cartão de Crédito') {
+                            await dbLocal.contas_bancarias.update(contaId, {
+                                saldo_atual: window.saldoComprovanteLidoTemp,
+                                sync_status: 'pending_update',
+                                updated_at: timestamp
+                            });
+                            console.log(`[SALDO SINCRONIZADO PELO COMPROVANTE] Conta '${contaRef.nome_conta}' ajustada para: ${window.saldoComprovanteLidoTemp}`);
+                        }
+                    } catch (e) {
+                        console.warn('Erro ao sincronizar saldo pelo comprovante:', e);
+                    }
+                    window.saldoComprovanteLidoTemp = null;
+                } else {
+                    const valReal = isParcelado ? (parseFloat(valorRealizadoPorParcela) || 0) : (parseFloat(valorRealizado) || 0);
+                    if (valReal > 0) {
+                        await aplicarAjusteSaldoBancario(null, {
+                            conta_id: contaId,
+                            tipo_gasto: tipoGasto,
+                            status: 'Pago',
+                            valor_realizado: valReal
+                        }, timestamp);
+                    }
                 }
             }
 

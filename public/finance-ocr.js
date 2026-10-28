@@ -359,6 +359,46 @@ function extrairValorComprovante(texto) {
     return null;
 }
 
+// Extrai o SALDO DISPONÍVEL / SALDO ATUAL impresso no final do comprovante do cartão (ex: "SALDO DISP. 100.85 TICKET FLEX")
+function extrairSaldoFinalComprovante(texto) {
+    if (!texto) return null;
+
+    const padroesSaldo = [
+        /(?:SALDO\s*(?:DISP(?:ONIVEL)?|ATUAL|FINAL|RESTANTE|CARTAO)|NOVO\s*SALDO)[\s\.:]*R?\$?\s*([0-9]{1,5}(?:[.,][0-9]{3})*[.,][0-9]{2})/i,
+        /\bSALDO[\s\.:]+R?\$?\s*([0-9]{1,5}(?:[.,][0-9]{3})*[.,][0-9]{2})\s*(?:TICKET|ALELO|SODEXO|PLUXEE|VR|FLASH|VOUCHER|ALIMENTACAO|REFEICAO)/i,
+        /\bSALDO\s*DISP[A-Z\.]*[\s:]*R?\$?\s*([0-9]{1,5}(?:[.,][0-9]{3})*[.,][0-9]{2})/i
+    ];
+
+    const linhas = texto.split(/[\r\n]+/).map(l => l.trim()).filter(Boolean);
+
+    // Procura de baixo para cima (pois o saldo real atualizado fica sempre no rodapé do comprovante TEF)
+    for (let i = linhas.length - 1; i >= 0; i--) {
+        const linha = linhas[i];
+        if (/\bSALDO\s+ANTERIOR\b/i.test(linha)) continue;
+        for (const regex of padroesSaldo) {
+            const m = linha.match(regex);
+            if (m && m[1]) {
+                const val = normalizarValorNumero(m[1]);
+                if (!isNaN(val) && val >= 0) {
+                    return { formatado: formatarValorParaInput(val), numero: val };
+                }
+            }
+        }
+    }
+
+    // Fallback: procura no texto completo caso haja quebra de linha entre "SALDO DISP." e o número
+    const mGlobal = texto.match(/(?:SALDO\s*(?:DISP(?:ONIVEL)?|ATUAL|FINAL|RESTANTE)|NOVO\s*SALDO)[\s\.:]*[\r\n\s]*R?\$?\s*([0-9]{1,5}(?:[.,][0-9]{3})*[.,][0-9]{2})/i);
+    if (mGlobal && mGlobal[1]) {
+        const val = normalizarValorNumero(mGlobal[1]);
+        if (!isNaN(val) && val >= 0) {
+            return { formatado: formatarValorParaInput(val), numero: val };
+        }
+    }
+
+    return null;
+}
+window.extrairSaldoFinalComprovante = extrairSaldoFinalComprovante;
+
 function limparNomeEstabelecimento(str) {
     if (!str) return '';
     const sLimpo = str.trim();
@@ -470,11 +510,13 @@ async function interpretarTextoComprovante(texto, origem) {
     let isStatusPago = true;
     let parcelasDetectadas = 1;
 
-    // 1. EXTRAÇÃO ROBUSTA DE VALOR (Total a Pagar / Gasto Total)
+    // 1. EXTRAÇÃO ROBUSTA DE VALOR (Total a Pagar / Gasto Total) E SALDO FINAL DO COMPROVANTE
     const resValor = extrairValorComprovante(texto);
     if (resValor) {
         valorEncontrado = resValor.formatado;
     }
+    const resSaldoFinal = extrairSaldoFinalComprovante(texto);
+    window.saldoComprovanteLidoTemp = (resSaldoFinal && typeof resSaldoFinal.numero === 'number') ? resSaldoFinal.numero : null;
 
     // 2. EXTRAÇÃO DE DATA E HORA
     // Formato DD/MM/AAAA ou DD/MM/AA ou DD-MM-AAAA ou DD.MM.AAAA
@@ -665,6 +707,9 @@ async function interpretarTextoComprovante(texto, origem) {
 
     if (horaEncontrada) {
         dadosComprovanteArr.push("Hora: " + horaEncontrada);
+    }
+    if (resSaldoFinal && typeof resSaldoFinal.numero === 'number') {
+        dadosComprovanteArr.push("Saldo Final Cartão: R$ " + resSaldoFinal.formatado);
     }
 
     // APLICAR CAMPOS NO FORMULÁRIO DO MODAL
@@ -920,6 +965,7 @@ function ocultarStatusOcr() {
 // Remove o comprovante atual do modal
 function removerComprovanteAtual() {
     window.midiaComprovanteTemp = null;
+    window.saldoComprovanteLidoTemp = null;
     const thumb = document.getElementById('thumbComprovante');
     if (thumb) thumb.src = '';
     const previewBox = document.getElementById('previewComprovanteContainer');
@@ -1026,7 +1072,7 @@ window.processarArquivoComprovanteExpresso = processarArquivoComprovanteExpresso
 async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', origem = '') {
     const textoLimpo = ocrNormalizarTexto(texto);
 
-    // 1. EXTRAÇÃO DE VALOR ROBUSTA
+    // 1. EXTRAÇÃO DE VALOR ROBUSTA E SALDO FINAL DO COMPROVANTE
     let valorNum = 0;
     let valorFmt = "R$ 0,00";
     const resVal = extrairValorComprovante(texto);
@@ -1034,6 +1080,9 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
         valorNum = resVal.numero;
         valorFmt = formatBRL(valorNum);
     }
+    const resSaldoExp = extrairSaldoFinalComprovante(texto);
+    const saldoFinalComprovanteNum = (resSaldoExp && typeof resSaldoExp.numero === 'number') ? resSaldoExp.numero : null;
+    window.saldoComprovanteLidoTemp = saldoFinalComprovanteNum;
 
     // 2. EXTRAÇÃO DE DATA E HORA
     let dataIso = (new Date()).toISOString().split('T')[0];
@@ -1093,6 +1142,7 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
 
     const matchCnpj = texto.match(/\bCNPJ[\s:]*([0-9]{2}[\.]?[0-9]{3}[\.]?[0-9]{3}[\/]?[0-9]{4}[\-]?[0-9]{2})\b/i);
     if (matchCnpj && matchCnpj[1]) dadosComprovanteArr.push("CNPJ: " + matchCnpj[1].trim());
+    if (saldoFinalComprovanteNum !== null) dadosComprovanteArr.push("Saldo Final Cartão: " + formatBRL(saldoFinalComprovanteNum));
 
     const obsTextoFinal = dadosComprovanteArr.join(' • ');
 
@@ -1233,6 +1283,7 @@ async function abrirModalConfirmacaoExpressoComTexto(texto, base64Imagem = '', o
         descricao: estabelecimento,
         valor: valorNum,
         valorFmt: valorFmt,
+        saldoFinalComprovante: saldoFinalComprovanteNum,
         data: dataIso,
         dataFmt: `${dataFmt} às ${horaStr}`,
         tipoGasto: tipoGasto,
@@ -1362,7 +1413,11 @@ function renderizarSeletorCartoesAlimentacaoExpresso(contasAlim, contaSelecionad
         badgeAuto.style.display = 'none';
     }
 
-    const val = typeof valorCompra === 'number' ? valorCompra : (parseFloat(valorCompra) || 0);
+    const val = datosVal => typeof datosVal === 'number' ? datosVal : (parseFloat(datosVal) || 0);
+    const valCompra = val(valorCompra);
+    const saldoLidoNoCupom = (window.dadosComprovanteExpressoTemp && typeof window.dadosComprovanteExpressoTemp.saldoFinalComprovante === 'number')
+        ? window.dadosComprovanteExpressoTemp.saldoFinalComprovante
+        : null;
 
     grid.innerHTML = contasAlim.map(c => {
         const isSel = String(c.id) === String(contaSelecionadaId);
@@ -1371,6 +1426,9 @@ function renderizarSeletorCartoesAlimentacaoExpresso(contasAlim, contaSelecionad
         const corFundo = isSel ? 'rgba(249, 115, 22, 0.18)' : 'var(--bg-secondary)';
         const tit = c.titular ? c.titular : c.nome_conta;
         const checkIcon = isSel ? '✅' : '⚪';
+        const infoSaldoFinal = (isSel && saldoLidoNoCupom !== null)
+            ? `<span style="color: #10B981; font-weight: 800;">Novo: ${formatBRL(saldoLidoNoCupom)}</span>`
+            : (isSel ? `<span style="color: #EF4444; font-weight: 800;">-${formatBRL(valCompra)}</span>` : '');
 
         return `
             <div onclick="selecionarCartaoAlimentacaoExpresso('${c.id}')" style="cursor: pointer; border: 2px solid ${corBorda}; background: ${corFundo}; border-radius: 12px; padding: 10px 12px; transition: all 0.2s; display: flex; flex-direction: column; justify-content: space-between; box-shadow: ${isSel ? '0 0 12px rgba(249,115,22,0.35)' : 'none'};" onmouseover="if(!${isSel}) this.style.borderColor='#F97316';" onmouseout="if(!${isSel}) this.style.borderColor='var(--border-color)';">
@@ -1384,8 +1442,8 @@ function renderizarSeletorCartoesAlimentacaoExpresso(contasAlim, contaSelecionad
                     ${c.nome_conta}
                 </div>
                 <div style="font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); padding-top: 4px; margin-top: 2px;">
-                    <span>Saldo: <strong style="color: var(--text-primary);">${formatBRL(sal)}</strong></span>
-                    ${isSel ? `<span style="color: #EF4444; font-weight: 800;">-${formatBRL(val)}</span>` : ''}
+                    <span>Sistema: <strong style="color: var(--text-primary);">${formatBRL(sal)}</strong></span>
+                    ${infoSaldoFinal}
                 </div>
             </div>
         `;
@@ -1441,9 +1499,14 @@ async function atualizarImpactoSaldoExpresso() {
 
     if (conta.tipo_conta === 'Cartão Alimentação' || dados.tipoGasto === 'Cartão Alimentação') {
         const saldoAtual = parseFloat(conta.saldo_atual) || 0;
-        const novoSaldo = saldoAtual - val;
-        const titTxt = conta.titular ? ` [👤 ${conta.titular}]` : '';
-        box.innerHTML = `🍽️ <strong>Cartão Alimentação:</strong> Saldo de <strong>${conta.nome_conta}${titTxt}</strong> será subtraído de ${formatBRL(saldoAtual)} para <strong style="color: #F97316;">${formatBRL(novoSaldo)}</strong> (-${formatBRL(val)}). <em>Não deduz do orçamento em dinheiro.</em>`;
+        const temSaldoCupom = typeof dados.saldoFinalComprovante === 'number' && !isNaN(dados.saldoFinalComprovante);
+        const novoSaldo = temSaldoCupom ? dados.saldoFinalComprovante : (saldoAtual - val);
+        const titTxt = conta.titular ? ` • ${conta.titular}` : '';
+        if (temSaldoCupom) {
+            box.innerHTML = `🍽️ <strong>Sincronização pelo Comprovante:</strong> Gasto de <strong>-${formatBRL(val)}</strong> lido e saldo real do cartão <strong>${conta.nome_conta}${titTxt}</strong> ajustado exatamente para <strong style="color: #10B981;">${formatBRL(novoSaldo)}</strong> (conforme impresso no comprovante).`;
+        } else {
+            box.innerHTML = `🍽️ <strong>Cartão Alimentação:</strong> Saldo de <strong>${conta.nome_conta}${titTxt}</strong> será subtraído de ${formatBRL(saldoAtual)} para <strong style="color: #F97316;">${formatBRL(novoSaldo)}</strong> (-${formatBRL(val)}).`;
+        }
         box.style.color = '#F97316';
         box.style.background = 'rgba(249, 115, 22, 0.12)';
 
@@ -1557,19 +1620,22 @@ async function confirmarLancamentoAutomaticoExpresso() {
         await dbLocal.movimentacoes.put(novoLancamento);
     }
 
-    // Subtração ou Adição Automática em Conta Corrente
+    // Subtração, Adição ou Sincronização Exata pelo Saldo Impresso no Comprovante
     if (contaIdFinal) {
         try {
             const conta = await dbLocal.contas_bancarias.get(contaIdFinal);
             if (conta && conta.tipo_conta !== 'Cartão de Crédito') {
                 const saldoAnt = parseFloat(conta.saldo_atual) || 0;
-                const novoSaldo = (dados.tipoGasto === 'Receita') ? (saldoAnt + dados.valor) : (saldoAnt - dados.valor);
+                const temSaldoCupom = typeof dados.saldoFinalComprovante === 'number' && !isNaN(dados.saldoFinalComprovante);
+                const novoSaldo = temSaldoCupom
+                    ? dados.saldoFinalComprovante
+                    : ((dados.tipoGasto === 'Receita') ? (saldoAnt + dados.valor) : (saldoAnt - dados.valor));
                 await dbLocal.contas_bancarias.update(contaIdFinal, {
                     saldo_atual: novoSaldo,
                     sync_status: 'pending_update',
                     updated_at: ts
                 });
-                console.log(`[LANÇAMENTO AUTOMÁTICO] Conta '${conta.nome_conta}' atualizada: ${saldoAnt} -> ${novoSaldo}`);
+                console.log(`[LANÇAMENTO AUTOMÁTICO] Conta '${conta.nome_conta}' atualizada: ${saldoAnt} -> ${novoSaldo} (Saldo do comprovante: ${temSaldoCupom ? 'SIM' : 'NÃO'})`);
             }
         } catch(e) {
             console.warn("Erro ao atualizar saldo da conta vinculada:", e);
@@ -1601,6 +1667,9 @@ function abrirNoFormularioCompletoExpresso() {
         abrirModalLancamento();
 
         if (dados) {
+            if (typeof dados.saldoFinalComprovante === 'number') {
+                window.saldoComprovanteLidoTemp = dados.saldoFinalComprovante;
+            }
             const selTipo = document.getElementById('inputTipoGasto');
             if (selTipo) {
                 selTipo.value = dados.tipoGasto;

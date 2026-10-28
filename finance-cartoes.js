@@ -272,17 +272,24 @@ async function atualizarSeletorCartaoAlimentacaoManual() {
     const selConta = document.getElementById('inputContaId');
     const contaAtualId = selConta ? selConta.value : '';
 
+    const saldoLidoNoCupom = (typeof window.saldoComprovanteLidoTemp === 'number' && !isNaN(window.saldoComprovanteLidoTemp))
+        ? window.saldoComprovanteLidoTemp
+        : null;
+
     grid.innerHTML = alimList.map(c => {
         const isSel = String(c.id) === String(contaAtualId);
         const sal = parseFloat(c.saldo_atual) || 0;
         const tit = c.titular ? c.titular : c.nome_conta;
         const corBorda = isSel ? '#F97316' : 'var(--border-color)';
         const corFundo = isSel ? 'rgba(249, 115, 22, 0.2)' : 'var(--bg-secondary)';
+        const infoSaldo = (isSel && saldoLidoNoCupom !== null)
+            ? `Cupom: <strong style="color: #10B981;">${formatBRL(saldoLidoNoCupom)}</strong>`
+            : `Saldo: <strong style="color: #10B981;">${formatBRL(sal)}</strong>`;
         return `
             <div onclick="selecionarCartaoAlimentacaoManual('${c.id}')" style="cursor: pointer; border: 2px solid ${corBorda}; background: ${corFundo}; border-radius: 8px; padding: 6px 10px; text-align: left; transition: all 0.2s; display: flex; justify-content: space-between; align-items: center;">
                 <div>
                     <div style="font-weight: 800; color: var(--text-primary); font-size: 0.82rem;">👤 ${tit}</div>
-                    <div style="font-size: 0.7rem; color: var(--text-secondary);">Saldo: <strong style="color: #10B981;">${formatBRL(sal)}</strong></div>
+                    <div style="font-size: 0.7rem; color: var(--text-secondary);">${infoSaldo}</div>
                 </div>
                 <span style="font-size: 0.9rem;">${isSel ? '✅' : '⚪'}</span>
             </div>
