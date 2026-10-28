@@ -702,10 +702,13 @@ async function processarNotificacaoTextoInput() {
 // Processa print/foto de notificação selecionada pelo usuário
 async function processarPrintNotificacaoInput(file) {
     if (!file) return;
-    if (typeof mostrarStatusOcr === 'function') mostrarStatusOcr('Lendo print da notificação com IA...');
+    if (typeof mostrarStatusOcr === 'function') mostrarStatusOcr('⚡ Lendo print da notificação em alta velocidade...');
     try {
-        const base64 = await comprimirImagemComprovante(file);
-        const textoLido = await extrairTextoImagem(base64);
+        const [base64, base64OcrFast] = await Promise.all([
+            comprimirImagemComprovante(file, 960, 0.75, false),
+            comprimirImagemComprovante(file, 850, 0.85, true)
+        ]);
+        const textoLido = await extrairTextoImagem(base64OcrFast);
         if (!textoLido || textoLido.trim().length < 5) {
             alert('Não foi possível identificar o texto do print. Tente colar o texto da notificação.');
             return;

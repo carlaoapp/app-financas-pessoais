@@ -1747,6 +1747,7 @@ function fecharModalLancamento() {
 }
 
 function abrirModalLancamento() {
+    if (typeof preAquecerMotorOcr === 'function') preAquecerMotorOcr();
     document.getElementById('inputIdMovimentacao').value = '';
     document.getElementById('formLancamento').reset();
     if (typeof carregarSelectContasModal === 'function') carregarSelectContasModal();

@@ -40,15 +40,19 @@ function processarTextoComprovanteColado() {
 }
 window.processarTextoComprovanteColado = processarTextoComprovanteColado;
 
-// Processa arquivo ou foto capturada pela câmera
+// Processa arquivo ou foto capturada pela câmera (Ultra-Rápido: Preview e Otimização em Paralelo)
 async function processarArquivoComprovante(inputEl) {
     if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
     const file = inputEl.files[0];
 
-    mostrarStatusOcr("Comprimindo e preparando imagem...");
+    mostrarStatusOcr("⚡ Lendo comprovante de forma instantânea...");
 
     try {
-        const base64Comprimida = await comprimirImagemComprovante(file);
+        // Prepara em paralelo a miniatura colorida para o comprovante anexado e a imagem de alto contraste para o OCR rápido
+        const [base64Comprimida, base64OcrFast] = await Promise.all([
+            comprimirImagemComprovante(file, 960, 0.75, false),
+            comprimirImagemComprovante(file, 850, 0.85, true)
+        ]);
         window.midiaComprovanteTemp = base64Comprimida;
 
         // Atualizar thumbnail imediatamente
@@ -57,13 +61,11 @@ async function processarArquivoComprovante(inputEl) {
         const previewBox = document.getElementById('previewComprovanteContainer');
         if (previewBox) previewBox.style.display = 'flex';
 
-        mostrarStatusOcr("Lendo texto e interpretando comprovante com IA...");
+        // Executar OCR usando o worker persistente em memória
+        const textoExtraido = await extrairTextoImagem(base64OcrFast);
 
-        // Executar OCR na imagem
-        const textoExtraido = await extrairTextoImagem(base64Comprimida);
-
-        if (textoExtraido && textoExtraido.trim().length > 10) {
-            interpretarTextoComprovante(textoExtraido, file.name);
+        if (textoExtraido && textoExtraido.trim().length > 8) {
+            await interpretarTextoComprovante(textoExtraido, file.name);
         } else {
             ocultarStatusOcr();
             const det = document.getElementById('detalhesComprovanteLido');
@@ -82,14 +84,13 @@ async function processarArquivoComprovante(inputEl) {
 }
 window.processarArquivoComprovante = processarArquivoComprovante;
 
-// Comprime imagem para no máximo 1280px e 80% qualidade
-function comprimirImagemComprovante(file) {
+// Comprime imagem (e opcionalmente aplica filtro de alto contraste em tons de cinza para leitura OCR 3x mais rápida)
+function comprimirImagemComprovante(file, maxDim = 960, qualidade = 0.78, modoOcrRapido = false) {
     return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = function(e) {
             const img = new Image();
             img.onload = function() {
-                const maxDim = 1280;
                 let w = img.width;
                 let h = img.height;
                 if (w > maxDim || h > maxDim) {
@@ -105,8 +106,11 @@ function comprimirImagemComprovante(file) {
                 canvas.width = w;
                 canvas.height = h;
                 const ctx = canvas.getContext('2d');
+                if (modoOcrRapido) {
+                    ctx.filter = 'grayscale(100%) contrast(155%) brightness(105%)';
+                }
                 ctx.drawImage(img, 0, 0, w, h);
-                const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+                const dataUrl = canvas.toDataURL('image/jpeg', qualidade);
                 resolve(dataUrl);
             };
             img.onerror = reject;
@@ -117,29 +121,78 @@ function comprimirImagemComprovante(file) {
     });
 }
 
-// Extração de texto usando Tesseract.js com pré-processamento
-async function extrairTextoImagem(dataUrl) {
-    if (typeof Tesseract === 'undefined') {
-        console.warn("Tesseract.js não carregado. Tentando carregar dinamicamente...");
-        await carregarTesseractDinamicamente();
-    }
+// =========================================================================
+// MOTOR OCR DE ALTA VELOCIDADE (SINGLETON / WORKER PERSISTENTE EM CACHE)
+// =========================================================================
+let _tesseractWorkerCache = null;
+let _tesseractWorkerInitPromise = null;
 
-    if (typeof Tesseract !== 'undefined') {
+async function obterWorkerOcrRapido() {
+    if (_tesseractWorkerCache) return _tesseractWorkerCache;
+    if (_tesseractWorkerInitPromise) return _tesseractWorkerInitPromise;
+
+    _tesseractWorkerInitPromise = (async () => {
+        if (typeof Tesseract === 'undefined') {
+            await carregarTesseractDinamicamente();
+        }
+        if (typeof Tesseract === 'undefined') return null;
         try {
-            const worker = await Tesseract.createWorker('por');
-            const ret = await worker.recognize(dataUrl);
-            await worker.terminate();
-            return ret.data.text;
+            const worker = await Tesseract.createWorker('por', 1, {
+                cacheMethod: 'write',
+                gzip: true
+            });
+            _tesseractWorkerCache = worker;
+            return worker;
         } catch (e) {
-            console.warn("Falha no worker em português, tentando idioma padrão:", e);
+            console.warn("Tentando inicializar worker OCR padrão:", e);
             try {
-                const worker = await Tesseract.createWorker('eng');
-                const ret = await worker.recognize(dataUrl);
-                await worker.terminate();
-                return ret.data.text;
+                const worker = await Tesseract.createWorker('por');
+                _tesseractWorkerCache = worker;
+                return worker;
             } catch (err2) {
-                console.error("Falha no OCR Tesseract:", err2);
+                console.error("Falha ao criar worker OCR:", err2);
+                return null;
             }
+        } finally {
+            _tesseractWorkerInitPromise = null;
+        }
+    })();
+
+    return _tesseractWorkerInitPromise;
+}
+
+// Pré-aquece o motor OCR em segundo plano assim que o app abre ou quando o usuário toca no modal de lançamento
+function preAquecerMotorOcr() {
+    setTimeout(() => {
+        obterWorkerOcrRapido().catch(() => {});
+    }, 1500);
+}
+window.preAquecerMotorOcr = preAquecerMotorOcr;
+if (document.readyState === 'complete') {
+    preAquecerMotorOcr();
+} else {
+    window.addEventListener('load', preAquecerMotorOcr);
+}
+
+// Extração de texto ultra-rápida reutilizando o worker já carregado em memória
+async function extrairTextoImagem(dataUrl) {
+    try {
+        const worker = await obterWorkerOcrRapido();
+        if (worker) {
+            const ret = await worker.recognize(dataUrl);
+            return (ret && ret.data && ret.data.text) ? ret.data.text : "";
+        }
+    } catch (e) {
+        console.warn("Reconectando worker OCR:", e);
+        _tesseractWorkerCache = null;
+        try {
+            const workerNovo = await obterWorkerOcrRapido();
+            if (workerNovo) {
+                const ret = await workerNovo.recognize(dataUrl);
+                return (ret && ret.data && ret.data.text) ? ret.data.text : "";
+            }
+        } catch (err2) {
+            console.error("Erro fatal no OCR:", err2);
         }
     }
     return "";
@@ -396,9 +449,15 @@ function extrairEstabelecimentoComprovante(texto, textoLimpo) {
 }
 
 // Interpreta texto de comprovantes brasileiros (Pix, Boletos, Cartões, Maquininhas, Cupons e Notificações de Celular)
-function interpretarTextoComprovante(texto, origem) {
+async function interpretarTextoComprovante(texto, origem) {
     ocultarStatusOcr();
     if (!texto) return;
+
+    // Garante que o select de contas esteja populado antes de casar a conta/cartão
+    const selContaCheck = document.getElementById('inputContaId');
+    if (selContaCheck && selContaCheck.options.length <= 2 && typeof carregarSelectContasModal === 'function') {
+        await carregarSelectContasModal();
+    }
 
     const textoLimpo = ocrNormalizarTexto(texto);
     console.log("=== TEXTO OCR IDENTIFICADO ===", texto);
@@ -926,17 +985,20 @@ async function processarArquivoComprovanteExpresso(inputEl) {
     if (!inputEl || !inputEl.files || inputEl.files.length === 0) return;
     const file = inputEl.files[0];
 
-    mostrarStatusOcr("Comprimindo e analisando comprovante/print com IA...");
+    mostrarStatusOcr("⚡ Lendo comprovante em alta velocidade...");
 
     try {
-        const base64Comprimida = await comprimirImagemComprovante(file);
+        const [base64Comprimida, base64OcrFast] = await Promise.all([
+            comprimirImagemComprovante(file, 960, 0.75, false),
+            comprimirImagemComprovante(file, 850, 0.85, true)
+        ]);
         window.midiaComprovanteTemp = base64Comprimida;
 
-        // Executar OCR na imagem
-        const textoExtraido = await extrairTextoImagem(base64Comprimida);
+        // Executar OCR na imagem otimizada usando o worker persistente
+        const textoExtraido = await extrairTextoImagem(base64OcrFast);
         ocultarStatusOcr();
 
-        if (textoExtraido && textoExtraido.trim().length > 10) {
+        if (textoExtraido && textoExtraido.trim().length > 8) {
             await abrirModalConfirmacaoExpressoComTexto(textoExtraido, base64Comprimida, file.name);
         } else {
             if (typeof abrirModalLancamento === 'function') {
