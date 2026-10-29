@@ -2140,6 +2140,16 @@ async function executarConfirmacaoExclusao() {
     if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
     if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
     if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+
+    // Se o modal de extrato de fatura ou alimentação estiver aberto, atualiza em tempo real
+    const modCred = document.getElementById('modalExtratoFaturaCartao');
+    if (modCred && modCred.style.display === 'flex' && modCred.dataset.cartaoId && typeof abrirModalExtratoFaturaCartao === 'function') {
+        abrirModalExtratoFaturaCartao(modCred.dataset.cartaoId, modCred.dataset.anoAlvo, modCred.dataset.mesAlvo);
+    }
+    const modAlim = document.getElementById('modalExtratoCartaoAlimentacao');
+    if (modAlim && modAlim.style.display === 'flex' && modAlim.dataset.contaId && typeof abrirModalExtratoCartaoAlimentacao === 'function') {
+        abrirModalExtratoCartaoAlimentacao(modAlim.dataset.contaId);
+    }
 }
 
 async function excluirLancamento(id) {
@@ -2309,6 +2319,15 @@ async function executarConfirmacaoEdicao() {
         if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
         if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
         if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+
+        const modCred = document.getElementById('modalExtratoFaturaCartao');
+        if (modCred && modCred.style.display === 'flex' && modCred.dataset.cartaoId && typeof abrirModalExtratoFaturaCartao === 'function') {
+            abrirModalExtratoFaturaCartao(modCred.dataset.cartaoId, modCred.dataset.anoAlvo, modCred.dataset.mesAlvo);
+        }
+        const modAlim = document.getElementById('modalExtratoCartaoAlimentacao');
+        if (modAlim && modAlim.style.display === 'flex' && modAlim.dataset.contaId && typeof abrirModalExtratoCartaoAlimentacao === 'function') {
+            abrirModalExtratoCartaoAlimentacao(modAlim.dataset.contaId);
+        }
 
     } catch (err) {
         console.error('Erro ao executar confirmação de edição:', err);
@@ -2781,6 +2800,15 @@ async function salvarLancamento(event) {
         if(typeof carregarListaDesejos === 'function') carregarListaDesejos();
         if(typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
         if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+
+        const modCred = document.getElementById('modalExtratoFaturaCartao');
+        if (modCred && modCred.style.display === 'flex' && modCred.dataset.cartaoId && typeof abrirModalExtratoFaturaCartao === 'function') {
+            abrirModalExtratoFaturaCartao(modCred.dataset.cartaoId, modCred.dataset.anoAlvo, modCred.dataset.mesAlvo);
+        }
+        const modAlim = document.getElementById('modalExtratoCartaoAlimentacao');
+        if (modAlim && modAlim.style.display === 'flex' && modAlim.dataset.contaId && typeof abrirModalExtratoCartaoAlimentacao === 'function') {
+            abrirModalExtratoCartaoAlimentacao(modAlim.dataset.contaId);
+        }
         
         if (tipoGasto === 'Lista de Desejos') {
             switchFinanceTab('Desejos');

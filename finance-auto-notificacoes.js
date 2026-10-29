@@ -379,7 +379,7 @@ async function executarLancamentoAutomatico(notificacao) {
     try {
         if (notificacao.lancamento_id) {
             const jaExistePorId = await dbLocal.movimentacoes.get(String(notificacao.lancamento_id));
-            if (jaExistePorId && !jaExistePorId.deleted) {
+            if (jaExistePorId) {
                 if (notificacao.id) {
                     fetch('/api/notificacoes/marcar-processada', {
                         method: 'POST',
@@ -387,13 +387,13 @@ async function executarLancamentoAutomatico(notificacao) {
                         body: JSON.stringify({ id: notificacao.id, status: 'processada', lancamento_id: jaExistePorId.id })
                     }).catch(() => {});
                 }
-                return jaExistePorId;
+                return jaExistePorId.deleted ? null : jaExistePorId;
             }
         }
         const movsMesmoDia = await dbLocal.movimentacoes
             .where('data_lancamento')
             .equals(dados.dataLancamento)
-            .filter(m => !m.deleted && Math.abs((parseFloat(m.valor_total) || 0) - dados.valorTotal) < 0.01)
+            .filter(m => Math.abs((parseFloat(m.valor_total) || 0) - dados.valorTotal) < 0.01)
             .toArray();
         const descLimpa = limparTextoNotificacao(dados.descricao);
         const duplicado = movsMesmoDia.find(m => {
@@ -401,7 +401,7 @@ async function executarLancamentoAutomatico(notificacao) {
             return mDesc === descLimpa || mDesc.includes(descLimpa) || descLimpa.includes(mDesc);
         });
         if (duplicado) {
-            console.log('[NOTIFICAÇÃO ENGINE] Lançamento já existente no banco local, evitando duplicidade:', duplicado.id);
+            console.log('[NOTIFICAÇÃO ENGINE] Lançamento já existente no banco local (ou excluído pelo usuário), evitando duplicidade:', duplicado.id);
             if (notificacao.id) {
                 fetch('/api/notificacoes/marcar-processada', {
                     method: 'POST',
@@ -409,7 +409,7 @@ async function executarLancamentoAutomatico(notificacao) {
                     body: JSON.stringify({ id: notificacao.id, status: 'processada', lancamento_id: duplicado.id })
                 }).catch(() => {});
             }
-            return duplicado;
+            return duplicado.deleted ? null : duplicado;
         }
     } catch (e) {}
 

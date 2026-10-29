@@ -403,6 +403,94 @@ async function carregarCartoesEContas() {
         }
     }
 
+    const cartoesCredito = contas.filter(c => c.tipo_conta === 'Cartão de Crédito');
+    const cartoesAlimentacao = contas.filter(c => c.tipo_conta === 'Cartão Alimentação');
+    const idsContasAtivas = new Set(contas.map(c => String(c.id)));
+
+    // Auto-migração de lançamentos cujo conta_id aponta para um cartão excluído/inexistente e deduplicação automática
+    let houveCorrecaoCartao = false;
+    for (let m of movs) {
+        if (m.status === 'Cancelado') continue;
+        if (m.tipo_gasto === 'Cartão de Crédito' && cartoesCredito.length > 0) {
+            const contaValida = m.conta_id && idsContasAtivas.has(String(m.conta_id)) && cartoesCredito.some(c => String(c.id) === String(m.conta_id));
+            if (!contaValida) {
+                let cardAlvo = cartoesCredito[0];
+                if (cartoesCredito.length > 1 && m.descricao) {
+                    const porTitular = cartoesCredito.find(c => c.titular && m.descricao.toLowerCase().includes(c.titular.toLowerCase()));
+                    if (porTitular) cardAlvo = porTitular;
+                }
+                m.conta_id = cardAlvo.id;
+                houveCorrecaoCartao = true;
+                try {
+                    await dbLocal.movimentacoes.update(m.id, {
+                        conta_id: cardAlvo.id,
+                        sync_status: 'pending_update',
+                        updated_at: Date.now()
+                    });
+                } catch(e) {}
+            }
+        } else if (m.tipo_gasto === 'Cartão Alimentação' && cartoesAlimentacao.length > 0) {
+            const contaValida = m.conta_id && idsContasAtivas.has(String(m.conta_id)) && cartoesAlimentacao.some(c => String(c.id) === String(m.conta_id));
+            if (!contaValida) {
+                let cardAlvo = cartoesAlimentacao[0];
+                if (cartoesAlimentacao.length > 1 && m.descricao) {
+                    const porTitular = cartoesAlimentacao.find(c => c.titular && m.descricao.toLowerCase().includes(c.titular.toLowerCase()));
+                    if (porTitular) cardAlvo = porTitular;
+                }
+                m.conta_id = cardAlvo.id;
+                houveCorrecaoCartao = true;
+                try {
+                    await dbLocal.movimentacoes.update(m.id, {
+                        conta_id: cardAlvo.id,
+                        sync_status: 'pending_update',
+                        updated_at: Date.now()
+                    });
+                } catch(e) {}
+            }
+        }
+    }
+
+    // Remove duplicatas exatas geradas por leitura dupla de notificação no mesmo dia/cartão
+    const mapaUnicosCartao = new Map();
+    const idsDuplicadosRemover = new Set();
+    for (let m of movs) {
+        if (m.status === 'Cancelado' || m.deleted === 1) continue;
+        if (m.tipo_gasto === 'Cartão de Crédito' || m.tipo_gasto === 'Cartão Alimentação') {
+            const descNorm = (m.descricao || '').trim().toUpperCase();
+            const valNorm = (parseFloat(m.valor_total) || 0).toFixed(2);
+            const parcNorm = `${m.parcela_atual || 1}/${m.total_parcelas || 1}`;
+            const chave = `${m.data_lancamento}|${m.tipo_gasto}|${descNorm}|${valNorm}|${parcNorm}`;
+            if (!mapaUnicosCartao.has(chave)) {
+                mapaUnicosCartao.set(chave, m);
+            } else {
+                const existente = mapaUnicosCartao.get(chave);
+                const isAutoAtual = String(m.id || '').startsWith('mov_auto_') || m.origem === 'notificacao_automatica';
+                const isAutoExistente = String(existente.id || '').startsWith('mov_auto_') || existente.origem === 'notificacao_automatica';
+                if (isAutoAtual || isAutoExistente) {
+                    const idParaApagar = isAutoAtual ? m.id : existente.id;
+                    if (!isAutoAtual && isAutoExistente) {
+                        mapaUnicosCartao.set(chave, m);
+                    }
+                    idsDuplicadosRemover.add(idParaApagar);
+                    houveCorrecaoCartao = true;
+                    try {
+                        await dbLocal.movimentacoes.update(idParaApagar, {
+                            deleted: 1,
+                            sync_status: 'pending_update',
+                            updated_at: Date.now()
+                        });
+                    } catch(e) {}
+                }
+            }
+        }
+    }
+    if (idsDuplicadosRemover.size > 0) {
+        movs = movs.filter(m => !idsDuplicadosRemover.has(m.id));
+    }
+    if (houveCorrecaoCartao && typeof syncFinanceWithServer === 'function') {
+        setTimeout(() => syncFinanceWithServer(), 300);
+    }
+
     // Filtra compras do mês alvo
     const movsDoMes = movs.filter(m => {
         if (!m.data_lancamento) return false;
@@ -432,8 +520,6 @@ async function carregarCartoesEContas() {
             saldoTotalContas += (parseFloat(c.saldo_atual) || 0);
         }
     });
-
-    const cartoesCredito = contas.filter(c => c.tipo_conta === 'Cartão de Crédito');
 
     // Calcula faturas por cartão e total geral
     movsDoMes.forEach(m => {
@@ -588,11 +674,15 @@ async function carregarCartoesEContas() {
                             ${comprasCard.length === 0 ? `
                                 <div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 4px 0;">Nenhuma compra nesta fatura</div>
                             ` : `
-                                <div style="display: flex; flex-direction: column; gap: 5px; max-height: 110px; overflow-y: auto;">
+                                <div style="display: flex; flex-direction: column; gap: 5px; max-height: 120px; overflow-y: auto;">
                                     ${comprasCard.map(item => `
-                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 6px;">
-                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${item.descricao}">${item.descricao}${item.parcelado === 'Sim' ? ` (${item.parcela_atual || item.numero_parcela || 1}/${item.total_parcelas})` : ''}</span>
-                                            <span style="color: #F87171; font-weight: 800; white-space: nowrap;">- ${formatBRL(item.valor_total)}</span>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.06); padding: 5px 8px; border-radius: 6px; gap: 6px;">
+                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;" title="${item.descricao}">${item.descricao}${item.parcelado === 'Sim' ? ` (${item.parcela_atual || item.numero_parcela || 1}/${item.total_parcelas})` : ''}</span>
+                                            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                                <span style="color: #F87171; font-weight: 800; white-space: nowrap;">- ${formatBRL(item.valor_total)}</span>
+                                                <button type="button" onclick="event.stopPropagation(); if(typeof editarLancamento === 'function') editarLancamento('${item.id}');" title="Editar compra" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #93C5FD; border-radius: 5px; padding: 2px 5px; font-size: 0.68rem; cursor: pointer; line-height: 1;">✏️</button>
+                                                <button type="button" onclick="event.stopPropagation(); if(typeof excluirLancamento === 'function') excluirLancamento('${item.id}');" title="Apagar compra" style="background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.45); color: #FCA5A5; border-radius: 5px; padding: 2px 5px; font-size: 0.68rem; cursor: pointer; line-height: 1;">🗑️</button>
+                                            </div>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -727,13 +817,17 @@ async function carregarCartoesEContas() {
                             ${gastosAlim.length === 0 ? `
                                 <div style="font-size: 0.72rem; color: #94A3B8; text-align: center; padding: 6px 0;">Nenhum gasto lançado neste mês • Toque para ver</div>
                             ` : `
-                                <div style="display: flex; flex-direction: column; gap: 5px; max-height: 110px; overflow-y: auto;">
+                                <div style="display: flex; flex-direction: column; gap: 5px; max-height: 120px; overflow-y: auto;">
                                     ${gastosAlim.map(item => `
-                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.06); padding: 4px 8px; border-radius: 6px;">
-                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px;" title="${item.descricao}">${item.descricao}</span>
-                                            <span style="color: ${item.tipo_gasto === 'Receita' ? '#10B981' : '#F87171'}; font-weight: 800; white-space: nowrap;">
-                                                ${item.tipo_gasto === 'Receita' ? '+ ' : '- '}${formatBRL(item.valor_total)}
-                                            </span>
+                                        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.73rem; background: rgba(255,255,255,0.06); padding: 5px 8px; border-radius: 6px; gap: 6px;">
+                                            <span style="color: #FFFFFF; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; min-width: 0;" title="${item.descricao}">${item.descricao}</span>
+                                            <div style="display: flex; align-items: center; gap: 6px; flex-shrink: 0;">
+                                                <span style="color: ${item.tipo_gasto === 'Receita' ? '#10B981' : '#F87171'}; font-weight: 800; white-space: nowrap;">
+                                                    ${item.tipo_gasto === 'Receita' ? '+ ' : '- '}${formatBRL(item.valor_total)}
+                                                </span>
+                                                <button type="button" onclick="event.stopPropagation(); if(typeof editarLancamento === 'function') editarLancamento('${item.id}');" title="Editar lançamento" style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); color: #93C5FD; border-radius: 5px; padding: 2px 5px; font-size: 0.68rem; cursor: pointer; line-height: 1;">✏️</button>
+                                                <button type="button" onclick="event.stopPropagation(); if(typeof excluirLancamento === 'function') excluirLancamento('${item.id}');" title="Apagar lançamento" style="background: rgba(239,68,68,0.18); border: 1px solid rgba(239,68,68,0.45); color: #FCA5A5; border-radius: 5px; padding: 2px 5px; font-size: 0.68rem; cursor: pointer; line-height: 1;">🗑️</button>
+                                            </div>
                                         </div>
                                     `).join('')}
                                 </div>
@@ -1078,7 +1172,18 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
     });
 
     if (filtroCartaoId) {
-        compras = compras.filter(m => String(m.conta_id) === String(filtroCartaoId));
+        const idsCartoesCred = contas.filter(c => c.tipo_conta === 'Cartão de Crédito').map(c => String(c.id));
+        const idsCartoesAlim = contas.filter(c => c.tipo_conta === 'Cartão Alimentação').map(c => String(c.id));
+        compras = compras.filter(m => {
+            if (String(m.conta_id) === String(filtroCartaoId)) return true;
+            if (m.tipo_gasto === 'Cartão de Crédito' && !idsCartoesCred.includes(String(m.conta_id))) {
+                return idsCartoesCred.length > 0 && String(idsCartoesCred[0]) === String(filtroCartaoId);
+            }
+            if (m.tipo_gasto === 'Cartão Alimentação' && !idsCartoesAlim.includes(String(m.conta_id))) {
+                return idsCartoesAlim.length > 0 && String(idsCartoesAlim[0]) === String(filtroCartaoId);
+            }
+            return false;
+        });
     }
 
     // Ordena por data decrescente
@@ -1153,13 +1258,13 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
         }
 
         row.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 10px; min-width: 0;">
+            <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
                 <span style="font-size: 1.15rem; flex-shrink: 0;">${iconeItem}</span>
-                <div style="min-width: 0;">
+                <div style="min-width: 0; flex: 1;">
                     <div style="color: var(--text-primary); font-weight: 700; font-size: 0.92rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
                         ${item.descricao.split(' (')[0]}${parcText}
                     </div>
-                    <div style="font-size: 0.74rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-top: 2px;">
+                    <div style="font-size: 0.74rem; color: var(--text-secondary); display: flex; align-items: center; gap: 6px; margin-top: 2px; flex-wrap: wrap;">
                         <span style="color: ${corCartao}; font-weight: 700;">${nomeCartao}</span>
                         <span>•</span>
                         <span>${dataStr}</span>
@@ -1168,9 +1273,12 @@ function renderizarComprasCartoes(movsDoMes = null, contas = null) {
                     </div>
                 </div>
             </div>
-            <div style="text-align: right; flex-shrink: 0; padding-left: 10px;">
+            <div style="text-align: right; flex-shrink: 0; padding-left: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
                 <div style="font-size: 1rem; font-weight: 800; color: var(--text-primary);">${formatBRL(val)}</div>
-                <span style="font-size: 0.72rem; color: #3B82F6; font-weight: 600;">Editar ➔</span>
+                <div style="display: flex; gap: 6px;">
+                    <button type="button" onclick="event.stopPropagation(); if(typeof editarLancamento === 'function') editarLancamento('${item.id}');" style="background: rgba(59, 130, 246, 0.14); border: 1px solid #3B82F6; color: #60A5FA; padding: 2px 7px; border-radius: 5px; font-size: 0.70rem; font-weight: 700; cursor: pointer;">✏️ Editar</button>
+                    <button type="button" onclick="event.stopPropagation(); if(typeof excluirLancamento === 'function') excluirLancamento('${item.id}');" style="background: rgba(239, 68, 68, 0.14); border: 1px solid #EF4444; color: #FCA5A5; padding: 2px 7px; border-radius: 5px; font-size: 0.70rem; font-weight: 700; cursor: pointer;">🗑️ Apagar</button>
+                </div>
             </div>
         `;
         container.appendChild(row);
@@ -1816,6 +1924,7 @@ async function pagarFaturaCartao(cartaoId, anoAlvo, mesAlvo) {
     const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
     const cartoesCredito = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão de Crédito').toArray();
+    const idsCartoesCredito = new Set(cartoesCredito.map(c => String(c.id)));
     const allMovs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
     const comprasCartao = allMovs.filter(m => {
         if (!m.data_lancamento) return false;
@@ -1823,7 +1932,8 @@ async function pagarFaturaCartao(cartaoId, anoAlvo, mesAlvo) {
         if (parseInt(anoStr, 10) !== targetYear || (parseInt(mesStr, 10) - 1) !== targetMonth) return false;
         if (m.tipo_gasto !== 'Cartão de Crédito' || m.status === 'Cancelado' || m.status === 'Pago') return false;
         if (String(m.conta_id) === String(cartaoId)) return true;
-        if (!m.conta_id) {
+        const contaExisteAtiva = m.conta_id && idsCartoesCredito.has(String(m.conta_id));
+        if (!contaExisteAtiva) {
             if (cartoesCredito.length === 1 && String(cartoesCredito[0].id) === String(cartaoId)) return true;
             if (cartao.titular && m.descricao && m.descricao.toLowerCase().includes(cartao.titular.toLowerCase())) return true;
             if (cartoesCredito.length > 0 && String(cartoesCredito[0].id) === String(cartaoId)) return true;
@@ -2224,6 +2334,7 @@ async function abrirModalExtratoCartaoAlimentacao(contaId) {
     if (!conta) return;
 
     const alimList = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão Alimentação').toArray();
+    const idsAlimList = new Set(alimList.map(c => String(c.id)));
 
     // Buscar todas as movimentações dessa conta no mês
     const todasMovs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
@@ -2234,7 +2345,8 @@ async function abrirModalExtratoCartaoAlimentacao(contaId) {
 
         if (String(m.conta_id) === String(contaId)) return true;
         if (m.tipo_gasto === 'Cartão Alimentação') {
-            if (!m.conta_id) {
+            const contaExisteAtiva = m.conta_id && idsAlimList.has(String(m.conta_id));
+            if (!contaExisteAtiva) {
                 if (alimList.length === 1) return String(alimList[0].id) === String(contaId);
                 if (conta.titular && m.descricao && m.descricao.toLowerCase().includes(conta.titular.toLowerCase())) return true;
                 if (alimList.length > 0 && String(alimList[0].id) === String(contaId)) return true;
@@ -2340,10 +2452,10 @@ async function abrirModalExtratoCartaoAlimentacao(contaId) {
                                 ${vFmt}
                             </span>
                             <div style="display: flex; gap: 6px;">
-                                <button type="button" onclick="fecharModalExtratoCartaoAlimentacao(); if(typeof editarLancamento === 'function') editarLancamento('${item.id}');" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; color: #60A5FA; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+                                <button type="button" onclick="if(typeof editarLancamento === 'function') editarLancamento('${item.id}');" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; color: #60A5FA; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
                                     ✏️ Editar
                                 </button>
-                                <button type="button" onclick="fecharModalExtratoCartaoAlimentacao(); if(typeof excluirLancamento === 'function') excluirLancamento('${item.id}');" style="background: rgba(239, 68, 68, 0.12); border: 1px solid #EF4444; color: #FCA5A5; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+                                <button type="button" onclick="if(typeof excluirLancamento === 'function') excluirLancamento('${item.id}');" style="background: rgba(239, 68, 68, 0.12); border: 1px solid #EF4444; color: #FCA5A5; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
                                     🗑️ Excluir
                                 </button>
                             </div>
@@ -2356,6 +2468,7 @@ async function abrirModalExtratoCartaoAlimentacao(contaId) {
 
     const modal = document.getElementById('modalExtratoCartaoAlimentacao');
     if (modal) {
+        modal.dataset.contaId = String(contaId);
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }
@@ -2395,6 +2508,7 @@ async function abrirModalExtratoFaturaCartao(cartaoId, anoAlvo, mesAlvo) {
     if (!cartao) return;
 
     const cartoesCredito = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1 && c.tipo_conta === 'Cartão de Crédito').toArray();
+    const idsCartoesCredito = new Set(cartoesCredito.map(c => String(c.id)));
 
     // 1. Carrega todas as movimentações ativas
     const todasMovs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
@@ -2404,7 +2518,8 @@ async function abrirModalExtratoFaturaCartao(cartaoId, anoAlvo, mesAlvo) {
         if (m.status === 'Cancelado') return false;
         if (String(m.conta_id) === String(cartaoId)) return true;
         if (m.tipo_gasto === 'Cartão de Crédito') {
-            if (!m.conta_id) {
+            const contaExisteAtiva = m.conta_id && idsCartoesCredito.has(String(m.conta_id));
+            if (!contaExisteAtiva) {
                 if (cartoesCredito.length === 1) return String(cartoesCredito[0].id) === String(cartaoId);
                 if (cartao.titular && m.descricao && m.descricao.toLowerCase().includes(cartao.titular.toLowerCase())) return true;
                 if (cartoesCredito.length > 0 && String(cartoesCredito[0].id) === String(cartaoId)) return true;
@@ -2536,30 +2651,30 @@ async function abrirModalExtratoFaturaCartao(cartaoId, anoAlvo, mesAlvo) {
                 ` : '';
 
                 return `
-                    <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px;">
+                    <div style="background: rgba(30, 41, 59, 0.7); border: 1px solid #334155; border-radius: 10px; padding: 10px 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; width: 100%; box-sizing: border-box;">
                         <div style="flex: 1; min-width: 0;">
                             <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                                <span style="font-weight: 800; color: #FFFFFF; font-size: 0.92rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${item.descricao || ''}">${item.descricao || 'Compra no Cartão'}</span>
+                                <span style="font-weight: 800; color: #FFFFFF; font-size: 0.90rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%;" title="${item.descricao || ''}">${item.descricao || 'Compra no Cartão'}</span>
                                 ${tagComp}
                             </div>
                             ${tagParcelamento}
-                            <div style="font-size: 0.74rem; color: #94A3B8; margin-top: 4px; display: flex; align-items: center; gap: 8px;">
+                            <div style="font-size: 0.72rem; color: #94A3B8; margin-top: 4px; display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                                 <span>📅 ${dataBr}</span>
                                 <span>•</span>
-                                <span style="color: #CBD5E1; font-weight: 600;">💳 Cartão de Crédito</span>
+                                <span style="color: #CBD5E1; font-weight: 600;">💳 Crédito</span>
                                 <span>•</span>
                                 <span style="color: ${item.status === 'Pago' ? '#10B981' : '#F59E0B'}; font-weight: 700;">${item.status === 'Pago' ? '✓ Pago' : '⏳ Na Fatura'}</span>
                             </div>
                         </div>
                         <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex-shrink: 0;">
-                            <span style="font-size: 1.05rem; font-weight: 900; color: #F87171; white-space: nowrap;">
+                            <span style="font-size: 0.98rem; font-weight: 900; color: #F87171; white-space: nowrap;">
                                 - ${formatBRL(valParcela)}
                             </span>
-                            <div style="display: flex; gap: 6px;">
-                                <button type="button" onclick="fecharModalExtratoFaturaCartao(); if(typeof editarLancamento === 'function') editarLancamento('${item.id}');" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; color: #60A5FA; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+                            <div style="display: flex; gap: 5px;">
+                                <button type="button" onclick="if(typeof editarLancamento === 'function') editarLancamento('${item.id}');" style="background: rgba(255,255,255,0.08); border: 1px solid #475569; color: #60A5FA; padding: 3px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">
                                     ✏️ Editar
                                 </button>
-                                <button type="button" onclick="fecharModalExtratoFaturaCartao(); if(typeof excluirLancamento === 'function') excluirLancamento('${item.id}');" style="background: rgba(239, 68, 68, 0.12); border: 1px solid #EF4444; color: #FCA5A5; padding: 3px 8px; border-radius: 6px; font-size: 0.74rem; font-weight: 700; cursor: pointer;">
+                                <button type="button" onclick="if(typeof excluirLancamento === 'function') excluirLancamento('${item.id}');" style="background: rgba(239, 68, 68, 0.12); border: 1px solid #EF4444; color: #FCA5A5; padding: 3px 7px; border-radius: 6px; font-size: 0.72rem; font-weight: 700; cursor: pointer;">
                                     🗑️ Excluir
                                 </button>
                             </div>
@@ -2606,6 +2721,9 @@ async function abrirModalExtratoFaturaCartao(cartaoId, anoAlvo, mesAlvo) {
     // 9. Abre o modal
     const modal = document.getElementById('modalExtratoFaturaCartao');
     if (modal) {
+        modal.dataset.cartaoId = String(cartaoId);
+        modal.dataset.anoAlvo = String(targetYear);
+        modal.dataset.mesAlvo = String(targetMonth);
         modal.style.display = 'flex';
         document.body.style.overflow = 'hidden';
     }

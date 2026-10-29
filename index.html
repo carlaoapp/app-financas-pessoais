@@ -3,9 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="app-build-version" content="1.8.48">
+    <meta name="app-build-version" content="1.8.49">
     <script>
-        window.APP_BUILD_VERSION = '1.8.48';
+        window.APP_BUILD_VERSION = '1.8.49';
         (function() {
             try {
                 var savedTheme = localStorage.getItem('financas_app_theme') || 'preto';
@@ -70,8 +70,8 @@
     <script src="lucide.min.js"></script>
     
     <!-- Estilos -->
-    <link rel="stylesheet" href="finance-style.css?v=1.8.48">
-    <link rel="stylesheet" href="app-custom.css?v=1.8.48">
+    <link rel="stylesheet" href="finance-style.css?v=1.8.49">
+    <link rel="stylesheet" href="app-custom.css?v=1.8.49">
 </head>
 <body class="mode-desktop">
 
@@ -238,9 +238,9 @@
                 </div>
 
                 <!-- Badge da Versão do Sistema (Discreta, Visível e com Checagem de Atualização) -->
-                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.48" class="app-version-badge">
+                <div id="badgeVersaoApp" onclick="verificarAtualizacaoManual()" title="Versão do sistema v1.8.49" class="app-version-badge">
                     <span class="version-dot" id="dotStatusVersao"></span>
-                    <span id="lblVersaoApp" class="version-text">v1.8.48</span>
+                    <span id="lblVersaoApp" class="version-text">v1.8.49</span>
                 </div>
             </div>
 
@@ -2470,55 +2470,55 @@
     </div>
 
     <!-- MODAL DE EXTRATO E LANÇAMENTOS DO CARTÃO ALIMENTAÇÃO -->
-    <div id="modalExtratoCartaoAlimentacao" class="modal-overlay" onclick="if(event.target === this) fecharModalExtratoCartaoAlimentacao()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
-        <div class="modal-content" style="max-width: 580px; width: 100%; max-height: 90vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #F97316; border-radius: 16px; box-shadow: 0 10px 35px rgba(249,115,22,0.25); padding: 22px; box-sizing: border-box;">
+    <div id="modalExtratoCartaoAlimentacao" class="modal-overlay" onclick="if(event.target === this) fecharModalExtratoCartaoAlimentacao()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box;">
+        <div class="modal-content" style="max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; overflow-x: hidden; background: #0F172A; border: 1.5px solid #F97316; border-radius: 16px; box-shadow: 0 10px 35px rgba(249,115,22,0.25); padding: 16px 14px; box-sizing: border-box;">
             <!-- Header do Modal -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #334155; padding-bottom: 14px; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.6rem;">🍽️</span>
-                    <div>
-                        <h3 id="modalAlimNomeCartao" style="color: #FFFFFF; font-size: 1.15rem; margin: 0; font-weight: 800;">Extrato do Cartão Alimentação</h3>
-                        <div id="modalAlimTitular" style="font-size: 0.78rem; color: #FED7AA; font-weight: 600; margin-top: 2px;">Benefício</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 14px; gap: 8px; width: 100%; box-sizing: border-box;">
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+                    <span style="font-size: 1.5rem; flex-shrink: 0;">🍽️</span>
+                    <div style="min-width: 0; flex: 1;">
+                        <h3 id="modalAlimNomeCartao" style="color: #FFFFFF; font-size: 1.08rem; margin: 0; font-weight: 800; word-break: break-word;">Extrato do Cartão Alimentação</h3>
+                        <div id="modalAlimTitular" style="font-size: 0.75rem; color: #FED7AA; font-weight: 600; margin-top: 2px; line-height: 1.3; word-break: break-word;">Benefício</div>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <button type="button" onclick="fecharModalExtratoCartaoAlimentacao()" title="Fechar" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 8px; color: #94A3B8; width: 34px; height: 34px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                    <button type="button" onclick="fecharModalExtratoCartaoAlimentacao()" title="Fechar" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 8px; color: #94A3B8; width: 32px; height: 32px; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
                 </div>
             </div>
 
             <!-- Resumo Financeiro do Cartão (Cards) -->
-            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 16px;">
-                <div style="background: rgba(249, 115, 22, 0.12); border: 1.5px solid rgba(249, 115, 22, 0.4); border-radius: 12px; padding: 10px 12px;">
-                    <div style="font-size: 0.7rem; color: #FED7AA; font-weight: 700; text-transform: uppercase;">Saldo Disponível</div>
-                    <div id="modalAlimSaldoAtual" style="font-size: 1.25rem; font-weight: 900; color: #FFFFFF; margin-top: 3px;">R$ 0,00</div>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; width: 100%; box-sizing: border-box;">
+                <div style="background: rgba(249, 115, 22, 0.12); border: 1.5px solid rgba(249, 115, 22, 0.4); border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0; overflow: hidden; box-sizing: border-box;">
+                    <div style="font-size: 0.62rem; color: #FED7AA; font-weight: 700; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Saldo Atual</div>
+                    <div id="modalAlimSaldoAtual" style="font-size: clamp(0.78rem, 3.3vw, 1.02rem); font-weight: 900; color: #FFFFFF; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">R$ 0,00</div>
                 </div>
-                <div style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.3); border-radius: 12px; padding: 10px 12px;">
-                    <div style="font-size: 0.7rem; color: #FCA5A5; font-weight: 700; text-transform: uppercase;">Gastos no Mês</div>
-                    <div id="modalAlimTotalGasto" style="font-size: 1.25rem; font-weight: 900; color: #F87171; margin-top: 3px;">R$ 0,00</div>
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.3); border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0; overflow: hidden; box-sizing: border-box;">
+                    <div style="font-size: 0.62rem; color: #FCA5A5; font-weight: 700; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Gastos Mês</div>
+                    <div id="modalAlimTotalGasto" style="font-size: clamp(0.78rem, 3.3vw, 1.02rem); font-weight: 900; color: #F87171; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">R$ 0,00</div>
                 </div>
-                <div style="background: rgba(16, 185, 129, 0.1); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 10px 12px;">
-                    <div style="font-size: 0.7rem; color: #6EE7B7; font-weight: 700; text-transform: uppercase;">Recarga Programada</div>
-                    <div id="modalAlimRecarga" style="font-size: 0.95rem; font-weight: 800; color: #34D399; margin-top: 5px;">Todo dia 10</div>
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1.5px solid rgba(16, 185, 129, 0.3); border-radius: 10px; padding: 8px 6px; text-align: center; min-width: 0; overflow: hidden; box-sizing: border-box;">
+                    <div style="font-size: 0.62rem; color: #6EE7B7; font-weight: 700; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Recarga</div>
+                    <div id="modalAlimRecarga" style="font-size: clamp(0.70rem, 2.9vw, 0.88rem); font-weight: 800; color: #34D399; margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">Todo dia 10</div>
                 </div>
             </div>
 
             <!-- Ações Rápidas -->
-            <div style="display: flex; gap: 8px; margin-bottom: 16px; flex-wrap: wrap;">
-                <button type="button" id="btnModalAlimNovoGasto" style="flex: 1; min-width: 140px; height: 38px; background: linear-gradient(135deg, #EA580C, #F97316); color: white; border: none; border-radius: 9px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(249,115,22,0.3);">
-                    <span>➕</span> Lançar Gasto neste Cartão
+            <div style="display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; width: 100%; box-sizing: border-box;">
+                <button type="button" id="btnModalAlimNovoGasto" style="flex: 1; min-width: 130px; height: 38px; background: linear-gradient(135deg, #EA580C, #F97316); color: white; border: none; border-radius: 9px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(249,115,22,0.3);">
+                    <span>➕</span> Lançar Gasto
                 </button>
-                <button type="button" onclick="abrirModalLancamentoComLeitura()" style="height: 38px; background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; border-radius: 9px; padding: 0 14px; font-weight: 800; font-size: 0.8rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
-                    <span>📷</span> Ler Cupom / Foto
+                <button type="button" onclick="abrirModalLancamentoComLeitura()" style="height: 38px; background: rgba(16, 185, 129, 0.15); border: 1.5px solid #10B981; color: #6EE7B7; border-radius: 9px; padding: 0 12px; font-weight: 800; font-size: 0.78rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                    <span>📷</span> Ler Cupom
                 </button>
             </div>
 
             <!-- Lista de Lançamentos -->
-            <div style="margin-bottom: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h4 style="color: #E2E8F0; font-size: 0.9rem; margin: 0; font-weight: 800;">Lançamentos Realizados</h4>
-                    <span id="modalAlimContadorItens" style="font-size: 0.75rem; color: #94A3B8; font-weight: 700;">0 itens</span>
+            <div style="margin-bottom: 8px; width: 100%; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; gap: 8px;">
+                    <h4 style="color: #E2E8F0; font-size: 0.86rem; margin: 0; font-weight: 800;">Lançamentos Realizados</h4>
+                    <span id="modalAlimContadorItens" style="font-size: 0.74rem; color: #94A3B8; font-weight: 700; flex-shrink: 0;">0 itens</span>
                 </div>
-                <div id="modalAlimListaLancamentos" style="display: flex; flex-direction: column; gap: 8px; max-height: 360px; overflow-y: auto; padding-right: 2px;">
+                <div id="modalAlimListaLancamentos" style="display: flex; flex-direction: column; gap: 8px; max-height: 340px; overflow-y: auto; overflow-x: hidden; width: 100%; box-sizing: border-box;">
                     <!-- Preenchido via JavaScript -->
                 </div>
             </div>
@@ -2526,77 +2526,77 @@
     </div>
 
     <!-- MODAL DE EXTRATO, FATURAS E PRESTAÇÕES DO CARTÃO DE CRÉDITO -->
-    <div id="modalExtratoFaturaCartao" class="modal-overlay" onclick="if(event.target === this) fecharModalExtratoFaturaCartao()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 16px;">
-        <div class="modal-content" style="max-width: 650px; width: 100%; max-height: 92vh; overflow-y: auto; background: #0F172A; border: 1.5px solid #3B82F6; border-radius: 16px; box-shadow: 0 10px 40px rgba(37,99,235,0.28); padding: 22px; box-sizing: border-box;">
+    <div id="modalExtratoFaturaCartao" class="modal-overlay" onclick="if(event.target === this) fecharModalExtratoFaturaCartao()" style="display: none; z-index: 100000; align-items: center; justify-content: center; padding: 12px; box-sizing: border-box;">
+        <div class="modal-content" style="max-width: 600px; width: 100%; max-height: 92vh; overflow-y: auto; overflow-x: hidden; background: #0F172A; border: 1.5px solid #3B82F6; border-radius: 16px; box-shadow: 0 10px 40px rgba(37,99,235,0.28); padding: 16px 14px; box-sizing: border-box;">
             <!-- Header do Modal -->
-            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #334155; padding-bottom: 14px; margin-bottom: 16px;">
-                <div style="display: flex; align-items: center; gap: 10px;">
-                    <span style="font-size: 1.6rem;">💳</span>
-                    <div>
-                        <h3 id="modalCardCredNome" style="color: #FFFFFF; font-size: 1.15rem; margin: 0; font-weight: 800;">Faturas e Prestações do Cartão</h3>
-                        <div id="modalCardCredTitular" style="font-size: 0.78rem; color: #93C5FD; font-weight: 600; margin-top: 2px;">Cartão de Crédito</div>
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 1px solid #334155; padding-bottom: 12px; margin-bottom: 14px; gap: 8px; width: 100%; box-sizing: border-box;">
+                <div style="display: flex; align-items: center; gap: 10px; min-width: 0; flex: 1;">
+                    <span style="font-size: 1.5rem; flex-shrink: 0;">💳</span>
+                    <div style="min-width: 0; flex: 1;">
+                        <h3 id="modalCardCredNome" style="color: #FFFFFF; font-size: 1.08rem; margin: 0; font-weight: 800; word-break: break-word;">Faturas e Prestações do Cartão</h3>
+                        <div id="modalCardCredTitular" style="font-size: 0.74rem; color: #93C5FD; font-weight: 600; margin-top: 2px; line-height: 1.3; word-break: break-word;">Cartão de Crédito</div>
                     </div>
                 </div>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                    <button type="button" onclick="fecharModalExtratoFaturaCartao()" title="Fechar" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 8px; color: #94A3B8; width: 34px; height: 34px; font-size: 1.2rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
+                <div style="display: flex; align-items: center; gap: 8px; flex-shrink: 0;">
+                    <button type="button" onclick="fecharModalExtratoFaturaCartao()" title="Fechar" style="background: rgba(255,255,255,0.08); border: 1px solid #334155; border-radius: 8px; color: #94A3B8; width: 32px; height: 32px; font-size: 1.1rem; cursor: pointer; display: flex; align-items: center; justify-content: center;">✕</button>
                 </div>
             </div>
 
             <!-- Resumo dos 3 Limites (Total, Utilizado e Disponível) -->
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
-                <div style="background: rgba(59, 130, 246, 0.1); border: 1.5px solid rgba(59, 130, 246, 0.35); border-radius: 12px; padding: 10px 12px; text-align: center;">
-                    <div style="font-size: 0.68rem; color: #93C5FD; font-weight: 700; text-transform: uppercase;">💳 Limite Total</div>
-                    <div id="modalCardCredLimTotal" style="font-size: 1.15rem; font-weight: 900; color: #FFFFFF; margin-top: 3px;">R$ 0,00</div>
+            <div style="display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-bottom: 14px; width: 100%; box-sizing: border-box;">
+                <div style="background: rgba(59, 130, 246, 0.1); border: 1.5px solid rgba(59, 130, 246, 0.35); border-radius: 10px; padding: 8px 5px; text-align: center; min-width: 0; overflow: hidden; box-sizing: border-box;">
+                    <div style="font-size: 0.60rem; color: #93C5FD; font-weight: 700; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">💳 Limite Total</div>
+                    <div id="modalCardCredLimTotal" style="font-size: clamp(0.76rem, 3.2vw, 1.02rem); font-weight: 900; color: #FFFFFF; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">R$ 0,00</div>
                 </div>
-                <div style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.35); border-radius: 12px; padding: 10px 12px; text-align: center;">
-                    <div style="font-size: 0.68rem; color: #FCA5A5; font-weight: 700; text-transform: uppercase;">🔴 Utilizado (Fatura)</div>
-                    <div id="modalCardCredLimUtilizado" style="font-size: 1.15rem; font-weight: 900; color: #F87171; margin-top: 3px;">R$ 0,00</div>
+                <div style="background: rgba(239, 68, 68, 0.1); border: 1.5px solid rgba(239, 68, 68, 0.35); border-radius: 10px; padding: 8px 5px; text-align: center; min-width: 0; overflow: hidden; box-sizing: border-box;">
+                    <div style="font-size: 0.60rem; color: #FCA5A5; font-weight: 700; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🔴 Utilizado</div>
+                    <div id="modalCardCredLimUtilizado" style="font-size: clamp(0.76rem, 3.2vw, 1.02rem); font-weight: 900; color: #F87171; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">R$ 0,00</div>
                 </div>
-                <div style="background: rgba(16, 185, 129, 0.1); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 10px 12px; text-align: center;">
-                    <div style="font-size: 0.68rem; color: #6EE7B7; font-weight: 700; text-transform: uppercase;">🟢 Disponível</div>
-                    <div id="modalCardCredLimDisp" style="font-size: 1.15rem; font-weight: 900; color: #34D399; margin-top: 3px;">R$ 0,00</div>
+                <div style="background: rgba(16, 185, 129, 0.1); border: 1.5px solid rgba(16, 185, 129, 0.35); border-radius: 10px; padding: 8px 5px; text-align: center; min-width: 0; overflow: hidden; box-sizing: border-box;">
+                    <div style="font-size: 0.60rem; color: #6EE7B7; font-weight: 700; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">🟢 Disponível</div>
+                    <div id="modalCardCredLimDisp" style="font-size: clamp(0.76rem, 3.2vw, 1.02rem); font-weight: 900; color: #34D399; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">R$ 0,00</div>
                 </div>
             </div>
 
             <!-- Seletor de Meses para Ver Faturas e Prestações -->
-            <div style="margin-bottom: 16px;">
-                <label style="display: block; font-size: 0.76rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 8px;">
-                    📅 Escolha o Mês para ver a Fatura e as Prestações:
+            <div style="margin-bottom: 14px; width: 100%; max-width: 100%; box-sizing: border-box; overflow: hidden;">
+                <label style="display: block; font-size: 0.72rem; font-weight: 700; color: #94A3B8; text-transform: uppercase; margin-bottom: 6px; line-height: 1.3;">
+                    📅 Escolha o Mês para ver a Fatura e Prestações:
                 </label>
-                <div id="modalCardCredCarrosselMeses" style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px;">
+                <div id="modalCardCredCarrosselMeses" style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; width: 100%; max-width: 100%; box-sizing: border-box; -webkit-overflow-scrolling: touch;">
                     <!-- Preenchido dinamicamente com botões de cada mês -->
                 </div>
             </div>
 
             <!-- Banner do Mês Selecionado -->
-            <div style="background: rgba(30, 41, 59, 0.7); border: 1.5px solid #334155; border-radius: 12px; padding: 12px 14px; margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
-                <div>
-                    <span id="modalCardCredMesSelecionadoTitulo" style="font-size: 0.95rem; font-weight: 800; color: #FFFFFF;">Fatura de Novembro / 2026</span>
-                    <div id="modalCardCredDatasFatura" style="font-size: 0.74rem; color: #94A3B8; margin-top: 2px;">Vence dia 08 &bull; Fechamento dia 24</div>
+            <div style="background: rgba(30, 41, 59, 0.7); border: 1.5px solid #334155; border-radius: 12px; padding: 10px 12px; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; width: 100%; box-sizing: border-box;">
+                <div style="min-width: 0; flex: 1;">
+                    <span id="modalCardCredMesSelecionadoTitulo" style="font-size: 0.90rem; font-weight: 800; color: #FFFFFF; display: block;">Fatura de Outubro / 2026</span>
+                    <div id="modalCardCredDatasFatura" style="font-size: 0.72rem; color: #94A3B8; margin-top: 2px;">Vence dia 08 &bull; Fechamento dia 24</div>
                 </div>
-                <div style="text-align: right;">
-                    <div style="font-size: 0.7rem; color: #CBD5E1; text-transform: uppercase; font-weight: 700;">Total da Fatura</div>
-                    <div id="modalCardCredValorFatura" style="font-size: 1.35rem; font-weight: 900; color: #F87171; margin-top: 1px;">R$ 0,00</div>
+                <div style="text-align: right; flex-shrink: 0;">
+                    <div style="font-size: 0.66rem; color: #CBD5E1; text-transform: uppercase; font-weight: 700;">Total da Fatura</div>
+                    <div id="modalCardCredValorFatura" style="font-size: 1.18rem; font-weight: 900; color: #F87171; margin-top: 1px;">R$ 0,00</div>
                 </div>
             </div>
 
             <!-- Lista de Compras e Prestações -->
-            <div style="margin-bottom: 8px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                    <h4 style="color: #E2E8F0; font-size: 0.9rem; margin: 0; font-weight: 800;">Compras e Prestações Desta Fatura</h4>
-                    <span id="modalCardCredContadorItens" style="font-size: 0.75rem; color: #94A3B8; font-weight: 700;">0 compras</span>
+            <div style="margin-bottom: 8px; width: 100%; box-sizing: border-box;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 8px;">
+                    <h4 style="color: #E2E8F0; font-size: 0.85rem; margin: 0; font-weight: 800;">Compras e Prestações Desta Fatura</h4>
+                    <span id="modalCardCredContadorItens" style="font-size: 0.74rem; color: #94A3B8; font-weight: 700; flex-shrink: 0;">0 compras</span>
                 </div>
-                <div id="modalCardCredListaCompras" style="display: flex; flex-direction: column; gap: 8px; max-height: 320px; overflow-y: auto; padding-right: 2px;">
+                <div id="modalCardCredListaCompras" style="display: flex; flex-direction: column; gap: 8px; max-height: 300px; overflow-y: auto; overflow-x: hidden; width: 100%; box-sizing: border-box;">
                     <!-- Preenchido via JavaScript -->
                 </div>
             </div>
 
             <!-- Botões de Ação Inferiores -->
-            <div style="display: flex; gap: 8px; margin-top: 16px; border-top: 1px solid #334155; padding-top: 14px; flex-wrap: wrap;">
-                <button type="button" id="btnModalCredPagarFatura" style="flex: 1; min-width: 140px; height: 40px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
-                    <span>💵</span> Pagar Fatura Deste Mês
+            <div style="display: flex; gap: 8px; margin-top: 14px; border-top: 1px solid #334155; padding-top: 12px; flex-wrap: wrap; width: 100%; box-sizing: border-box;">
+                <button type="button" id="btnModalCredPagarFatura" style="flex: 1; min-width: 130px; height: 40px; background: linear-gradient(135deg, #10B981, #059669); color: white; border: none; border-radius: 10px; font-weight: 800; font-size: 0.80rem; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; box-shadow: 0 4px 12px rgba(16,185,129,0.3);">
+                    <span>💵</span> Pagar Fatura
                 </button>
-                <button type="button" id="btnModalCredNovoLancamento" style="height: 40px; background: rgba(59, 130, 246, 0.15); border: 1.5px solid #3B82F6; color: #93C5FD; border-radius: 10px; padding: 0 16px; font-weight: 800; font-size: 0.84rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
+                <button type="button" id="btnModalCredNovoLancamento" style="height: 40px; background: rgba(59, 130, 246, 0.15); border: 1.5px solid #3B82F6; color: #93C5FD; border-radius: 10px; padding: 0 14px; font-weight: 800; font-size: 0.80rem; cursor: pointer; display: flex; align-items: center; gap: 6px;">
                     <span>➕</span> Nova Compra
                 </button>
             </div>
@@ -2628,15 +2628,15 @@
     <script src="xlsx.mini.min.js"></script>
     <script src="tesseract.min.js"></script>
     <script src="echarts.min.js"></script>
-    <script src="finance-ocr.js?v=1.8.48"></script>
-    <script src="finance-auto-notificacoes.js?v=1.8.48"></script>
-    <script src="finance-db.js?v=1.8.48"></script>
-    <script src="finance-sync.js?v=1.8.48"></script>
-    <script src="finance-powerbi.js?v=1.8.48"></script>
-    <script src="finance-dashboard.js?v=1.8.48"></script>
-    <script src="finance-cartoes.js?v=1.8.48"></script>
-    <script src="auth.js?v=1.8.48"></script>
-    <script src="auto-update.js?v=1.8.48"></script>
+    <script src="finance-ocr.js?v=1.8.49"></script>
+    <script src="finance-auto-notificacoes.js?v=1.8.49"></script>
+    <script src="finance-db.js?v=1.8.49"></script>
+    <script src="finance-sync.js?v=1.8.49"></script>
+    <script src="finance-powerbi.js?v=1.8.49"></script>
+    <script src="finance-dashboard.js?v=1.8.49"></script>
+    <script src="finance-cartoes.js?v=1.8.49"></script>
+    <script src="auth.js?v=1.8.49"></script>
+    <script src="auto-update.js?v=1.8.49"></script>
 
     <!-- Script de Alternância Desktop / Mobbi e Inicialização -->
     <script>
