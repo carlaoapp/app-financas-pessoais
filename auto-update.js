@@ -7,12 +7,45 @@ function getCurrentRunningVersion() {
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
     const stored = localStorage.getItem('app_current_version');
     if (stored) return stored.trim();
-    return '1.8.50';
+    return '1.8.5';
+}
+
+// Converte a versão no formato da nova régua (major.minor.patch, onde patch vai até 10, minor até 9)
+// Ex: 1.8.5 -> 1405; 1.8.10 -> 1410; 1.9.1 -> 1451; 1.9.10 -> 1460; 2.1.1 -> 2051
+function getVersionScore(ver) {
+    if (!ver) return 0;
+    const clean = String(ver).trim().replace(/^v/i, '');
+    
+    // Tratamento de compatibilidade da migração:
+    // A versão legada '1.8.50' (ou '1.8.49') deve ser considerada anterior a '1.8.5' para disparar update imediato
+    if (clean === '1.8.50' || clean === '1.8.49') {
+        return 1404; // imediatamente abaixo de 1.8.5 (1405)
+    }
+
+    const parts = clean.split('.').map(n => parseInt(n, 10) || 0);
+    const major = parts[0] || 0;
+    const minor = parts[1] || 0;
+    const patch = parts[2] || 0;
+
+    return (major * 1000) + (minor * 50) + patch;
 }
 
 function isNewerVersion(serverVer, currentVer) {
     if (!serverVer || !currentVer) return false;
     if (serverVer === currentVer) return false;
+
+    // Migração imediata para quem tem cache legado de 1.8.50
+    const cleanCurrent = String(currentVer).trim().replace(/^v/i, '');
+    if (cleanCurrent === '1.8.50' || cleanCurrent === '1.8.49') {
+        return true;
+    }
+
+    const sScore = getVersionScore(serverVer);
+    const cScore = getVersionScore(currentVer);
+
+    if (sScore !== cScore) {
+        return sScore > cScore;
+    }
 
     const sParts = serverVer.replace(/[^0-9.]/g, '').split('.').map(n => parseInt(n, 10) || 0);
     const cParts = currentVer.replace(/[^0-9.]/g, '').split('.').map(n => parseInt(n, 10) || 0);
@@ -22,7 +55,7 @@ function isNewerVersion(serverVer, currentVer) {
         const c = cParts[i] || 0;
         if (s > c) return true;
         if (s < c) return false;
-    }
+}
     return false;
 }
 
