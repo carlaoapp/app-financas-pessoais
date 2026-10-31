@@ -5763,24 +5763,43 @@ async function exportarBackupFinancasDireto(opcao) {
                 ['Nome da Conta / Cartão', 'Tipo de Conta', 'Titular', 'Banco / Emissor', 'Limite Total (R$)', 'Saldo / Limite Disponível (R$)', 'Dia Fechamento', 'Dia Vencimento']
             ];
 
-            cartoesEContas.forEach(c => {
+            const linhaCabContas = 3;
+            const linhaFimContas = linhaCabContas + cartoesEContas.length;
+            const linhaCabCompras = linhaFimContas + 2;
+            const linhaCabColCompras = linhaCabCompras + 1;
+            const linhaInicioCompras = linhaCabColCompras + 1;
+            const linhaFimCompras = linhaInicioCompras + Math.max(1, comprasCartoes.length) - 1;
+
+            cartoesEContas.forEach((c, idx) => {
+                const linhaAtual = 4 + idx;
+                let valDisp = parseFloat(c.saldo_atual || 0);
+                if (c.tipo_conta === 'Cartão de Crédito') {
+                    const limTot = parseFloat(c.limite_cartao || 0);
+                    const totGasto = comprasCartoes.filter(comp => {
+                        const nomeComp = comp.conta_id ? (mapContas.get(String(comp.conta_id)) || '') : '';
+                        return (String(comp.conta_id) === String(c.id)) || (nomeComp && nomeComp === c.nome_conta);
+                    }).reduce((acc, comp) => acc + (parseFloat(comp.valor_total) || 0), 0);
+                    const dispVal = Math.max(0, limTot - totGasto);
+                    valDisp = {
+                        t: 'n',
+                        f: `E${linhaAtual}-SUMIF(B$${linhaInicioCompras}:B$${linhaFimCompras},A${linhaAtual},D$${linhaInicioCompras}:D$${linhaFimCompras})`,
+                        v: dispVal
+                    };
+                }
+
                 aoaCartoes.push([
                     safeExcelStr(c.nome_conta || ''),
                     safeExcelStr(c.tipo_conta || 'Conta Corrente'),
                     safeExcelStr(c.titular || ''),
                     safeExcelStr(c.banco || ''),
                     parseFloat(c.limite_cartao || 0),
-                    parseFloat(c.saldo_atual || 0),
+                    valDisp,
                     c.dia_fechamento || '',
                     c.dia_vencimento || ''
                 ]);
             });
 
             aoaCartoes.push([]);
-            const linhaCabCompras = aoaCartoes.length + 1;
-            const linhaInicioCompras = linhaCabCompras + 1;
-            const linhaFimCompras = linhaCabCompras + Math.max(1, comprasCartoes.length);
-
             const fTotCompras = { t: 'n', f: `SUM(D${linhaInicioCompras}:D${linhaFimCompras})`, v: totalComprasCartoesVal };
 
             aoaCartoes.push(['EXTRATO DE COMPRAS NOS CARTÕES DE CRÉDITO', '', 'Total Faturas:', fTotCompras, '', '', '']);

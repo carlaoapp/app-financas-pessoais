@@ -506,12 +506,15 @@ async function carregarCartoesEContas() {
     let faturasPorCartao = {};
     let lancamentosPorCartao = {};
     let lancamentosPorConta = {};
+    let totalGastoComprometidoPorCartao = {};
+    let totalGastoComprometidoGeral = 0;
 
     contas.forEach(c => {
         lancamentosPorConta[c.id] = [];
         if (c.tipo_conta === 'Cartão de Crédito') {
             limiteTotalCartoes += (parseFloat(c.limite_cartao) || 0);
             faturasPorCartao[c.id] = 0;
+            totalGastoComprometidoPorCartao[c.id] = 0;
             lancamentosPorCartao[c.id] = [];
         } else if (c.tipo_conta === 'Cartão Alimentação') {
             saldoTotalAlimentacao += (parseFloat(c.saldo_atual) || 0);
@@ -521,7 +524,31 @@ async function carregarCartoesEContas() {
         }
     });
 
-    // Calcula faturas por cartão e total geral
+    // 1. Calcula o total gasto/comprometido de compras de cartão de crédito em TODOS os meses (compras não canceladas e não pagas)
+    movs.forEach(m => {
+        if (m.tipo_gasto === 'Cartão de Crédito' && m.status !== 'Cancelado' && m.status !== 'Pago') {
+            const val = (parseFloat(m.valor_realizado) > 0) ? parseFloat(m.valor_realizado) : (parseFloat(m.valor_total) || 0);
+            let alvoId = null;
+            if (m.conta_id && totalGastoComprometidoPorCartao.hasOwnProperty(m.conta_id)) {
+                alvoId = m.conta_id;
+            } else if (cartoesCredito.length === 1) {
+                alvoId = cartoesCredito[0].id;
+            } else if (cartoesCredito.length > 0) {
+                if (m.descricao) {
+                    const porTitular = cartoesCredito.find(c => c.titular && m.descricao.toLowerCase().includes(c.titular.toLowerCase()));
+                    if (porTitular) alvoId = porTitular.id;
+                }
+                if (!alvoId) alvoId = cartoesCredito[0].id;
+            }
+
+            if (alvoId && totalGastoComprometidoPorCartao.hasOwnProperty(alvoId)) {
+                totalGastoComprometidoPorCartao[alvoId] += val;
+                totalGastoComprometidoGeral += val;
+            }
+        }
+    });
+
+    // 2. Calcula faturas por cartão e total geral do mês alvo
     movsDoMes.forEach(m => {
         const val = parseFloat(m.valor_total) || 0;
         if (m.tipo_gasto === 'Cartão de Crédito' && m.status !== 'Cancelado') {
@@ -550,7 +577,7 @@ async function carregarCartoesEContas() {
         }
     });
 
-    const limiteDisponivelTotal = Math.max(0, limiteTotalCartoes - faturaTotalMes);
+    const limiteDisponivelTotal = Math.max(0, limiteTotalCartoes - totalGastoComprometidoGeral);
 
     // Atualiza cards de métricas no topo
     const elSaldo = document.getElementById('metricSaldoTotalContas');
@@ -597,8 +624,9 @@ async function carregarCartoesEContas() {
                 const isDebito = cartao.tipo_conta === 'Cartão de Débito';
                 const limTotal = parseFloat(cartao.limite_cartao) || 0;
                 const faturaAtual = faturasPorCartao[cartao.id] || 0;
-                const limDisp = Math.max(0, limTotal - faturaAtual);
-                const percUsado = limTotal > 0 ? Math.min(100, Math.round((faturaAtual / limTotal) * 100)) : 0;
+                const totalGastoCartao = totalGastoComprometidoPorCartao[cartao.id] || 0;
+                const limDisp = isDebito ? (parseFloat(cartao.saldo_atual) || 0) : Math.max(0, limTotal - totalGastoCartao);
+                const percUsado = limTotal > 0 ? Math.min(100, Math.round((totalGastoCartao / limTotal) * 100)) : 0;
                 const cor = cartao.cor_cartao || (isDebito ? '#059669' : '#2563EB');
 
                 const comprasCard = lancamentosPorCartao[cartao.id] || [];
@@ -638,7 +666,7 @@ async function carregarCartoesEContas() {
                             <div style="font-size: 1.45rem; font-weight: 900; color: #10B981; margin-top: 2px;">${formatBRL(cartao.saldo_atual || 0)}</div>
                         </div>
                         ` : `
-                        <!-- Resumo dos 3 Limites no Card (Requisito 2: Total, Utilizado e Disponível) -->
+                        <!-- Resumo dos 3 Limites no Card (Limite Total, Utilizado na Fatura e Disponível Total Geral) -->
                         <div style="background: rgba(0,0,0,0.35); border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 10px 12px; margin-bottom: 12px; cursor: pointer;" onclick="abrirModalExtratoFaturaCartao('${cartao.id}')" title="Clique para ver extrato e faturas deste cartão">
                             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; margin-bottom: 8px;">
                                 <div>
@@ -655,13 +683,13 @@ async function carregarCartoesEContas() {
                                 </div>
                             </div>
 
-                            <!-- Barra de Uso do Limite -->
+                            <!-- Barra de Uso do Limite Total Comprometido -->
                             <div style="width: 100%; height: 7px; background: rgba(0,0,0,0.5); border-radius: 4px; overflow: hidden; border: 1px solid rgba(255,255,255,0.15); margin-bottom: 6px;">
                                 <div style="width: ${window.privacyMode ? 0 : percUsado}%; height: 100%; background: ${percUsado > 85 ? '#EF4444' : (percUsado > 50 ? '#F59E0B' : '#10B981')}; border-radius: 4px; transition: width 0.3s;"></div>
                             </div>
                             <div style="display: flex; justify-content: space-between; font-size: 0.70rem; color: #CBD5E1;">
                                 <span>Fechamento: Dia ${cartao.dia_fechamento || 1} &bull; Venc: Dia ${cartao.dia_vencimento || 10}</span>
-                                <span>Uso: ${window.privacyMode ? '•••%' : percUsado + '%'}</span>
+                                <span>Total Comprometido: <strong style="color: #FCA5A5;">${formatBRL(totalGastoCartao)}</strong> (${window.privacyMode ? '•••%' : percUsado + '%'})</span>
                             </div>
                         </div>
 
@@ -2544,7 +2572,16 @@ async function abrirModalExtratoFaturaCartao(cartaoId, anoAlvo, mesAlvo) {
         faturaMes += v;
     });
 
-    const limDisp = Math.max(0, limTotal - faturaMes);
+    // Total gasto/comprometido em todas as faturas (compras não canceladas e não pagas)
+    let totalGastoCartaoTodas = 0;
+    movsDoCartaoTodas.forEach(m => {
+        if (m.status !== 'Cancelado' && m.status !== 'Pago') {
+            const v = (parseFloat(m.valor_realizado) > 0) ? parseFloat(m.valor_realizado) : (parseFloat(m.valor_total) || 0);
+            totalGastoCartaoTodas += v;
+        }
+    });
+
+    const limDisp = Math.max(0, limTotal - totalGastoCartaoTodas);
 
     // 4. Preenche cabeçalhos e métricas
     const elNome = document.getElementById('modalCardCredNome');

@@ -7,7 +7,7 @@ function getCurrentRunningVersion() {
     if (window.APP_BUILD_VERSION) return String(window.APP_BUILD_VERSION).trim();
     const stored = localStorage.getItem('app_current_version');
     if (stored) return stored.trim();
-    return '1.8.8';
+    return '1.8.9';
 }
 
 // Converte a versão no formato da nova régua (major.minor.patch, onde patch vai até 10, minor até 9)
