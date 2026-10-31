@@ -5419,7 +5419,7 @@ async function confirmarExportacaoBackupExcel() {
 }
 window.confirmarExportacaoBackupExcel = confirmarExportacaoBackupExcel;
 
-// Exportação Direta de Backup com geração do arquivo Excel (.xlsx)
+// Exportação Direta de Backup com geração do arquivo Excel (.xlsx) com abas completas do App
 async function exportarBackupFinancasDireto(opcao) {
     try {
         const movs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
@@ -5427,134 +5427,511 @@ async function exportarBackupFinancasDireto(opcao) {
         const origens = await dbLocal.origens_renda.filter(o => o.deleted !== 1).toArray();
 
         const mesesCompletos = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-        const anoAtual = currentViewDate.getFullYear();
-        const mesAtual = currentViewDate.getMonth();
+        const mesesCurtos = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const anoAtual = (typeof currentViewDate !== 'undefined' && currentViewDate) ? currentViewDate.getFullYear() : new Date().getFullYear();
+        const mesAtual = (typeof currentViewDate !== 'undefined' && currentViewDate) ? currentViewDate.getMonth() : new Date().getMonth();
 
         const now = new Date();
         const dataStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
         const horaStr = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
-        let movsFiltradas = [];
+        // Map de contas para exibir o nome amigável do cartão/banco
+        const mapContas = new Map();
+        contas.forEach(c => mapContas.set(String(c.id), c.nome_conta || 'Conta'));
+
+        // Função de formatação de data para o padrão brasileiro DD/MM/AAAA
+        const formatarDataExcel = (dataVal) => {
+            if (!dataVal) return '';
+            const s = String(dataVal).trim();
+            if (s.includes('T')) return formatarDataExcel(s.split('T')[0]);
+            if (s.includes('-')) {
+                const p = s.split('-');
+                if (p.length === 3) {
+                    if (p[0].length === 4) return `${p[2].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[0]}`;
+                    return `${p[0].padStart(2, '0')}/${p[1].padStart(2, '0')}/${p[2]}`;
+                }
+            }
+            return s;
+        };
+
+        const safeExcelStr = (val) => {
+            if (val === null || val === undefined) return '';
+            const s = String(val);
+            return s.length > 32700 ? s.slice(0, 32700) : s;
+        };
+
+        // Identifica os períodos/meses a exportar
+        let periodosExportar = [];
         let periodoDesc = '';
         let fileName = '';
 
         if (opcao === 'mes_atual') {
-            movsFiltradas = movs.filter(m => isLancamentoNoPeriodo(m.data_lancamento, anoAtual, mesAtual, 1));
+            periodosExportar.push({ ano: anoAtual, mes: mesAtual });
             periodoDesc = `${mesesCompletos[mesAtual]} de ${anoAtual}`;
-            fileName = `backup_financas_${mesesCompletos[mesAtual]}_${anoAtual}.xlsx`;
+            fileName = `backup_financas_${mesesCurtos[mesAtual]}-${anoAtual}.xlsx`;
         } else if (opcao === 'qtd_meses') {
             const inpQtd = document.getElementById('inputQtdMesesBackup');
             const qtd = inpQtd ? (parseInt(inpQtd.value, 10) || 1) : 1;
-            movsFiltradas = movs.filter(m => isLancamentoNoPeriodo(m.data_lancamento, anoAtual, mesAtual, qtd));
+            for (let i = 0; i < qtd; i++) {
+                const d = new Date(anoAtual, mesAtual + i, 1);
+                periodosExportar.push({ ano: d.getFullYear(), mes: d.getMonth() });
+            }
             const fimDate = new Date(anoAtual, mesAtual + qtd - 1, 1);
-            periodoDesc = `${mesesCompletos[mesAtual]}/${anoAtual} a ${mesesCompletos[fimDate.getMonth()]}/${fimDate.getFullYear()} (${qtd} meses)`;
-            fileName = `backup_financas_${qtd}meses_${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}_a_${fimDate.getFullYear()}-${String(fimDate.getMonth() + 1).padStart(2, '0')}.xlsx`;
+            periodoDesc = `${mesesCurtos[mesAtual]}/${anoAtual} a ${mesesCurtos[fimDate.getMonth()]}/${fimDate.getFullYear()} (${qtd} meses)`;
+            fileName = `backup_financas_${qtd}meses_${mesesCurtos[mesAtual]}-${anoAtual}_a_${mesesCurtos[fimDate.getMonth()]}-${fimDate.getFullYear()}.xlsx`;
         } else {
-            // Todos os meses
-            movsFiltradas = movs.slice();
+            // Todos os meses: localiza todos os anos/meses que possuem lançamentos
+            const paresSet = new Set();
+            movs.forEach(m => {
+                if (m.data_lancamento && m.data_lancamento.includes('-')) {
+                    const p = m.data_lancamento.split('-');
+                    if (p[0].length === 4 && p[1]) {
+                        paresSet.add(`${p[0]}-${p[1].padStart(2, '0')}`);
+                    }
+                }
+            });
+            // Sempre garante o mês atual na lista
+            paresSet.add(`${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}`);
+
+            const paresOrd = Array.from(paresSet).sort(); // Ordenação cronológica crescente
+            periodosExportar = paresOrd.map(p => {
+                const parts = p.split('-');
+                return { ano: parseInt(parts[0], 10), mes: parseInt(parts[1], 10) - 1 };
+            });
             periodoDesc = 'Todos os Meses (Histórico Completo)';
             fileName = `backup_financas_completo_${dataStr}.xlsx`;
         }
 
-        // Ordena por data (mais recente primeiro)
-        movsFiltradas.sort((a, b) => {
-            const dA = a.data_lancamento || '';
-            const dB = b.data_lancamento || '';
-            return dB.localeCompare(dA);
+        // Movimentações no escopo do período
+        const setChavesPeriodo = new Set(periodosExportar.map(p => `${p.ano}-${String(p.mes + 1).padStart(2, '0')}`));
+        const movsEscopo = movs.filter(m => {
+            if (opcao === 'todos') return true;
+            if (!m.data_lancamento) return false;
+            const p = m.data_lancamento.split('-');
+            if (p.length < 2) return false;
+            const chave = `${p[0]}-${p[1].padStart(2, '0')}`;
+            return setChavesPeriodo.has(chave);
         });
 
         if (typeof XLSX !== 'undefined') {
             const wb = XLSX.utils.book_new();
-
-            // Função de segurança para garantir que nenhum texto de célula ultrapasse o limite de 32767 caracteres do Excel
-            const safeExcelStr = (val) => {
-                if (val === null || val === undefined) return '';
-                const s = String(val);
-                return s.length > 32700 ? s.slice(0, 32700) : s;
+            const abasUsadas = new Set();
+            const adicionarAbaSegura = (planilha, nomeOriginal) => {
+                let limpo = String(nomeOriginal).replace(/[\\/?*:[\]]/g, '').trim().slice(0, 31);
+                let nomeFinal = limpo;
+                let c = 1;
+                while (abasUsadas.has(nomeFinal.toLowerCase())) {
+                    const suf = `_${c}`;
+                    nomeFinal = limpo.slice(0, 31 - suf.length) + suf;
+                    c++;
+                }
+                abasUsadas.add(nomeFinal.toLowerCase());
+                XLSX.utils.book_append_sheet(wb, planilha, nomeFinal);
             };
 
-            // 1. Aba Lançamentos
-            const rowsLancamentos = movsFiltradas.map(m => {
-                let dataFmt = m.data_lancamento || '';
-                if (dataFmt && dataFmt.includes('-')) {
-                    const p = dataFmt.split('-');
-                    if (p.length === 3) dataFmt = `${p[2]}/${p[1]}/${p[0]}`;
+            // 1. ABAS DOS MESES ESCOLHIDOS (Ex: "Out-2026", "Nov-2026", etc.)
+            periodosExportar.forEach(p => {
+                const a = p.ano;
+                const m = p.mes;
+                const nomeAba = `${mesesCurtos[m]}-${a}`;
+                const mesNomeExtenso = `${mesesCompletos[m]} de ${a}`;
+
+                // Filtra movimentações do mês
+                const movsDoMes = movs.filter(item => {
+                    if (!item.data_lancamento) return false;
+                    const parts = item.data_lancamento.split('-');
+                    if (parts.length < 2) return false;
+                    return parseInt(parts[0], 10) === a && (parseInt(parts[1], 10) - 1) === m;
+                });
+
+                // Cálculos e Totais do Mês
+                let totReceitas = 0;
+                let totFixas = 0;
+                let totVariaveis = 0;
+                let totCartoes = 0;
+                let totOutros = 0;
+                let totPago = 0;
+                let totPendente = 0;
+
+                movsDoMes.forEach(item => {
+                    const vTotal = parseFloat(item.valor_total || 0);
+                    const vReal = parseFloat(item.valor_realizado || 0);
+                    const isPago = (item.status === 'Pago' || item.status === 'Recebido');
+
+                    if (item.status === 'Cancelado') return;
+
+                    if (item.tipo_gasto === 'Receita' || isTipoResgateReserva(item)) {
+                        totReceitas += vTotal;
+                        if (isPago) totPago += (vReal || vTotal);
+                        else totPendente += vTotal;
+                    } else if (item.tipo_gasto === 'Despesa Fixa') {
+                        totFixas += vTotal;
+                        if (isPago) totPago += (vReal || vTotal);
+                        else totPendente += vTotal;
+                    } else if (item.tipo_gasto === 'Despesa Variável') {
+                        totVariaveis += vTotal;
+                        if (isPago) totPago += (vReal || vTotal);
+                        else totPendente += vTotal;
+                    } else if (item.tipo_gasto === 'Cartão de Crédito' || item.tipo_gasto === 'Cartão Pré-pago') {
+                        totCartoes += vTotal;
+                        if (isPago) totPago += (vReal || vTotal);
+                        else totPendente += vTotal;
+                    } else {
+                        totOutros += vTotal;
+                        if (isPago) totPago += (vReal || vTotal);
+                        else totPendente += vTotal;
+                    }
+                });
+
+                const totDespesas = totFixas + totVariaveis + totCartoes + totOutros;
+                const saldoMes = totReceitas - totDespesas;
+
+                // Ordenação inteligente das contas no mês
+                const ordemTipos = {
+                    'Receita': 1,
+                    'Despesa Fixa': 2,
+                    'Despesa Variável': 3,
+                    'Cartão de Crédito': 4,
+                    'Cartão Pré-pago': 5,
+                    'Investimento': 6,
+                    'Reserva de Emergência': 7,
+                    'Conta a Pagar': 8,
+                    'Lista de Desejos': 9
+                };
+
+                const movsOrdenadas = movsDoMes.slice().sort((x, y) => {
+                    const oX = ordemTipos[x.tipo_gasto] || 99;
+                    const oY = ordemTipos[y.tipo_gasto] || 99;
+                    if (oX !== oY) return oX - oY;
+                    return (x.data_lancamento || '').localeCompare(y.data_lancamento || '');
+                });
+
+                // Montagem da Matriz AOA da Aba Mensal
+                const aoaMes = [
+                    [`PAINEL FINANCEIRO: ${mesNomeExtenso.toUpperCase()}`, '', '', '', '', '', '', '', ''],
+                    ['TOTAL RECEITAS:', totReceitas, 'TOTAL DESPESAS:', totDespesas, 'SALDO DO MÊS:', saldoMes, '', '', ''],
+                    ['Despesas Fixas:', totFixas, 'Despesas Variáveis:', totVariaveis, 'Cartões de Crédito:', totCartoes, '', '', ''],
+                    ['Realizado (Pago):', totPago, 'Pendente:', totPendente, 'Qtd. Lançamentos:', movsDoMes.length, '', '', ''],
+                    [], // Linha 5 em branco
+                    ['Data', 'Tipo / Categoria', 'Descrição', 'Conta / Cartão', 'Valor Orçado (R$)', 'Valor Realizado (R$)', 'Status', 'Parcelas', 'ID do Grupo / Ref']
+                ];
+
+                movsOrdenadas.forEach(item => {
+                    const dataFmt = formatarDataExcel(item.data_lancamento);
+                    const nomeConta = item.conta_id ? (mapContas.get(String(item.conta_id)) || item.tipo_gasto) : (item.tipo_gasto || '');
+                    let parcelaFmt = '1/1';
+                    if (item.parcelado === 'Sim' || (item.total_parcelas && item.total_parcelas > 1)) {
+                        parcelaFmt = `${item.parcela_atual || 1}/${item.total_parcelas || 1}`;
+                    }
+
+                    aoaMes.push([
+                        safeExcelStr(dataFmt),
+                        safeExcelStr(item.tipo_gasto || 'Despesa'),
+                        safeExcelStr(item.descricao || ''),
+                        safeExcelStr(nomeConta),
+                        parseFloat(item.valor_total || 0),
+                        parseFloat(item.valor_realizado || 0),
+                        safeExcelStr(item.status || 'Pendente'),
+                        safeExcelStr(parcelaFmt),
+                        safeExcelStr(item.id_grupo || item.link_url || '')
+                    ]);
+                });
+
+                const wsMes = XLSX.utils.aoa_to_sheet(aoaMes);
+                wsMes['!cols'] = [
+                    { wch: 13 }, // Data
+                    { wch: 22 }, // Tipo / Categoria
+                    { wch: 34 }, // Descrição
+                    { wch: 22 }, // Conta / Cartão
+                    { wch: 18 }, // Valor Orçado
+                    { wch: 18 }, // Valor Realizado
+                    { wch: 14 }, // Status
+                    { wch: 12 }, // Parcelas
+                    { wch: 20 }  // ID / Ref
+                ];
+                // Habilita AutoFilter na linha de cabeçalho da tabela (Linha 6: A6 até I...)
+                const linhaFim = Math.max(6, aoaMes.length);
+                wsMes['!autofilter'] = { ref: `A6:I${linhaFim}` };
+
+                adicionarAbaSegura(wsMes, nomeAba);
+            });
+
+            // 2. ABA DEMONSTRATIVO CONSOLIDADO (Mês a Mês)
+            const aoaDemo = [
+                ['DEMONSTRATIVO FINANCEIRO CONSOLIDADO (MÊS A MÊS)', '', '', '', '', '', '', '', '', ''],
+                ['Período:', safeExcelStr(periodoDesc), 'Data do Relatório:', `${dataStr} às ${horaStr}`, '', '', '', '', '', ''],
+                [],
+                ['Ano', 'Mês', 'Receitas Orçadas (R$)', 'Receitas Realizadas (R$)', 'Despesas Fixas (R$)', 'Despesas Variáveis (R$)', 'Cartões (R$)', 'Total Despesas (R$)', 'Saldo Previsto (R$)', 'Saldo Realizado (R$)']
+            ];
+
+            let gTotRecOrc = 0, gTotRecReal = 0, gTotFix = 0, gTotVar = 0, gTotCart = 0, gTotDesp = 0, gTotSldPrev = 0, gTotSldReal = 0;
+
+            periodosExportar.forEach(p => {
+                const a = p.ano;
+                const m = p.mes;
+                const movsDoMes = movs.filter(item => {
+                    if (!item.data_lancamento) return false;
+                    const parts = item.data_lancamento.split('-');
+                    return parseInt(parts[0], 10) === a && (parseInt(parts[1], 10) - 1) === m;
+                });
+
+                let rOrc = 0, rReal = 0, dFix = 0, dVar = 0, dCart = 0, dOut = 0, dReal = 0;
+                movsDoMes.forEach(item => {
+                    if (item.status === 'Cancelado') return;
+                    const vOrc = parseFloat(item.valor_total || 0);
+                    const vReal = parseFloat(item.valor_realizado || 0);
+                    const isPago = (item.status === 'Pago' || item.status === 'Recebido');
+
+                    if (item.tipo_gasto === 'Receita' || isTipoResgateReserva(item)) {
+                        rOrc += vOrc;
+                        if (isPago) rReal += (vReal || vOrc);
+                    } else if (item.tipo_gasto === 'Despesa Fixa') {
+                        dFix += vOrc;
+                        if (isPago) dReal += (vReal || vOrc);
+                    } else if (item.tipo_gasto === 'Despesa Variável') {
+                        dVar += vOrc;
+                        if (isPago) dReal += (vReal || vOrc);
+                    } else if (item.tipo_gasto === 'Cartão de Crédito' || item.tipo_gasto === 'Cartão Pré-pago') {
+                        dCart += vOrc;
+                        if (isPago) dReal += (vReal || vOrc);
+                    } else {
+                        dOut += vOrc;
+                        if (isPago) dReal += (vReal || vOrc);
+                    }
+                });
+
+                const tDesp = dFix + dVar + dCart + dOut;
+                const sldPrev = rOrc - tDesp;
+                const sldReal = rReal - dReal;
+
+                gTotRecOrc += rOrc;
+                gTotRecReal += rReal;
+                gTotFix += dFix;
+                gTotVar += dVar;
+                gTotCart += dCart;
+                gTotDesp += tDesp;
+                gTotSldPrev += sldPrev;
+                gTotSldReal += sldReal;
+
+                aoaDemo.push([
+                    a,
+                    mesesCompletos[m],
+                    rOrc,
+                    rReal,
+                    dFix,
+                    dVar,
+                    dCart,
+                    tDesp,
+                    sldPrev,
+                    sldReal
+                ]);
+            });
+
+            aoaDemo.push([
+                'TOTAL CONSOLIDADO',
+                '',
+                gTotRecOrc,
+                gTotRecReal,
+                gTotFix,
+                gTotVar,
+                gTotCart,
+                gTotDesp,
+                gTotSldPrev,
+                gTotSldReal
+            ]);
+
+            const wsDemo = XLSX.utils.aoa_to_sheet(aoaDemo);
+            wsDemo['!cols'] = [
+                { wch: 10 }, { wch: 16 }, { wch: 20 }, { wch: 22 },
+                { wch: 18 }, { wch: 22 }, { wch: 16 }, { wch: 20 },
+                { wch: 18 }, { wch: 18 }
+            ];
+            wsDemo['!autofilter'] = { ref: `A4:J${aoaDemo.length - 1}` };
+            adicionarAbaSegura(wsDemo, 'Demonstrativo');
+
+            // 3. ABA CARTÕES DE CRÉDITO
+            const cartoesEContas = contas.filter(c => c.deleted !== 1);
+            const comprasCartoes = movsEscopo.filter(m => {
+                if (m.tipo_gasto === 'Cartão de Crédito' || m.tipo_gasto === 'Cartão Pré-pago') return true;
+                if (m.conta_id) {
+                    const c = mapContas.get(String(m.conta_id));
+                    if (c && contas.some(item => String(item.id) === String(m.conta_id) && item.tipo_conta && item.tipo_conta.includes('Cartão'))) {
+                        return true;
+                    }
+                }
+                return false;
+            });
+
+            const aoaCartoes = [
+                ['GESTÃO DE CARTÕES E CONTAS BANCÁRIAS', '', '', '', '', '', '', ''],
+                [],
+                ['Nome da Conta / Cartão', 'Tipo de Conta', 'Titular', 'Banco / Emissor', 'Limite Total (R$)', 'Saldo / Limite Disponível (R$)', 'Dia Fechamento', 'Dia Vencimento']
+            ];
+
+            cartoesEContas.forEach(c => {
+                aoaCartoes.push([
+                    safeExcelStr(c.nome_conta || ''),
+                    safeExcelStr(c.tipo_conta || 'Conta Corrente'),
+                    safeExcelStr(c.titular || ''),
+                    safeExcelStr(c.banco || ''),
+                    parseFloat(c.limite_cartao || 0),
+                    parseFloat(c.saldo_atual || 0),
+                    c.dia_fechamento || '',
+                    c.dia_vencimento || ''
+                ]);
+            });
+
+            aoaCartoes.push([]);
+            aoaCartoes.push(['EXTRATO DE COMPRAS NOS CARTÕES DE CRÉDITO', '', '', '', '', '', '']);
+            aoaCartoes.push(['Data da Compra', 'Cartão Utilizado', 'Descrição do Gasto', 'Valor da Parcela (R$)', 'Parcela Atual / Total', 'Status', 'Identificador / Grupo']);
+
+            comprasCartoes.forEach(comp => {
+                const dataFmt = formatarDataExcel(comp.data_lancamento);
+                const nomeCartao = comp.conta_id ? (mapContas.get(String(comp.conta_id)) || 'Cartão') : 'Cartão';
+                let parc = '1/1';
+                if (comp.parcelado === 'Sim' || (comp.total_parcelas && comp.total_parcelas > 1)) {
+                    parc = `${comp.parcela_atual || 1}/${comp.total_parcelas || 1}`;
                 }
 
-                return {
-                    'ID': safeExcelStr(m.id),
-                    'Data': safeExcelStr(dataFmt),
-                    'Descrição': safeExcelStr(m.descricao),
-                    'Categoria / Tipo': safeExcelStr(m.tipo_gasto),
-                    'Valor Orçado (R$)': parseFloat(m.valor_total || 0),
-                    'Valor Realizado (R$)': parseFloat(m.valor_realizado || 0),
-                    'Status': safeExcelStr(m.status || 'Pendente'),
-                    'Parcelado': safeExcelStr(m.parcelado || 'Não'),
-                    'Parcela Atual': m.parcela_atual || 1,
-                    'Total Parcelas': m.total_parcelas || 1,
-                    'Grupo': safeExcelStr(m.id_grupo),
-                    'Link da Fonte': safeExcelStr(m.link_url),
-                    'Tipo de Mídia': safeExcelStr(m.midia_tipo)
-                };
+                aoaCartoes.push([
+                    safeExcelStr(dataFmt),
+                    safeExcelStr(nomeCartao),
+                    safeExcelStr(comp.descricao || ''),
+                    parseFloat(comp.valor_total || 0),
+                    safeExcelStr(parc),
+                    safeExcelStr(comp.status || 'Pendente'),
+                    safeExcelStr(comp.id_grupo || '')
+                ]);
             });
 
-            const wsLancamentos = XLSX.utils.json_to_sheet(rowsLancamentos);
+            const wsCartoes = XLSX.utils.aoa_to_sheet(aoaCartoes);
+            wsCartoes['!cols'] = [
+                { wch: 28 }, { wch: 18 }, { wch: 16 }, { wch: 18 },
+                { wch: 18 }, { wch: 24 }, { wch: 16 }, { wch: 16 }
+            ];
+            adicionarAbaSegura(wsCartoes, 'Cartões de Crédito');
 
-            wsLancamentos['!cols'] = [
-                { wch: 15 }, // ID
-                { wch: 12 }, // Data
-                { wch: 32 }, // Descrição
-                { wch: 22 }, // Categoria / Tipo
-                { wch: 18 }, // Valor Orçado
-                { wch: 18 }, // Valor Realizado
-                { wch: 14 }, // Status
-                { wch: 12 }, // Parcelado
-                { wch: 14 }, // Parcela Atual
-                { wch: 14 }, // Total Parcelas
-                { wch: 14 }, // Grupo
-                { wch: 30 }, // Link
-                { wch: 14 }  // Mídia
+            // 4. ABA CONTAS A PAGAR (GAVETA)
+            const contasGaveta = movs.filter(m => m.tipo_gasto === 'Conta a Pagar' && m.deleted !== 1 && m.status !== 'Cancelado');
+            const totalGaveta = contasGaveta.reduce((acc, c) => acc + (parseFloat(c.valor_total) || 0), 0);
+
+            const aoaGaveta = [
+                ['GAVETA DE CONTAS A PAGAR (BOLETOS E COMPROMISSOS A VENCER)', '', '', '', '', ''],
+                ['Total em Aberto na Gaveta:', totalGaveta, 'Qtd. de Contas:', contasGaveta.length, '', ''],
+                [],
+                ['Descrição da Conta', 'Valor Estimado (R$)', 'Data Prevista / Vencimento', 'Status', 'Conta Associada', 'Observações']
             ];
 
-            XLSX.utils.book_append_sheet(wb, wsLancamentos, 'Lançamentos');
-
-            // 2. Aba Resumo Geral
-            let totReceitas = 0, totDespesas = 0, totInvest = 0, totReserva = 0, totGaveta = 0, totDesejos = 0;
-            movsFiltradas.forEach(m => {
-                const v = parseFloat(m.valor_total || 0);
-                if (m.tipo_gasto === 'Receita' || isTipoResgateReserva(m)) totReceitas += v;
-                else if (isTipoReservaEmergencia(m)) totReserva += v;
-                else if (m.tipo_gasto === 'Investimento') totInvest += v;
-                else if (m.tipo_gasto === 'Conta a Pagar') totGaveta += v;
-                else if (m.tipo_gasto === 'Lista de Desejos') totDesejos += v;
-                else totDespesas += v;
+            contasGaveta.forEach(cg => {
+                const dataFmt = formatarDataExcel(cg.data_lancamento);
+                const nomeConta = cg.conta_id ? (mapContas.get(String(cg.conta_id)) || '') : '';
+                aoaGaveta.push([
+                    safeExcelStr(cg.descricao || ''),
+                    parseFloat(cg.valor_total || 0),
+                    safeExcelStr(dataFmt),
+                    safeExcelStr(cg.status || 'Pendente'),
+                    safeExcelStr(nomeConta),
+                    safeExcelStr(cg.link_url || '')
+                ]);
             });
 
-            const rowsResumo = [
-                { 'Indicador Financeiro': 'Período do Backup', 'Valor (R$) / Info': safeExcelStr(periodoDesc) },
-                { 'Indicador Financeiro': 'Data e Hora da Exportação', 'Valor (R$) / Info': `${dataStr} às ${horaStr}` },
-                { 'Indicador Financeiro': 'Total de Lançamentos Exportados', 'Valor (R$) / Info': movsFiltradas.length },
-                { 'Indicador Financeiro': 'Total de Receitas Lançadas', 'Valor (R$) / Info': totReceitas },
-                { 'Indicador Financeiro': 'Total de Despesas Orçadas', 'Valor (R$) / Info': totDespesas },
-                { 'Indicador Financeiro': 'Saldo Previsto (Receitas - Despesas)', 'Valor (R$) / Info': (totReceitas - totDespesas) },
-                { 'Indicador Financeiro': 'Total Alocado em Investimentos', 'Valor (R$) / Info': totInvest },
-                { 'Indicador Financeiro': 'Total em Reserva de Emergência', 'Valor (R$) / Info': totReserva },
-                { 'Indicador Financeiro': 'Contas a Pagar na Gaveta', 'Valor (R$) / Info': totGaveta },
-                { 'Indicador Financeiro': 'Metas e Lista de Desejos', 'Valor (R$) / Info': totDesejos }
+            const wsGaveta = XLSX.utils.aoa_to_sheet(aoaGaveta);
+            wsGaveta['!cols'] = [
+                { wch: 32 }, { wch: 18 }, { wch: 24 }, { wch: 14 }, { wch: 22 }, { wch: 30 }
+            ];
+            if (aoaGaveta.length > 4) {
+                wsGaveta['!autofilter'] = { ref: `A4:F${aoaGaveta.length}` };
+            }
+            adicionarAbaSegura(wsGaveta, 'Contas a Pagar (Gaveta)');
+
+            // 5. ABA METAS E DESEJOS
+            const listaDesejos = movs.filter(m => m.tipo_gasto === 'Lista de Desejos' && m.deleted !== 1 && m.status !== 'Cancelado');
+            const totalAlvoDesejos = listaDesejos.reduce((acc, d) => acc + (parseFloat(d.valor_total) || 0), 0);
+            const totalRealizadoDesejos = listaDesejos.reduce((acc, d) => acc + (parseFloat(d.valor_realizado) || 0), 0);
+
+            const aoaDesejos = [
+                ['METAS E LISTA DE DESEJOS (SONHOS E CONQUISTAS)', '', '', '', '', ''],
+                ['Total Alvo dos Desejos:', totalAlvoDesejos, 'Total Acumulado/Pago:', totalRealizadoDesejos, 'Qtd. Itens:', listaDesejos.length, ''],
+                [],
+                ['Desejo / Sonho', 'Valor Alvo (R$)', 'Valor Acumulado / Pago (R$)', 'Status', 'Data Prevista / Conquista', 'Link da Loja / Fonte']
             ];
 
-            const wsResumo = XLSX.utils.json_to_sheet(rowsResumo);
-            wsResumo['!cols'] = [{ wch: 38 }, { wch: 30 }];
-            XLSX.utils.book_append_sheet(wb, wsResumo, 'Resumo Geral');
+            listaDesejos.forEach(ld => {
+                const dataFmt = formatarDataExcel(ld.data_lancamento);
+                aoaDesejos.push([
+                    safeExcelStr(ld.descricao || ''),
+                    parseFloat(ld.valor_total || 0),
+                    parseFloat(ld.valor_realizado || 0),
+                    safeExcelStr(ld.status || 'Pendente'),
+                    safeExcelStr(dataFmt),
+                    safeExcelStr(ld.link_url || '')
+                ]);
+            });
 
-            // 3. Aba de Dados Técnicos dividida em blocos de até 30.000 caracteres (limite do Excel é 32.767)
+            const wsDesejos = XLSX.utils.aoa_to_sheet(aoaDesejos);
+            wsDesejos['!cols'] = [
+                { wch: 34 }, { wch: 18 }, { wch: 26 }, { wch: 14 }, { wch: 24 }, { wch: 38 }
+            ];
+            if (aoaDesejos.length > 4) {
+                wsDesejos['!autofilter'] = { ref: `A4:F${aoaDesejos.length}` };
+            }
+            adicionarAbaSegura(wsDesejos, 'Metas e Desejos');
+
+            // 6. ABA PLANEJAMENTO DE RENDAS EXTRAS
+            const rendasExtras = movs.filter(m => m.tipo_gasto === 'Planejamento Renda Extra' && m.deleted !== 1);
+            let totInicialRendas = 0, totGastoRendas = 0, totSaldoRendas = 0;
+
+            const rowsRendasDetalhadas = rendasExtras.map(r => {
+                const dados = (typeof parseDadosRendaExtra === 'function') ? parseDadosRendaExtra(r) : { origem: '', aplicacao: '', gastos: [] };
+                const vInicial = parseFloat(r.valor_total) || 0;
+                const totalGasto = (dados.gastos || []).reduce((acc, g) => acc + (parseFloat(g.valor) || 0), 0);
+                const saldo = Math.max(0, vInicial - totalGasto);
+
+                totInicialRendas += vInicial;
+                totGastoRendas += totalGasto;
+                totSaldoRendas += saldo;
+
+                const pct = vInicial > 0 ? Math.min(100, Math.round((totalGasto / vInicial) * 100)) : 0;
+                const statusTexto = vInicial > 0 && saldo <= 0.009 ? '100% Aplicado (Zerado)' : `${pct}% utilizado`;
+
+                const resumoGastos = (dados.gastos || []).map(g => `${g.descricao || 'Item'}: R$ ${parseFloat(g.valor || 0).toFixed(2)}`).join(' | ');
+
+                return [
+                    safeExcelStr(r.descricao || dados.origem || 'Renda Extra'),
+                    vInicial,
+                    totalGasto,
+                    saldo,
+                    safeExcelStr(statusTexto),
+                    safeExcelStr(resumoGastos || dados.aplicacao || '')
+                ];
+            });
+
+            const aoaRendas = [
+                ['PLANEJAMENTO DE RENDAS EXTRAS', '', '', '', '', ''],
+                ['Total Renda Extra Inicial:', totInicialRendas, 'Total Alocado / Gasto:', totGastoRendas, 'Saldo Restante:', totSaldoRendas, ''],
+                [],
+                ['Origem / Descrição da Renda', 'Valor Inicial (R$)', 'Total Alocado / Gasto (R$)', 'Saldo Disponível (R$)', 'Status de Utilização', 'Detalhamento de Gastos Alocados']
+            ];
+
+            rowsRendasDetalhadas.forEach(row => aoaRendas.push(row));
+
+            const wsRendas = XLSX.utils.aoa_to_sheet(aoaRendas);
+            wsRendas['!cols'] = [
+                { wch: 32 }, { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 45 }
+            ];
+            if (aoaRendas.length > 4) {
+                wsRendas['!autofilter'] = { ref: `A4:F${aoaRendas.length}` };
+            }
+            adicionarAbaSegura(wsRendas, 'Planejamento Renda Extra');
+
+            // 7. ABA DE DADOS TÉCNICOS (Backup_Dados_Sistema) para restauração técnica garantida
             const backupPayload = {
                 app: "Finanças Pessoais",
-                versao: "1.8.32",
+                versao: (typeof getCurrentRunningVersion === 'function') ? getCurrentRunningVersion() : "1.8.5",
                 periodo: periodoDesc,
                 data_exportacao: new Date().toISOString(),
-                total_lancamentos: movsFiltradas.length,
-                movimentacoes: movsFiltradas,
+                total_lancamentos: movsEscopo.length,
+                movimentacoes: movsEscopo,
                 contas_bancarias: (opcao === 'todos') ? contas : [],
                 origens_renda: (opcao === 'todos') ? origens : []
             };
@@ -5570,9 +5947,9 @@ async function exportarBackupFinancasDireto(opcao) {
             }
 
             const wsRaw = XLSX.utils.json_to_sheet(rowsChunks);
-            XLSX.utils.book_append_sheet(wb, wsRaw, 'Backup_Dados_Sistema');
+            adicionarAbaSegura(wsRaw, 'Backup_Dados_Sistema');
 
-            // Gera binário XLSX e dispara download
+            // Gera binário XLSX e dispara download imediato
             const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
             const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const url = URL.createObjectURL(blob);
@@ -5585,18 +5962,18 @@ async function exportarBackupFinancasDireto(opcao) {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            showToast(`✅ Backup em Excel gerado com sucesso! (${movsFiltradas.length} lançamentos de ${periodoDesc})`);
+            showToast(`✅ Planilha Excel gerada com sucesso! (${periodosExportar.length} aba(s) mensais + Demonstrativo + Cartões + Gaveta + Metas + Rendas Extras)`);
             return;
         }
 
-        // Fallback JSON
+        // Fallback JSON caso XLSX não esteja disponível
         const backupData = {
             app: "Finanças Pessoais",
-            versao: "1.4.0",
+            versao: (typeof getCurrentRunningVersion === 'function') ? getCurrentRunningVersion() : "1.8.5",
             periodo: periodoDesc,
             data_exportacao: new Date().toISOString(),
-            total_lancamentos: movsFiltradas.length,
-            movimentacoes: movsFiltradas,
+            total_lancamentos: movsEscopo.length,
+            movimentacoes: movsEscopo,
             contas_bancarias: (opcao === 'todos') ? contas : [],
             origens_renda: (opcao === 'todos') ? origens : []
         };
@@ -5610,7 +5987,7 @@ async function exportarBackupFinancasDireto(opcao) {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        showToast(`✅ Backup exportado com sucesso! (${movsFiltradas.length} lançamentos)`);
+        showToast(`✅ Backup exportado com sucesso! (${movsEscopo.length} lançamentos)`);
     } catch (err) {
         console.error('Erro ao exportar backup:', err);
         alert('Erro ao exportar backup: ' + err.message);
