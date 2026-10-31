@@ -1851,12 +1851,65 @@ function abrirModalLancamento() {
     }
     document.body.style.overflow = 'hidden';
     atualizarTextoStatus();
+    
+    // Liga ouvintes de input para cálculo em tempo real do total parcelado
+    const inpValP = document.getElementById('inputValor');
+    if (inpValP && !inpValP._hasPreviaListener) {
+        inpValP._hasPreviaListener = true;
+        inpValP.addEventListener('input', atualizarPreviaTotalParcelado);
+    }
+    const inpParcP = document.getElementById('inputTotalParcelas');
+    if (inpParcP && !inpParcP._hasPreviaListener) {
+        inpParcP._hasPreviaListener = true;
+        inpParcP.addEventListener('input', atualizarPreviaTotalParcelado);
+    }
+    toggleParcelas();
 }
 
 function toggleParcelas() {
-    const isChecked = document.getElementById('inputParcelado').checked;
-    document.getElementById('divParcelas').style.display = isChecked ? 'block' : 'none';
+    const cb = document.getElementById('inputParcelado');
+    const isChecked = cb ? cb.checked : false;
+    const divP = document.getElementById('divParcelas');
+    if (divP) divP.style.display = isChecked ? 'block' : 'none';
+
+    const inpVal = document.getElementById('inputValor');
+    if (inpVal) {
+        const lblValor = inpVal.closest('.form-group') ? inpVal.closest('.form-group').querySelector('label') : null;
+        if (lblValor) {
+            lblValor.innerText = isChecked ? 'Valor de Cada Parcela (R$)' : 'Valor Orçado';
+        }
+    }
+    atualizarPreviaTotalParcelado();
 }
+
+function atualizarPreviaTotalParcelado() {
+    const cb = document.getElementById('inputParcelado');
+    const isChecked = cb ? cb.checked : false;
+    let elPrevia = document.getElementById('previaTotalParcelamento');
+    const rowParcelado = document.getElementById('rowParcelado');
+    if (!elPrevia && rowParcelado && rowParcelado.parentNode) {
+        elPrevia = document.createElement('div');
+        elPrevia.id = 'previaTotalParcelamento';
+        elPrevia.style.cssText = 'display: none; margin-top: -4px; margin-bottom: 14px; font-size: 0.84rem; color: #C084FC; background: rgba(139, 92, 246, 0.14); border: 1px solid rgba(139, 92, 246, 0.35); border-radius: 9px; padding: 8px 12px; font-weight: 700;';
+        rowParcelado.parentNode.insertBefore(elPrevia, rowParcelado.nextSibling);
+    }
+    if (!elPrevia) return;
+    if (!isChecked) {
+        elPrevia.style.display = 'none';
+        return;
+    }
+    const inpVal = document.getElementById('inputValor');
+    const inpParc = document.getElementById('inputTotalParcelas');
+    const vParc = inpVal ? desformatarMoedaInput(inpVal.value) : 0;
+    const qtd = inpParc ? (parseInt(inpParc.value, 10) || 1) : 1;
+    const totalCompra = vParc * qtd;
+    const vParcFmt = (typeof formatBRL === 'function') ? formatBRL(vParc) : `R$ ${vParc.toFixed(2).replace('.', ',')}`;
+    const totFmt = (typeof formatBRL === 'function') ? formatBRL(totalCompra) : `R$ ${totalCompra.toFixed(2).replace('.', ',')}`;
+
+    elPrevia.style.display = 'block';
+    elPrevia.innerHTML = `🔄 <strong>${qtd}x de ${vParcFmt}</strong> &bull; Total da Compra: <span style="color: #34D399; font-weight: 800;">${totFmt}</span>`;
+}
+window.atualizarPreviaTotalParcelado = atualizarPreviaTotalParcelado;
 
 function toggleRecorrencia() {
     const rec = document.getElementById('inputRecorrencia') ? document.getElementById('inputRecorrencia').value : 'Unica';
@@ -2742,8 +2795,9 @@ async function salvarLancamento(event) {
                 }
             }
 
-            const valorFinalPorParcela = isParcelado ? (valorOrcado / totalParcelas) : valorOrcado;
-            const valorRealizadoPorParcela = isParcelado ? (valorRealizado / totalParcelas) : valorRealizado;
+            // O valor informado pelo usuário no campo é o valor exato de cada parcela. NÃO divide por totalParcelas!
+            const valorFinalPorParcela = valorOrcado;
+            const valorRealizadoPorParcela = valorRealizado;
 
             const midiaSalvarUrl = (tipoGasto === 'Lista de Desejos') ? midiaUrlDesejo : (window.midiaComprovanteTemp || '');
             const midiaSalvarTipo = (tipoGasto === 'Lista de Desejos') ? midiaTipoDesejo : (window.midiaComprovanteTemp ? 'foto' : '');
