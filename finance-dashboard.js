@@ -5937,7 +5937,7 @@ async function exportarBackupFinancasDireto(opcao) {
             };
 
             const jsonStr = JSON.stringify(backupPayload);
-            const CHUNK_SIZE = 30000;
+            const CHUNK_SIZE = 4000;
             const rowsChunks = [];
             for (let i = 0; i < jsonStr.length; i += CHUNK_SIZE) {
                 rowsChunks.push({
@@ -5947,6 +5947,7 @@ async function exportarBackupFinancasDireto(opcao) {
             }
 
             const wsRaw = XLSX.utils.json_to_sheet(rowsChunks);
+            wsRaw['!cols'] = [{ wch: 10 }, { wch: 80 }];
             adicionarAbaSegura(wsRaw, 'Backup_Dados_Sistema');
 
             // Gera binário XLSX e dispara download imediato

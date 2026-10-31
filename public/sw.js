@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.8.6
-const CACHE_NAME = 'financas-pessoais-v1.8.6';
+// Service Worker - APP Finanças Pessoais v1.8.7
+const CACHE_NAME = 'financas-pessoais-v1.8.7';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -180,8 +180,35 @@ self.addEventListener('fetch', event => {
     }
 
 
-    // 3. Recursos estáticos (JS, CSS, Imagens, Fontes): CACHE-FIRST ULTRA RÁPIDO (0ms)
-    // Responde em 0ms do cache local e revalida silenciosamente em background
+    // 3. Recursos com versão explícita (?v=) ou scripts e estilos do app:
+    // Network-First com cache fallback: se online busca imediatamente a versão atualizada da rede.
+    // Se offline, serve instantaneamente do cache para manter 100% de funcionamento offline!
+    const isVersionedAsset = url.includes('?v=') || url.includes('finance-') || url.includes('auth.js') || url.includes('auto-update.js');
+    if (isVersionedAsset) {
+        event.respondWith(
+            (async () => {
+                const cache = await caches.open(CACHE_NAME);
+                try {
+                    const netRes = await fetch(event.request, { cache: 'no-cache' });
+                    if (netRes && netRes.status === 200) {
+                        await cache.put(event.request, netRes.clone());
+                        return netRes;
+                    }
+                } catch (netErr) {}
+
+                let cachedResponse = await cache.match(event.request);
+                if (!cachedResponse) {
+                    cachedResponse = await cache.match(event.request, { ignoreSearch: true });
+                }
+                if (cachedResponse) return cachedResponse;
+
+                return new Response('', { status: 404 });
+            })()
+        );
+        return;
+    }
+
+    // 4. Demais recursos estáticos (Imagens, Fontes, Bibliotecas pesadas locais): CACHE-FIRST ULTRA RÁPIDO (0ms)
     event.respondWith(
         (async () => {
             const cache = await caches.open(CACHE_NAME);
@@ -191,7 +218,6 @@ self.addEventListener('fetch', event => {
             }
 
             if (cachedResponse) {
-                // Atualiza cache em background silenciosamente
                 fetch(event.request).then(async netRes => {
                     if (netRes && netRes.status === 200) {
                         await cache.put(event.request, netRes.clone());
@@ -200,7 +226,6 @@ self.addEventListener('fetch', event => {
                 return cachedResponse;
             }
 
-            // Se não tiver no cache (primeiro acesso)
             try {
                 const netRes = await fetch(event.request);
                 if (netRes && netRes.status === 200) {

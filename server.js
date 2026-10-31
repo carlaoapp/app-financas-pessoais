@@ -88,7 +88,7 @@ app.get('/api/version', (req, res) => {
             return res.json(data);
         }
     } catch (e) {}
-    res.json({ version: '1.8.6', updatedAt: Date.now() });
+    res.json({ version: '1.8.7', updatedAt: Date.now() });
 });
 
 const crypto = require('crypto');
