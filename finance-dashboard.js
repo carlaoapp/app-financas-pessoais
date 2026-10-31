@@ -5419,7 +5419,7 @@ async function confirmarExportacaoBackupExcel() {
 }
 window.confirmarExportacaoBackupExcel = confirmarExportacaoBackupExcel;
 
-// Exportação Direta de Backup com geração do arquivo Excel (.xlsx) com abas completas do App
+// Exportação Direta de Backup com geração de Planilha Excel Turbinada com Fórmulas Vivas e Abas Completas
 async function exportarBackupFinancasDireto(opcao) {
     try {
         const movs = await dbLocal.movimentacoes.filter(m => m.deleted !== 1).toArray();
@@ -5439,7 +5439,6 @@ async function exportarBackupFinancasDireto(opcao) {
         const mapContas = new Map();
         contas.forEach(c => mapContas.set(String(c.id), c.nome_conta || 'Conta'));
 
-        // Função de formatação de data para o padrão brasileiro DD/MM/AAAA
         const formatarDataExcel = (dataVal) => {
             if (!dataVal) return '';
             const s = String(dataVal).trim();
@@ -5460,7 +5459,6 @@ async function exportarBackupFinancasDireto(opcao) {
             return s.length > 32700 ? s.slice(0, 32700) : s;
         };
 
-        // Identifica os períodos/meses a exportar
         let periodosExportar = [];
         let periodoDesc = '';
         let fileName = '';
@@ -5480,7 +5478,6 @@ async function exportarBackupFinancasDireto(opcao) {
             periodoDesc = `${mesesCurtos[mesAtual]}/${anoAtual} a ${mesesCurtos[fimDate.getMonth()]}/${fimDate.getFullYear()} (${qtd} meses)`;
             fileName = `backup_financas_${qtd}meses_${mesesCurtos[mesAtual]}-${anoAtual}_a_${mesesCurtos[fimDate.getMonth()]}-${fimDate.getFullYear()}.xlsx`;
         } else {
-            // Todos os meses: localiza todos os anos/meses que possuem lançamentos
             const paresSet = new Set();
             movs.forEach(m => {
                 if (m.data_lancamento && m.data_lancamento.includes('-')) {
@@ -5490,10 +5487,8 @@ async function exportarBackupFinancasDireto(opcao) {
                     }
                 }
             });
-            // Sempre garante o mês atual na lista
             paresSet.add(`${anoAtual}-${String(mesAtual + 1).padStart(2, '0')}`);
-
-            const paresOrd = Array.from(paresSet).sort(); // Ordenação cronológica crescente
+            const paresOrd = Array.from(paresSet).sort();
             periodosExportar = paresOrd.map(p => {
                 const parts = p.split('-');
                 return { ano: parseInt(parts[0], 10), mes: parseInt(parts[1], 10) - 1 };
@@ -5502,7 +5497,6 @@ async function exportarBackupFinancasDireto(opcao) {
             fileName = `backup_financas_completo_${dataStr}.xlsx`;
         }
 
-        // Movimentações no escopo do período
         const setChavesPeriodo = new Set(periodosExportar.map(p => `${p.ano}-${String(p.mes + 1).padStart(2, '0')}`));
         const movsEscopo = movs.filter(m => {
             if (opcao === 'todos') return true;
@@ -5517,7 +5511,7 @@ async function exportarBackupFinancasDireto(opcao) {
             const wb = XLSX.utils.book_new();
             const abasUsadas = new Set();
             const adicionarAbaSegura = (planilha, nomeOriginal) => {
-                let limpo = String(nomeOriginal).replace(/[\\/?*:[\]]/g, '').trim().slice(0, 31);
+                let limpo = String(nomeOriginal).replace(/[\\/?*:\[\]]/g, '').trim().slice(0, 31);
                 let nomeFinal = limpo;
                 let c = 1;
                 while (abasUsadas.has(nomeFinal.toLowerCase())) {
@@ -5529,14 +5523,13 @@ async function exportarBackupFinancasDireto(opcao) {
                 XLSX.utils.book_append_sheet(wb, planilha, nomeFinal);
             };
 
-            // 1. ABAS DOS MESES ESCOLHIDOS (Ex: "Out-2026", "Nov-2026", etc.)
+            // 1. ABAS DOS MESES ESCOLHIDOS COM FÓRMULAS VIVAS NO EXCEL
             periodosExportar.forEach(p => {
                 const a = p.ano;
                 const m = p.mes;
                 const nomeAba = `${mesesCurtos[m]}-${a}`;
                 const mesNomeExtenso = `${mesesCompletos[m]} de ${a}`;
 
-                // Filtra movimentações do mês
                 const movsDoMes = movs.filter(item => {
                     if (!item.data_lancamento) return false;
                     const parts = item.data_lancamento.split('-');
@@ -5544,20 +5537,12 @@ async function exportarBackupFinancasDireto(opcao) {
                     return parseInt(parts[0], 10) === a && (parseInt(parts[1], 10) - 1) === m;
                 });
 
-                // Cálculos e Totais do Mês
-                let totReceitas = 0;
-                let totFixas = 0;
-                let totVariaveis = 0;
-                let totCartoes = 0;
-                let totOutros = 0;
-                let totPago = 0;
-                let totPendente = 0;
+                let totReceitas = 0, totFixas = 0, totVariaveis = 0, totCartoes = 0, totOutros = 0, totPago = 0, totPendente = 0;
 
                 movsDoMes.forEach(item => {
                     const vTotal = parseFloat(item.valor_total || 0);
                     const vReal = parseFloat(item.valor_realizado || 0);
                     const isPago = (item.status === 'Pago' || item.status === 'Recebido');
-
                     if (item.status === 'Cancelado') return;
 
                     if (item.tipo_gasto === 'Receita' || isTipoResgateReserva(item)) {
@@ -5586,17 +5571,10 @@ async function exportarBackupFinancasDireto(opcao) {
                 const totDespesas = totFixas + totVariaveis + totCartoes + totOutros;
                 const saldoMes = totReceitas - totDespesas;
 
-                // Ordenação inteligente das contas no mês
                 const ordemTipos = {
-                    'Receita': 1,
-                    'Despesa Fixa': 2,
-                    'Despesa Variável': 3,
-                    'Cartão de Crédito': 4,
-                    'Cartão Pré-pago': 5,
-                    'Investimento': 6,
-                    'Reserva de Emergência': 7,
-                    'Conta a Pagar': 8,
-                    'Lista de Desejos': 9
+                    'Receita': 1, 'Despesa Fixa': 2, 'Despesa Variável': 3,
+                    'Cartão de Crédito': 4, 'Cartão Pré-pago': 5, 'Investimento': 6,
+                    'Reserva de Emergência': 7, 'Conta a Pagar': 8, 'Lista de Desejos': 9
                 };
 
                 const movsOrdenadas = movsDoMes.slice().sort((x, y) => {
@@ -5606,14 +5584,30 @@ async function exportarBackupFinancasDireto(opcao) {
                     return (x.data_lancamento || '').localeCompare(y.data_lancamento || '');
                 });
 
-                // Montagem da Matriz AOA da Aba Mensal
+                // Range para as fórmulas dinâmicas do Excel
+                const linhaInicioDados = 7;
+                const totalQtdLinhas = movsOrdenadas.length;
+                const linhaFimDados = 6 + totalQtdLinhas;
+                const linhaMaxFormula = Math.max(linhaFimDados, 250); // Garante que novas linhas inseridas pelo usuário no Excel sejam somadas
+
+                // Células com Fórmulas Vivas do Excel
+                const fReceitas = { t: 'n', f: `SUMIF(B${linhaInicioDados}:B${linhaMaxFormula},"Receita",E${linhaInicioDados}:E${linhaMaxFormula})`, v: totReceitas };
+                const fDespesas = { t: 'n', f: `SUM(E${linhaInicioDados}:E${linhaMaxFormula})-B2`, v: totDespesas };
+                const fSaldo = { t: 'n', f: 'B2-D2', v: saldoMes };
+                const fFixas = { t: 'n', f: `SUMIF(B${linhaInicioDados}:B${linhaMaxFormula},"Despesa Fixa",E${linhaInicioDados}:E${linhaMaxFormula})`, v: totFixas };
+                const fVariaveis = { t: 'n', f: `SUMIF(B${linhaInicioDados}:B${linhaMaxFormula},"Despesa Variável",E${linhaInicioDados}:E${linhaMaxFormula})`, v: totVariaveis };
+                const fCartoes = { t: 'n', f: `SUMIF(B${linhaInicioDados}:B${linhaMaxFormula},"Cartão de Crédito",E${linhaInicioDados}:E${linhaMaxFormula})+SUMIF(B${linhaInicioDados}:B${linhaMaxFormula},"Cartão Pré-pago",E${linhaInicioDados}:E${linhaMaxFormula})`, v: totCartoes };
+                const fPago = { t: 'n', f: `SUM(F${linhaInicioDados}:F${linhaMaxFormula})`, v: totPago };
+                const fPendente = { t: 'n', f: `SUMIF(G${linhaInicioDados}:G${linhaMaxFormula},"Pendente",E${linhaInicioDados}:E${linhaMaxFormula})`, v: totPendente };
+                const fQtd = { t: 'n', f: `COUNTA(C${linhaInicioDados}:C${linhaMaxFormula})`, v: totalQtdLinhas };
+
                 const aoaMes = [
                     [`PAINEL FINANCEIRO: ${mesNomeExtenso.toUpperCase()}`, '', '', '', '', '', '', '', ''],
-                    ['TOTAL RECEITAS:', totReceitas, 'TOTAL DESPESAS:', totDespesas, 'SALDO DO MÊS:', saldoMes, '', '', ''],
-                    ['Despesas Fixas:', totFixas, 'Despesas Variáveis:', totVariaveis, 'Cartões de Crédito:', totCartoes, '', '', ''],
-                    ['Realizado (Pago):', totPago, 'Pendente:', totPendente, 'Qtd. Lançamentos:', movsDoMes.length, '', '', ''],
+                    ['TOTAL RECEITAS:', fReceitas, 'TOTAL DESPESAS:', fDespesas, 'SALDO DO MÊS:', fSaldo, '', '', ''],
+                    ['Despesas Fixas:', fFixas, 'Despesas Variáveis:', fVariaveis, 'Cartões de Crédito:', fCartoes, '', '', ''],
+                    ['Realizado (Pago):', fPago, 'Pendente:', fPendente, 'Qtd. Lançamentos:', fQtd, '', '', ''],
                     [], // Linha 5 em branco
-                    ['Data', 'Tipo / Categoria', 'Descrição', 'Conta / Cartão', 'Valor Orçado (R$)', 'Valor Realizado (R$)', 'Status', 'Parcelas', 'ID do Grupo / Ref']
+                    ['Data', 'Tipo / Categoria', 'Descrição', 'Conta / Cartão', 'Valor Orçado (R$)', 'Valor Realizado (R$)', 'Status', 'Parcelas', 'ID do Lançamento']
                 ];
 
                 movsOrdenadas.forEach(item => {
@@ -5633,30 +5627,23 @@ async function exportarBackupFinancasDireto(opcao) {
                         parseFloat(item.valor_realizado || 0),
                         safeExcelStr(item.status || 'Pendente'),
                         safeExcelStr(parcelaFmt),
-                        safeExcelStr(item.id_grupo || item.link_url || '')
+                        safeExcelStr(item.id || '')
                     ]);
                 });
 
                 const wsMes = XLSX.utils.aoa_to_sheet(aoaMes);
                 wsMes['!cols'] = [
-                    { wch: 13 }, // Data
-                    { wch: 22 }, // Tipo / Categoria
-                    { wch: 34 }, // Descrição
-                    { wch: 22 }, // Conta / Cartão
-                    { wch: 18 }, // Valor Orçado
-                    { wch: 18 }, // Valor Realizado
-                    { wch: 14 }, // Status
-                    { wch: 12 }, // Parcelas
-                    { wch: 20 }  // ID / Ref
+                    { wch: 13 }, { wch: 22 }, { wch: 34 }, { wch: 22 },
+                    { wch: 18 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 22 }
                 ];
-                // Habilita AutoFilter na linha de cabeçalho da tabela (Linha 6: A6 até I...)
-                const linhaFim = Math.max(6, aoaMes.length);
-                wsMes['!autofilter'] = { ref: `A6:I${linhaFim}` };
+                if (totalQtdLinhas > 0) {
+                    wsMes['!autofilter'] = { ref: `A6:I${linhaFimDados}` };
+                }
 
                 adicionarAbaSegura(wsMes, nomeAba);
             });
 
-            // 2. ABA DEMONSTRATIVO CONSOLIDADO (Mês a Mês)
+            // 2. ABA DEMONSTRATIVO CONSOLIDADO (Mês a Mês com Fórmulas Vivas)
             const aoaDemo = [
                 ['DEMONSTRATIVO FINANCEIRO CONSOLIDADO (MÊS A MÊS)', '', '', '', '', '', '', '', '', ''],
                 ['Período:', safeExcelStr(periodoDesc), 'Data do Relatório:', `${dataStr} às ${horaStr}`, '', '', '', '', '', ''],
@@ -5666,9 +5653,11 @@ async function exportarBackupFinancasDireto(opcao) {
 
             let gTotRecOrc = 0, gTotRecReal = 0, gTotFix = 0, gTotVar = 0, gTotCart = 0, gTotDesp = 0, gTotSldPrev = 0, gTotSldReal = 0;
 
-            periodosExportar.forEach(p => {
+            periodosExportar.forEach((p, idx) => {
                 const a = p.ano;
                 const m = p.mes;
+                const rowNum = 4 + idx; // Linha da tabela no Excel
+
                 const movsDoMes = movs.filter(item => {
                     if (!item.data_lancamento) return false;
                     const parts = item.data_lancamento.split('-');
@@ -5721,24 +5710,26 @@ async function exportarBackupFinancasDireto(opcao) {
                     dFix,
                     dVar,
                     dCart,
-                    tDesp,
-                    sldPrev,
-                    sldReal
+                    { t: 'n', f: `E${rowNum}+F${rowNum}+G${rowNum}`, v: tDesp },
+                    { t: 'n', f: `C${rowNum}-H${rowNum}`, v: sldPrev },
+                    { t: 'n', f: `D${rowNum}-H${rowNum}`, v: sldReal }
                 ]);
             });
 
-            aoaDemo.push([
+            const rowFimMeses = 3 + periodosExportar.length;
+            const totalConsolidadoRow = [
                 'TOTAL CONSOLIDADO',
                 '',
-                gTotRecOrc,
-                gTotRecReal,
-                gTotFix,
-                gTotVar,
-                gTotCart,
-                gTotDesp,
-                gTotSldPrev,
-                gTotSldReal
-            ]);
+                { t: 'n', f: `SUM(C4:C${rowFimMeses})`, v: gTotRecOrc },
+                { t: 'n', f: `SUM(D4:D${rowFimMeses})`, v: gTotRecReal },
+                { t: 'n', f: `SUM(E4:E${rowFimMeses})`, v: gTotFix },
+                { t: 'n', f: `SUM(F4:F${rowFimMeses})`, v: gTotVar },
+                { t: 'n', f: `SUM(G4:G${rowFimMeses})`, v: gTotCart },
+                { t: 'n', f: `SUM(H4:H${rowFimMeses})`, v: gTotDesp },
+                { t: 'n', f: `SUM(I4:I${rowFimMeses})`, v: gTotSldPrev },
+                { t: 'n', f: `SUM(J4:J${rowFimMeses})`, v: gTotSldReal }
+            ];
+            aoaDemo.push(totalConsolidadoRow);
 
             const wsDemo = XLSX.utils.aoa_to_sheet(aoaDemo);
             wsDemo['!cols'] = [
@@ -5746,7 +5737,9 @@ async function exportarBackupFinancasDireto(opcao) {
                 { wch: 18 }, { wch: 22 }, { wch: 16 }, { wch: 20 },
                 { wch: 18 }, { wch: 18 }
             ];
-            wsDemo['!autofilter'] = { ref: `A4:J${aoaDemo.length - 1}` };
+            if (periodosExportar.length > 0) {
+                wsDemo['!autofilter'] = { ref: `A4:J${rowFimMeses}` };
+            }
             adicionarAbaSegura(wsDemo, 'Demonstrativo');
 
             // 3. ABA CARTÕES DE CRÉDITO
@@ -5761,6 +5754,8 @@ async function exportarBackupFinancasDireto(opcao) {
                 }
                 return false;
             });
+
+            const totalComprasCartoesVal = comprasCartoes.reduce((acc, comp) => acc + (parseFloat(comp.valor_total) || 0), 0);
 
             const aoaCartoes = [
                 ['GESTÃO DE CARTÕES E CONTAS BANCÁRIAS', '', '', '', '', '', '', ''],
@@ -5782,8 +5777,14 @@ async function exportarBackupFinancasDireto(opcao) {
             });
 
             aoaCartoes.push([]);
-            aoaCartoes.push(['EXTRATO DE COMPRAS NOS CARTÕES DE CRÉDITO', '', '', '', '', '', '']);
-            aoaCartoes.push(['Data da Compra', 'Cartão Utilizado', 'Descrição do Gasto', 'Valor da Parcela (R$)', 'Parcela Atual / Total', 'Status', 'Identificador / Grupo']);
+            const linhaCabCompras = aoaCartoes.length + 1;
+            const linhaInicioCompras = linhaCabCompras + 1;
+            const linhaFimCompras = linhaCabCompras + Math.max(1, comprasCartoes.length);
+
+            const fTotCompras = { t: 'n', f: `SUM(D${linhaInicioCompras}:D${linhaFimCompras})`, v: totalComprasCartoesVal };
+
+            aoaCartoes.push(['EXTRATO DE COMPRAS NOS CARTÕES DE CRÉDITO', '', 'Total Faturas:', fTotCompras, '', '', '']);
+            aoaCartoes.push(['Data da Compra', 'Cartão Utilizado', 'Descrição do Gasto', 'Valor da Parcela (R$)', 'Parcela Atual / Total', 'Status', 'ID do Lançamento / Grupo']);
 
             comprasCartoes.forEach(comp => {
                 const dataFmt = formatarDataExcel(comp.data_lancamento);
@@ -5800,26 +5801,30 @@ async function exportarBackupFinancasDireto(opcao) {
                     parseFloat(comp.valor_total || 0),
                     safeExcelStr(parc),
                     safeExcelStr(comp.status || 'Pendente'),
-                    safeExcelStr(comp.id_grupo || '')
+                    safeExcelStr(comp.id || comp.id_grupo || '')
                 ]);
             });
 
             const wsCartoes = XLSX.utils.aoa_to_sheet(aoaCartoes);
             wsCartoes['!cols'] = [
                 { wch: 28 }, { wch: 18 }, { wch: 16 }, { wch: 18 },
-                { wch: 18 }, { wch: 24 }, { wch: 16 }, { wch: 16 }
+                { wch: 18 }, { wch: 24 }, { wch: 16 }, { wch: 22 }
             ];
             adicionarAbaSegura(wsCartoes, 'Cartões de Crédito');
 
-            // 4. ABA CONTAS A PAGAR (GAVETA)
+            // 4. ABA CONTAS A PAGAR (GAVETA COM FÓRMULAS VIVAS)
             const contasGaveta = movs.filter(m => m.tipo_gasto === 'Conta a Pagar' && m.deleted !== 1 && m.status !== 'Cancelado');
             const totalGaveta = contasGaveta.reduce((acc, c) => acc + (parseFloat(c.valor_total) || 0), 0);
+            const linhaFimGaveta = Math.max(4, 3 + contasGaveta.length);
+
+            const fTotGaveta = { t: 'n', f: `SUM(B4:B${linhaFimGaveta})`, v: totalGaveta };
+            const fQtdGaveta = { t: 'n', f: `COUNTA(A4:A${linhaFimGaveta})`, v: contasGaveta.length };
 
             const aoaGaveta = [
                 ['GAVETA DE CONTAS A PAGAR (BOLETOS E COMPROMISSOS A VENCER)', '', '', '', '', ''],
-                ['Total em Aberto na Gaveta:', totalGaveta, 'Qtd. de Contas:', contasGaveta.length, '', ''],
+                ['Total em Aberto na Gaveta:', fTotGaveta, 'Qtd. de Contas:', fQtdGaveta, '', ''],
                 [],
-                ['Descrição da Conta', 'Valor Estimado (R$)', 'Data Prevista / Vencimento', 'Status', 'Conta Associada', 'Observações']
+                ['Descrição da Conta', 'Valor Estimado (R$)', 'Data Prevista / Vencimento', 'Status', 'Conta Associada', 'ID do Lançamento']
             ];
 
             contasGaveta.forEach(cg => {
@@ -5831,29 +5836,34 @@ async function exportarBackupFinancasDireto(opcao) {
                     safeExcelStr(dataFmt),
                     safeExcelStr(cg.status || 'Pendente'),
                     safeExcelStr(nomeConta),
-                    safeExcelStr(cg.link_url || '')
+                    safeExcelStr(cg.id || '')
                 ]);
             });
 
             const wsGaveta = XLSX.utils.aoa_to_sheet(aoaGaveta);
             wsGaveta['!cols'] = [
-                { wch: 32 }, { wch: 18 }, { wch: 24 }, { wch: 14 }, { wch: 22 }, { wch: 30 }
+                { wch: 32 }, { wch: 18 }, { wch: 24 }, { wch: 14 }, { wch: 22 }, { wch: 22 }
             ];
-            if (aoaGaveta.length > 4) {
-                wsGaveta['!autofilter'] = { ref: `A4:F${aoaGaveta.length}` };
+            if (contasGaveta.length > 0) {
+                wsGaveta['!autofilter'] = { ref: `A4:F${linhaFimGaveta}` };
             }
             adicionarAbaSegura(wsGaveta, 'Contas a Pagar (Gaveta)');
 
-            // 5. ABA METAS E DESEJOS
+            // 5. ABA METAS E DESEJOS (COM FÓRMULAS VIVAS)
             const listaDesejos = movs.filter(m => m.tipo_gasto === 'Lista de Desejos' && m.deleted !== 1 && m.status !== 'Cancelado');
             const totalAlvoDesejos = listaDesejos.reduce((acc, d) => acc + (parseFloat(d.valor_total) || 0), 0);
             const totalRealizadoDesejos = listaDesejos.reduce((acc, d) => acc + (parseFloat(d.valor_realizado) || 0), 0);
+            const linhaFimDesejos = Math.max(4, 3 + listaDesejos.length);
+
+            const fTotAlvoDes = { t: 'n', f: `SUM(B4:B${linhaFimDesejos})`, v: totalAlvoDesejos };
+            const fTotRealDes = { t: 'n', f: `SUM(C4:C${linhaFimDesejos})`, v: totalRealizadoDesejos };
+            const fSaldoDes = { t: 'n', f: 'B2-D2', v: totalAlvoDesejos - totalRealizadoDesejos };
 
             const aoaDesejos = [
-                ['METAS E LISTA DE DESEJOS (SONHOS E CONQUISTAS)', '', '', '', '', ''],
-                ['Total Alvo dos Desejos:', totalAlvoDesejos, 'Total Acumulado/Pago:', totalRealizadoDesejos, 'Qtd. Itens:', listaDesejos.length, ''],
+                ['METAS E LISTA DE DESEJOS (SONHOS E CONQUISTAS)', '', '', '', '', '', ''],
+                ['Total Alvo dos Desejos:', fTotAlvoDes, 'Total Acumulado/Pago:', fTotRealDes, 'Saldo Restante a Conquistar:', fSaldoDes, ''],
                 [],
-                ['Desejo / Sonho', 'Valor Alvo (R$)', 'Valor Acumulado / Pago (R$)', 'Status', 'Data Prevista / Conquista', 'Link da Loja / Fonte']
+                ['Desejo / Sonho', 'Valor Alvo (R$)', 'Valor Acumulado / Pago (R$)', 'Status', 'Data Prevista / Conquista', 'Link da Loja / Fonte', 'ID do Lançamento']
             ];
 
             listaDesejos.forEach(ld => {
@@ -5864,24 +5874,26 @@ async function exportarBackupFinancasDireto(opcao) {
                     parseFloat(ld.valor_realizado || 0),
                     safeExcelStr(ld.status || 'Pendente'),
                     safeExcelStr(dataFmt),
-                    safeExcelStr(ld.link_url || '')
+                    safeExcelStr(ld.link_url || ''),
+                    safeExcelStr(ld.id || '')
                 ]);
             });
 
             const wsDesejos = XLSX.utils.aoa_to_sheet(aoaDesejos);
             wsDesejos['!cols'] = [
-                { wch: 34 }, { wch: 18 }, { wch: 26 }, { wch: 14 }, { wch: 24 }, { wch: 38 }
+                { wch: 34 }, { wch: 18 }, { wch: 26 }, { wch: 14 }, { wch: 24 }, { wch: 38 }, { wch: 22 }
             ];
-            if (aoaDesejos.length > 4) {
-                wsDesejos['!autofilter'] = { ref: `A4:F${aoaDesejos.length}` };
+            if (listaDesejos.length > 0) {
+                wsDesejos['!autofilter'] = { ref: `A4:G${linhaFimDesejos}` };
             }
             adicionarAbaSegura(wsDesejos, 'Metas e Desejos');
 
-            // 6. ABA PLANEJAMENTO DE RENDAS EXTRAS
+            // 6. ABA PLANEJAMENTO DE RENDAS EXTRAS (COM FÓRMULAS VIVAS)
             const rendasExtras = movs.filter(m => m.tipo_gasto === 'Planejamento Renda Extra' && m.deleted !== 1);
             let totInicialRendas = 0, totGastoRendas = 0, totSaldoRendas = 0;
+            const linhaFimRendas = Math.max(4, 3 + rendasExtras.length);
 
-            const rowsRendasDetalhadas = rendasExtras.map(r => {
+            const rowsRendasDetalhadas = rendasExtras.map((r, rIdx) => {
                 const dados = (typeof parseDadosRendaExtra === 'function') ? parseDadosRendaExtra(r) : { origem: '', aplicacao: '', gastos: [] };
                 const vInicial = parseFloat(r.valor_total) || 0;
                 const totalGasto = (dados.gastos || []).reduce((acc, g) => acc + (parseFloat(g.valor) || 0), 0);
@@ -5893,41 +5905,48 @@ async function exportarBackupFinancasDireto(opcao) {
 
                 const pct = vInicial > 0 ? Math.min(100, Math.round((totalGasto / vInicial) * 100)) : 0;
                 const statusTexto = vInicial > 0 && saldo <= 0.009 ? '100% Aplicado (Zerado)' : `${pct}% utilizado`;
-
                 const resumoGastos = (dados.gastos || []).map(g => `${g.descricao || 'Item'}: R$ ${parseFloat(g.valor || 0).toFixed(2)}`).join(' | ');
+
+                const rNum = 4 + rIdx;
+                const fSaldoItem = { t: 'n', f: `B${rNum}-C${rNum}`, v: saldo };
 
                 return [
                     safeExcelStr(r.descricao || dados.origem || 'Renda Extra'),
                     vInicial,
                     totalGasto,
-                    saldo,
+                    fSaldoItem,
                     safeExcelStr(statusTexto),
-                    safeExcelStr(resumoGastos || dados.aplicacao || '')
+                    safeExcelStr(resumoGastos || dados.aplicacao || ''),
+                    safeExcelStr(r.id || '')
                 ];
             });
 
+            const fTotIniRenda = { t: 'n', f: `SUM(B4:B${linhaFimRendas})`, v: totInicialRendas };
+            const fTotGasRenda = { t: 'n', f: `SUM(C4:C${linhaFimRendas})`, v: totGastoRendas };
+            const fTotSldRenda = { t: 'n', f: `SUM(D4:D${linhaFimRendas})`, v: totSaldoRendas };
+
             const aoaRendas = [
-                ['PLANEJAMENTO DE RENDAS EXTRAS', '', '', '', '', ''],
-                ['Total Renda Extra Inicial:', totInicialRendas, 'Total Alocado / Gasto:', totGastoRendas, 'Saldo Restante:', totSaldoRendas, ''],
+                ['PLANEJAMENTO DE RENDAS EXTRAS', '', '', '', '', '', ''],
+                ['Total Renda Extra Inicial:', fTotIniRenda, 'Total Alocado / Gasto:', fTotGasRenda, 'Saldo Disponível:', fTotSldRenda, ''],
                 [],
-                ['Origem / Descrição da Renda', 'Valor Inicial (R$)', 'Total Alocado / Gasto (R$)', 'Saldo Disponível (R$)', 'Status de Utilização', 'Detalhamento de Gastos Alocados']
+                ['Origem / Descrição da Renda', 'Valor Inicial (R$)', 'Total Alocado / Gasto (R$)', 'Saldo Disponível (R$)', 'Status de Utilização', 'Detalhamento de Gastos Alocados', 'ID do Lançamento']
             ];
 
             rowsRendasDetalhadas.forEach(row => aoaRendas.push(row));
 
             const wsRendas = XLSX.utils.aoa_to_sheet(aoaRendas);
             wsRendas['!cols'] = [
-                { wch: 32 }, { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 45 }
+                { wch: 32 }, { wch: 18 }, { wch: 22 }, { wch: 20 }, { wch: 22 }, { wch: 45 }, { wch: 22 }
             ];
-            if (aoaRendas.length > 4) {
-                wsRendas['!autofilter'] = { ref: `A4:F${aoaRendas.length}` };
+            if (rendasExtras.length > 0) {
+                wsRendas['!autofilter'] = { ref: `A4:G${linhaFimRendas}` };
             }
             adicionarAbaSegura(wsRendas, 'Planejamento Renda Extra');
 
-            // 7. ABA DE DADOS TÉCNICOS (Backup_Dados_Sistema) para restauração técnica garantida
+            // 7. ABA DE DADOS TÉCNICOS (Backup_Dados_Sistema) com blocos leves para restauração garantida
             const backupPayload = {
                 app: "Finanças Pessoais",
-                versao: (typeof getCurrentRunningVersion === 'function') ? getCurrentRunningVersion() : "1.8.5",
+                versao: (typeof getCurrentRunningVersion === 'function') ? getCurrentRunningVersion() : "1.8.7",
                 periodo: periodoDesc,
                 data_exportacao: new Date().toISOString(),
                 total_lancamentos: movsEscopo.length,
@@ -5950,7 +5969,7 @@ async function exportarBackupFinancasDireto(opcao) {
             wsRaw['!cols'] = [{ wch: 10 }, { wch: 80 }];
             adicionarAbaSegura(wsRaw, 'Backup_Dados_Sistema');
 
-            // Gera binário XLSX e dispara download imediato
+            // Gera binário XLSX com suporte nativo a fórmulas vivas e dispara download imediato
             const wbOut = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
             const blob = new Blob([wbOut], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
             const url = URL.createObjectURL(blob);
@@ -5963,14 +5982,14 @@ async function exportarBackupFinancasDireto(opcao) {
             document.body.removeChild(a);
             URL.revokeObjectURL(url);
 
-            showToast(`✅ Planilha Excel gerada com sucesso! (${periodosExportar.length} aba(s) mensais + Demonstrativo + Cartões + Gaveta + Metas + Rendas Extras)`);
+            showToast(`✅ Planilha Excel Turbinada gerada com sucesso! Fórmulas vivas e ${periodosExportar.length} aba(s) mensais ativas.`);
             return;
         }
 
         // Fallback JSON caso XLSX não esteja disponível
         const backupData = {
             app: "Finanças Pessoais",
-            versao: (typeof getCurrentRunningVersion === 'function') ? getCurrentRunningVersion() : "1.8.5",
+            versao: (typeof getCurrentRunningVersion === 'function') ? getCurrentRunningVersion() : "1.8.7",
             periodo: periodoDesc,
             data_exportacao: new Date().toISOString(),
             total_lancamentos: movsEscopo.length,
@@ -6006,6 +6025,43 @@ function fecharModalConfirmarImportacao() {
 }
 window.fecharModalConfirmarImportacao = fecharModalConfirmarImportacao;
 
+// Função auxiliar para converter datas de vários formatos para YYYY-MM-DD
+function parseDataParaISO(rawData) {
+    if (!rawData) return '';
+    if (rawData instanceof Date && !isNaN(rawData.getTime())) {
+        const y = rawData.getFullYear();
+        const m = String(rawData.getMonth() + 1).padStart(2, '0');
+        const d = String(rawData.getDate()).padStart(2, '0');
+        return `${y}-${m}-${d}`;
+    }
+    if (typeof rawData === 'number') {
+        const jsDate = new Date(Math.round((rawData - 25569) * 86400 * 1000));
+        if (!isNaN(jsDate.getTime())) {
+            const y = jsDate.getUTCFullYear();
+            const m = String(jsDate.getUTCMonth() + 1).padStart(2, '0');
+            const d = String(jsDate.getUTCDate()).padStart(2, '0');
+            return `${y}-${m}-${d}`;
+        }
+    }
+    if (typeof rawData === 'string' && rawData.trim()) {
+        const s = rawData.trim();
+        if (s.includes('/')) {
+            const parts = s.split('/');
+            if (parts.length === 3) {
+                return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+        }
+        if (s.includes('-')) {
+            const parts = s.split('-');
+            if (parts.length === 3) {
+                if (parts[0].length === 4) return `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
+                return `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
+            }
+        }
+    }
+    return '';
+}
+
 async function importarBackupFinancas(event) {
     const file = event.target.files && event.target.files[0];
     if (!file) return;
@@ -6026,8 +6082,135 @@ async function importarBackupFinancas(event) {
             const arrayBuffer = await file.arrayBuffer();
             const wb = XLSX.read(arrayBuffer, { type: 'array', cellDates: true });
 
-            // 1. Tenta restaurar pela aba de metadados de sistema se existir
-            if (wb.Sheets['Backup_Dados_Sistema']) {
+            // Mapa para associar contas pelo nome_conta
+            let contasExistentes = [];
+            try {
+                contasExistentes = await dbLocal.contas_bancarias.filter(c => c.deleted !== 1).toArray();
+            } catch(e) {}
+            const mapNomeParaIdConta = new Map();
+            contasExistentes.forEach(c => {
+                if (c.nome_conta) mapNomeParaIdConta.set(c.nome_conta.trim().toLowerCase(), c.id);
+            });
+
+            // 1. Prioridade Inteligente: Lê as abas visuais mensais do Excel (Out-2026, etc.)
+            // Isso permite que edições feitas pelo usuário no Excel sejam capturadas!
+            const abasNaoMensais = new Set(['Demonstrativo', 'Cartões de Crédito', 'Contas a Pagar (Gaveta)', 'Metas e Desejos', 'Planejamento Renda Extra', 'Backup_Dados_Sistema', 'Resumo Geral']);
+            const abasMensais = wb.SheetNames.filter(name => !abasNaoMensais.has(name));
+
+            const mapMovsPorId = new Map();
+            let leuAbasVisuais = false;
+
+            for (const abaNome of abasMensais) {
+                const sheet = wb.Sheets[abaNome];
+                if (!sheet) continue;
+                // Lê a tabela a partir da linha 6 (índice 5 base-0)
+                const rows = XLSX.utils.sheet_to_json(sheet, { range: 5 });
+                if (rows && rows.length > 0 && rows.some(r => r['Descrição'] || r['Descricao'] || r['Valor Orçado (R$)'] || r['Valor'])) {
+                    leuAbasVisuais = true;
+                    rows.forEach(r => {
+                        const desc = r['Descrição'] || r['Descricao'] || r['descricao'] || '';
+                        if (!desc && !r['Valor Orçado (R$)'] && !r['Valor'] && !r['valor_total']) return;
+
+                        const dataStr = parseDataParaISO(r['Data'] || r['data_lancamento'] || r['data']);
+                        const valOrcado = parseFloat(r['Valor Orçado (R$)'] || r['Valor Orçado'] || r['Valor'] || r['valor_total'] || 0);
+                        const valRealizado = parseFloat(r['Valor Realizado (R$)'] || r['Valor Realizado'] || r['valor_realizado'] || 0);
+                        const nomeConta = String(r['Conta / Cartão'] || r['Conta'] || '').trim();
+                        let contaId = '';
+                        if (nomeConta && mapNomeParaIdConta.has(nomeConta.toLowerCase())) {
+                            contaId = mapNomeParaIdConta.get(nomeConta.toLowerCase());
+                        }
+
+                        let parcelado = 'Não';
+                        let parcAtual = 1;
+                        let parcTot = 1;
+                        const parcStr = String(r['Parcelas'] || r['Parcela'] || '').trim();
+                        if (parcStr.includes('/')) {
+                            const pParts = parcStr.split('/');
+                            parcAtual = parseInt(pParts[0], 10) || 1;
+                            parcTot = parseInt(pParts[1], 10) || 1;
+                            if (parcTot > 1) parcelado = 'Sim';
+                        }
+
+                        const idLancamento = r['ID do Lançamento'] || r['ID'] || r['id'] || generateUUID();
+
+                        mapMovsPorId.set(idLancamento, {
+                            id: idLancamento,
+                            data_lancamento: dataStr,
+                            descricao: desc,
+                            tipo_gasto: r['Tipo / Categoria'] || r['Categoria / Tipo'] || r['Categoria'] || r['Tipo'] || 'Despesa Variável',
+                            valor_total: isNaN(valOrcado) ? 0 : valOrcado,
+                            valor_realizado: isNaN(valRealizado) ? 0 : valRealizado,
+                            status: r['Status'] || 'Pendente',
+                            parcelado: parcelado,
+                            parcela_atual: parcAtual,
+                            total_parcelas: parcTot,
+                            conta_id: contaId,
+                            id_grupo: r['ID do Grupo / Ref'] || r['Grupo'] || '',
+                            deleted: 0
+                        });
+                    });
+                }
+            }
+
+            // Lê também a aba Contas a Pagar (Gaveta) para novas contas adicionadas no Excel
+            if (wb.Sheets['Contas a Pagar (Gaveta)']) {
+                const sheetGav = wb.Sheets['Contas a Pagar (Gaveta)'];
+                const rowsGav = XLSX.utils.sheet_to_json(sheetGav, { range: 2 });
+                rowsGav.forEach(r => {
+                    const desc = r['Descrição da Conta'] || r['Descricao'] || '';
+                    if (!desc) return;
+                    const val = parseFloat(r['Valor Estimado (R$)'] || r['Valor'] || 0);
+                    const dataStr = parseDataParaISO(r['Data Prevista / Vencimento'] || r['Data']);
+                    const idGav = r['ID do Lançamento'] || r['ID'] || generateUUID();
+                    if (!mapMovsPorId.has(idGav)) {
+                        mapMovsPorId.set(idGav, {
+                            id: idGav,
+                            data_lancamento: dataStr,
+                            descricao: desc,
+                            tipo_gasto: 'Conta a Pagar',
+                            valor_total: isNaN(val) ? 0 : val,
+                            valor_realizado: 0,
+                            status: r['Status'] || 'Pendente',
+                            deleted: 0
+                        });
+                    }
+                });
+            }
+
+            // Lê a aba Metas e Desejos para novos desejos adicionados no Excel
+            if (wb.Sheets['Metas e Desejos']) {
+                const sheetDes = wb.Sheets['Metas e Desejos'];
+                const rowsDes = XLSX.utils.sheet_to_json(sheetDes, { range: 2 });
+                rowsDes.forEach(r => {
+                    const desc = r['Desejo / Sonho'] || r['Descricao'] || '';
+                    if (!desc) return;
+                    const valAlvo = parseFloat(r['Valor Alvo (R$)'] || 0);
+                    const valReal = parseFloat(r['Valor Acumulado / Pago (R$)'] || 0);
+                    const dataStr = parseDataParaISO(r['Data Prevista / Conquista'] || r['Data']);
+                    const idDes = r['ID do Lançamento'] || r['ID'] || generateUUID();
+                    if (!mapMovsPorId.has(idDes)) {
+                        mapMovsPorId.set(idDes, {
+                            id: idDes,
+                            data_lancamento: dataStr,
+                            descricao: desc,
+                            tipo_gasto: 'Lista de Desejos',
+                            valor_total: isNaN(valAlvo) ? 0 : valAlvo,
+                            valor_realizado: isNaN(valReal) ? 0 : valReal,
+                            status: r['Status'] || 'Pendente',
+                            link_url: r['Link da Loja / Fonte'] || '',
+                            deleted: 0
+                        });
+                    }
+                });
+            }
+
+            // Se leu abas visuais do Excel, usa os dados editados pelo usuário
+            if (leuAbasVisuais && mapMovsPorId.size > 0) {
+                movsParaImportar = Array.from(mapMovsPorId.values());
+            }
+
+            // 2. Se não encontrou abas visuais, faz a leitura da aba de sistema ou clássica
+            if (movsParaImportar.length === 0 && wb.Sheets['Backup_Dados_Sistema']) {
                 try {
                     const rawRows = XLSX.utils.sheet_to_json(wb.Sheets['Backup_Dados_Sistema']);
                     let jsonStr = '';
@@ -6043,80 +6226,46 @@ async function importarBackupFinancas(event) {
                         if (Array.isArray(payload.origens_renda)) origensParaImportar = payload.origens_renda;
                     }
                 } catch(e) {
-                    console.warn('Não foi possível ler metadados embutidos, fazendo fallback para colunas da planilha:', e);
+                    console.warn('Fallback para aba clássica Lançamentos:', e);
                 }
             }
 
-            // 2. Se não pegou por metadados, faz o parse direto da aba de Lançamentos
+            // 3. Fallback para aba clássica "Lançamentos" de versões anteriores
             if (movsParaImportar.length === 0) {
                 const sheetName = wb.Sheets['Lançamentos'] ? 'Lançamentos' : wb.SheetNames[0];
                 const sheet = wb.Sheets[sheetName];
-                const rows = XLSX.utils.sheet_to_json(sheet);
+                if (sheet) {
+                    const rows = XLSX.utils.sheet_to_json(sheet);
+                    rows.forEach(r => {
+                        const desc = r['Descrição'] || r['Descricao'] || r['descricao'] || '';
+                        if (!desc && !r['Valor Orçado (R$)'] && !r['Valor'] && !r['valor_total']) return;
+                        const dataStr = parseDataParaISO(r['Data'] || r['data_lancamento'] || r['data']);
+                        const valOrcado = parseFloat(r['Valor Orçado (R$)'] || r['Valor Orçado'] || r['Valor'] || r['valor_total'] || 0);
+                        const valRealizado = parseFloat(r['Valor Realizado (R$)'] || r['Valor Realizado'] || r['valor_realizado'] || 0);
 
-                rows.forEach(r => {
-                    const desc = r['Descrição'] || r['Descricao'] || r['descricao'] || '';
-                    if (!desc && !r['Valor Orçado (R$)'] && !r['Valor'] && !r['valor_total']) return;
-
-                    let dataStr = '';
-                    const rawData = r['Data'] || r['data_lancamento'] || r['data'] || '';
-                    if (rawData instanceof Date && !isNaN(rawData.getTime())) {
-                        const y = rawData.getFullYear();
-                        const m = String(rawData.getMonth() + 1).padStart(2, '0');
-                        const d = String(rawData.getDate()).padStart(2, '0');
-                        dataStr = `${y}-${m}-${d}`;
-                    } else if (typeof rawData === 'number') {
-                        const jsDate = new Date(Math.round((rawData - 25569) * 86400 * 1000));
-                        if (!isNaN(jsDate.getTime())) {
-                            const y = jsDate.getUTCFullYear();
-                            const m = String(jsDate.getUTCMonth() + 1).padStart(2, '0');
-                            const d = String(jsDate.getUTCDate()).padStart(2, '0');
-                            dataStr = `${y}-${m}-${d}`;
-                        }
-                    } else if (typeof rawData === 'string' && rawData.trim()) {
-                        const s = rawData.trim();
-                        if (s.includes('/')) {
-                            const parts = s.split('/');
-                            if (parts.length === 3) {
-                                dataStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                            }
-                        } else if (s.includes('-')) {
-                            const parts = s.split('-');
-                            if (parts.length === 3) {
-                                if (parts[0].length === 4) {
-                                    dataStr = `${parts[0]}-${parts[1].padStart(2, '0')}-${parts[2].padStart(2, '0')}`;
-                                } else {
-                                    dataStr = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
-                                }
-                            }
-                        }
-                    }
-
-                    const valOrcado = parseFloat(r['Valor Orçado (R$)'] || r['Valor Orçado'] || r['Valor'] || r['valor_total'] || 0);
-                    const valRealizado = parseFloat(r['Valor Realizado (R$)'] || r['Valor Realizado'] || r['valor_realizado'] || 0);
-
-                    movsParaImportar.push({
-                        id: r['ID'] || r['id'] || generateUUID(),
-                        data_lancamento: dataStr,
-                        descricao: desc,
-                        tipo_gasto: r['Categoria / Tipo'] || r['Categoria'] || r['Tipo'] || r['tipo_gasto'] || 'Despesa Variável',
-                        valor_total: isNaN(valOrcado) ? 0 : valOrcado,
-                        valor_realizado: isNaN(valRealizado) ? 0 : valRealizado,
-                        status: r['Status'] || r['status'] || 'Pendente',
-                        parcelado: r['Parcelado'] || r['parcelado'] || 'Não',
-                        parcela_atual: parseInt(r['Parcela Atual'] || r['parcela_atual'], 10) || 1,
-                        total_parcelas: parseInt(r['Total Parcelas'] || r['total_parcelas'], 10) || 1,
-                        id_grupo: r['Grupo'] || r['id_grupo'] || '',
-                        link_url: r['Link da Fonte'] || r['Link Original'] || r['link_url'] || '',
-                        midia_tipo: r['Tipo de Mídia'] || r['Mídia (Tipo)'] || r['midia_tipo'] || '',
-                        deleted: 0
+                        movsParaImportar.push({
+                            id: r['ID'] || r['id'] || generateUUID(),
+                            data_lancamento: dataStr,
+                            descricao: desc,
+                            tipo_gasto: r['Categoria / Tipo'] || r['Categoria'] || r['Tipo'] || r['tipo_gasto'] || 'Despesa Variável',
+                            valor_total: isNaN(valOrcado) ? 0 : valOrcado,
+                            valor_realizado: isNaN(valRealizado) ? 0 : valRealizado,
+                            status: r['Status'] || r['status'] || 'Pendente',
+                            parcelado: r['Parcelado'] || r['parcelado'] || 'Não',
+                            parcela_atual: parseInt(r['Parcela Atual'] || r['parcela_atual'], 10) || 1,
+                            total_parcelas: parseInt(r['Total Parcelas'] || r['total_parcelas'], 10) || 1,
+                            id_grupo: r['Grupo'] || r['id_grupo'] || '',
+                            link_url: r['Link da Fonte'] || r['Link Original'] || r['link_url'] || '',
+                            midia_tipo: r['Tipo de Mídia'] || r['Mídia (Tipo)'] || r['midia_tipo'] || '',
+                            deleted: 0
+                        });
                     });
-                });
+                }
             }
         } else {
             // Arquivo JSON
             const text = await file.text();
             const data = JSON.parse(text);
-
             if (Array.isArray(data)) {
                 movsParaImportar = data;
             } else if (data && typeof data === 'object') {
@@ -6132,7 +6281,6 @@ async function importarBackupFinancas(event) {
             return;
         }
 
-        // Identifica período dos lançamentos importados
         const datas = movsParaImportar.map(m => m.data_lancamento).filter(Boolean).sort();
         let periodoIdentificado = 'Diversos';
         if (datas.length > 0) {
@@ -6152,7 +6300,6 @@ async function importarBackupFinancas(event) {
             }
         }
 
-        // Guarda os dados para confirmação
         _dadosImportacaoTemp = {
             movs: movsParaImportar,
             contas: contasParaImportar,
@@ -6160,7 +6307,6 @@ async function importarBackupFinancas(event) {
             fileName: file.name
         };
 
-        // Abre o modal estilizado de confirmação de importação
         const modal = document.getElementById('modalConfirmarImportacao');
         if (modal) {
             const txtResumo = document.getElementById('txtImportResumoArquivo');
@@ -6174,25 +6320,19 @@ async function importarBackupFinancas(event) {
 
             modal.style.display = 'flex';
         } else {
-            // Fallback para confirm se o modal não estiver no DOM
-            const confirmou = confirm(`Deseja importar este backup contendo ${movsParaImportar.length} lançamento(s) (${periodoIdentificado})?\n\nTodos os registros serão restaurados no aplicativo e sincronizados.`);
+            const confirmou = confirm(`Deseja importar este backup contendo ${movsParaImportar.length} lançamento(s) (${periodoIdentificado})?\n\nTodos os registros e alterações feitas no Excel serão sincronizados com o aplicativo.`);
             if (confirmou) {
                 await executarImportacaoConfirmada();
-            } else {
-                event.target.value = '';
-                _dadosImportacaoTemp = null;
             }
         }
     } catch (err) {
-        console.error('Erro ao processar arquivo de backup:', err);
-        alert('Erro ao processar arquivo de backup: ' + err.message);
+        console.error('Erro ao processar arquivo para importação:', err);
+        alert('Erro ao ler arquivo: ' + err.message);
+    } finally {
         event.target.value = '';
-        _dadosImportacaoTemp = null;
     }
 }
-window.importarBackupFinancas = importarBackupFinancas;
 
-// Execução da Importação Confirmada
 async function executarImportacaoConfirmada() {
     if (!_dadosImportacaoTemp) return;
 
