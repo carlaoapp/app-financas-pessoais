@@ -341,6 +341,33 @@ async function carregarPlanejamento() {
         syncFinanceWithServer();
     }
 
+    // Deduplicação transparente e segura: elimina duplicatas com dados 100% idênticos preservando o lançamento original
+    const mapaUnicosIdenticos = new Map();
+    let houveRemocaoDuplicata = false;
+    for (const m of movs) {
+        if (!m.data_lancamento || !m.descricao || Number(m.deleted || 0) === 1) continue;
+        const chave = `${m.data_lancamento}|${(m.descricao || '').trim().toLowerCase()}|${m.tipo_gasto}|${parseFloat(m.valor_total || 0).toFixed(2)}|${m.parcela_atual || 1}|${m.total_parcelas || 1}|${m.conta_id || ''}`;
+        if (!mapaUnicosIdenticos.has(chave)) {
+            mapaUnicosIdenticos.set(chave, m);
+        } else {
+            const existente = mapaUnicosIdenticos.get(chave);
+            if (String(existente.id) !== String(m.id)) {
+                const itemDesativar = (existente.status === 'Pago' && m.status !== 'Pago') ? m : existente;
+                if (itemDesativar === existente) {
+                    mapaUnicosIdenticos.set(chave, m);
+                }
+                itemDesativar.deleted = 1;
+                itemDesativar.sync_status = 'pending_update';
+                itemDesativar.updated_at = Date.now();
+                dbLocal.movimentacoes.put(itemDesativar).catch(() => {});
+                houveRemocaoDuplicata = true;
+            }
+        }
+    }
+    if (houveRemocaoDuplicata && typeof syncFinanceWithServer === 'function') {
+        setTimeout(syncFinanceWithServer, 500);
+    }
+
     // Autocorreção transparente de Cartão Alimentação e Comprovante Ticket
     let houveAutocorrecaoAlim = false;
     let contasCadastradas = [];
@@ -413,9 +440,6 @@ async function carregarPlanejamento() {
         // Regra especial para "Conta a Pagar": Nunca aparece no painel, é exclusivo da Gaveta
         if (m.tipo_gasto === 'Conta a Pagar') return;
 
-        // Regra especial para "Planejamento Renda Extra": Exclusivo da Aba Planejamento de Rendas Extras
-        if (m.tipo_gasto === 'Planejamento Renda Extra') return;
-
         // Se por acaso faltar a data, a gente ignora do calendário.
         if (!m.data_lancamento) return;
 
@@ -454,7 +478,6 @@ async function carregarPlanejamento() {
     movs.forEach(m => {
         if (m.tipo_gasto === 'Lista de Desejos' && m.status !== 'Pago') return;
         if (m.tipo_gasto === 'Conta a Pagar') return;
-        if (m.tipo_gasto === 'Planejamento Renda Extra') return;
         if (!m.data_lancamento) return;
         if (m.parcelado !== 'Sim' || !m.id_grupo) return;
         if (gruposFisicosNoMes.has(m.id_grupo)) return;
@@ -475,7 +498,10 @@ async function carregarPlanejamento() {
                     projM.status = 'Pendente'; 
                     const virtualDate = new Date(launchDate);
                     virtualDate.setMonth(virtualDate.getMonth() + diffMonths);
-                    projM.data_lancamento = virtualDate.toISOString().split('T')[0];
+                    const yV = virtualDate.getFullYear();
+                    const mV = String(virtualDate.getMonth() + 1).padStart(2, '0');
+                    const dV = String(virtualDate.getDate()).padStart(2, '0');
+                    projM.data_lancamento = `${yV}-${mV}-${dV}`;
                     itensDoMes.push(projM);
                 }
             }
@@ -496,10 +522,10 @@ async function carregarPlanejamento() {
         const vOrcado = parseFloat(item.valor_total) || 0;
         const vRealizado = parseFloat(item.valor_realizado) || 0;
 
-        if (isTipoResgateReserva(item) || item.tipo_gasto === 'Receita') {
-            // Resgate entra como "Receita" do mês para cobrir o buraco
+        if (isTipoResgateReserva(item) || item.tipo_gasto === 'Receita' || item.tipo_gasto === 'Planejamento Renda Extra' || item.tipo_gasto === 'Renda Extra') {
+            // Resgate e Renda Extra entram como "Receita" do mês
             recOrcado += vOrcado; 
-            recRealizado += vRealizado; 
+            recRealizado += (vRealizado > 0 ? vRealizado : (item.status === 'Pago' ? vOrcado : 0)); 
         } else if (item.tipo_gasto === 'Investimento') {
             // Investimento tem seu totalizador próprio e isolado
             invOrcado += vOrcado;
@@ -725,9 +751,14 @@ function renderizarLista(itens) {
 
         let tagTipo = '';
         let borderLeftColor = '#EF4444';
+        const isEntrada = item.tipo_gasto === 'Receita' || isTipoResgateReserva(item) || item.tipo_gasto === 'Planejamento Renda Extra' || item.tipo_gasto === 'Renda Extra';
+
         if (item.tipo_gasto === 'Receita') {
             borderLeftColor = '#10B981';
             tagTipo = '<span class="badge" style="background:rgba(16,185,129,0.15); color:#10B981; margin-left:6px;">Entrada</span>';
+        } else if (item.tipo_gasto === 'Planejamento Renda Extra' || item.tipo_gasto === 'Renda Extra') {
+            borderLeftColor = '#10B981';
+            tagTipo = '<span class="badge" style="background:rgba(16,185,129,0.15); color:#34D399; margin-left:6px;">⚡ Renda Extra</span>';
         } else if (isTipoResgateReserva(item)) {
             borderLeftColor = '#10B981';
             tagTipo = '<span class="badge" style="background:rgba(16,185,129,0.15); color:#34D399; margin-left:6px;">💰 Resgate</span>';
@@ -777,7 +808,7 @@ function renderizarLista(itens) {
             </div>
             ${btnActions}
         `;
-        if (item.tipo_gasto === 'Receita') {
+        if (isEntrada) {
             containerEntradas.appendChild(div);
         } else {
             containerDespesas.appendChild(div);
@@ -1769,13 +1800,28 @@ function abrirModalLancamento() {
     const badgeOcrObs = document.getElementById('badgeOcrObs');
     if (badgeOcrObs) badgeOcrObs.style.display = 'none';
 
-    // Preenche a data padrão com a data de hoje
+    // Preenche a data padrão com a data do mês atualmente visualizado
     const inputData = document.getElementById('inputData');
     if (inputData) {
         const hoje = new Date();
-        const yyyy = hoje.getFullYear();
-        const mm = String(hoje.getMonth() + 1).padStart(2, '0');
-        const dd = String(hoje.getDate()).padStart(2, '0');
+        let yyyy = hoje.getFullYear();
+        let mmNum = hoje.getMonth() + 1;
+        
+        const selMes = document.getElementById('mesBaseSelector');
+        if (selMes && selMes.value !== '' && selMes.value !== 'MULTI_DEMO') {
+            mmNum = parseInt(selMes.value, 10) + 1;
+        }
+        const selAno = document.getElementById('anoBaseSelector');
+        if (selAno && selAno.value !== '' && selAno.value !== 'MULTI_DEMO') {
+            yyyy = parseInt(selAno.value, 10);
+        }
+
+        let diaSugerido = hoje.getDate();
+        const maxDias = new Date(yyyy, mmNum, 0).getDate();
+        if (diaSugerido > maxDias) diaSugerido = maxDias;
+
+        const mm = String(mmNum).padStart(2, '0');
+        const dd = String(diaSugerido).padStart(2, '0');
         inputData.value = `${yyyy}-${mm}-${dd}`;
     }
 
@@ -1973,12 +2019,8 @@ async function iniciarExclusaoLancamento(id) {
     if (item.id_grupo && item.id_grupo.trim() !== '') {
         irmaos = activeMovs.filter(m => m.id_grupo === item.id_grupo && (m.data_lancamento >= item.data_lancamento || (m.parcela_atual && item.parcela_atual && m.parcela_atual >= item.parcela_atual)));
     } else {
-        // Procura lançamentos com mesma descrição base e tipo a partir da data deste lançamento
-        const descBase = (item.descricao || '').replace(/\s*\(\d+\/\d+\)$/, '').trim().toLowerCase();
-        irmaos = activeMovs.filter(m => {
-            const mDescBase = (m.descricao || '').replace(/\s*\(\d+\/\d+\)$/, '').trim().toLowerCase();
-            return mDescBase === descBase && m.tipo_gasto === item.tipo_gasto && m.data_lancamento >= item.data_lancamento;
-        });
+        // Se NÃO tem id_grupo explícito, é um lançamento avulso/único! NUNCA buscar por descrição nem agrupar meses futuros!
+        irmaos = [item];
     }
 
     irmaos.sort((a, b) => new Date(a.data_lancamento || 0) - new Date(b.data_lancamento || 0));
@@ -2110,13 +2152,44 @@ async function executarConfirmacaoExclusao() {
         if (alvos.length === 0) alvos = [itemParaExcluir];
     }
 
+    // FECHA O MODAL IMEDIATAMENTE PARA RESPOSTA INSTANTÂNEA AO CLIQUE
+    fecharModalConfirmarExclusao();
+    if (typeof fecharModalLancamento === 'function') fecharModalLancamento();
+    if (document.getElementById('modalFatura') && document.getElementById('modalFatura').style.display === 'flex') {
+        fecharModalFatura();
+    }
+
     const timestamp = Date.now();
     for (const alvo of alvos) {
-        await dbLocal.movimentacoes.update(alvo.id, {
+        let count = await dbLocal.movimentacoes.update(alvo.id, {
             deleted: 1,
             sync_status: 'pending_update',
             updated_at: timestamp
         });
+        if (count === 0 && !isNaN(alvo.id)) {
+            count = await dbLocal.movimentacoes.update(Number(alvo.id), {
+                deleted: 1,
+                sync_status: 'pending_update',
+                updated_at: timestamp
+            });
+        }
+        if (count === 0) {
+            count = await dbLocal.movimentacoes.update(String(alvo.id), {
+                deleted: 1,
+                sync_status: 'pending_update',
+                updated_at: timestamp
+            });
+        }
+        if (count === 0) {
+            const all = await dbLocal.movimentacoes.toArray();
+            const real = all.find(m => String(m.id) === String(alvo.id));
+            if (real) {
+                real.deleted = 1;
+                real.sync_status = 'pending_update';
+                real.updated_at = timestamp;
+                await dbLocal.movimentacoes.put(real);
+            }
+        }
         if (typeof aplicarAjusteSaldoBancario === 'function') {
             await aplicarAjusteSaldoBancario(alvo, null, timestamp);
         }
@@ -2127,19 +2200,14 @@ async function executarConfirmacaoExclusao() {
         'Lançamento excluído com sucesso!';
     showToast(msg);
 
-    fecharModalConfirmarExclusao();
-    if (typeof fecharModalLancamento === 'function') fecharModalLancamento();
-    if (document.getElementById('modalFatura') && document.getElementById('modalFatura').style.display === 'flex') {
-        fecharModalFatura();
-    }
-
+    // ATUALIZAÇÃO IMEDIATA DA TELA (SEM ESPERAR REDE)
     carregarPlanejamento();
     if (typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
     if (typeof carregarSelectContasModal === 'function') carregarSelectContasModal();
     if (typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
     if (typeof carregarContasAPagar === 'function') carregarContasAPagar();
     if (typeof carregarListaDesejos === 'function') carregarListaDesejos();
-    if (typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+    if (typeof carregarPlanejamentoRendaExtra === 'function') carregarPlanejamentoRendaExtra();
 
     // Se o modal de extrato de fatura ou alimentação estiver aberto, atualiza em tempo real
     const modCred = document.getElementById('modalExtratoFaturaCartao');
@@ -2149,6 +2217,11 @@ async function executarConfirmacaoExclusao() {
     const modAlim = document.getElementById('modalExtratoCartaoAlimentacao');
     if (modAlim && modAlim.style.display === 'flex' && modAlim.dataset.contaId && typeof abrirModalExtratoCartaoAlimentacao === 'function') {
         abrirModalExtratoCartaoAlimentacao(modAlim.dataset.contaId);
+    }
+
+    // Sincroniza em segundo plano sem travar
+    if (typeof syncFinanceWithServer === 'function') {
+        setTimeout(syncFinanceWithServer, 50);
     }
 }
 
@@ -2398,9 +2471,21 @@ async function aplicarAjusteSaldoBancario(itemOriginal, itemNovo, timestamp) {
 }
 window.aplicarAjusteSaldoBancario = aplicarAjusteSaldoBancario;
 
+let isSalvandoLancamentoGlobal = false;
+
 async function salvarLancamento(event) {
     if (event && typeof event.preventDefault === 'function') {
         event.preventDefault();
+    }
+
+    if (isSalvandoLancamentoGlobal) return;
+    isSalvandoLancamentoGlobal = true;
+
+    const btnSalvarModal = document.getElementById('btnSalvar');
+    const txtBtnOriginal = btnSalvarModal ? btnSalvarModal.innerText : 'Salvar Lançamento';
+    if (btnSalvarModal) {
+        btnSalvarModal.disabled = true;
+        btnSalvarModal.innerText = 'Salvando...';
     }
     
     try {
@@ -2464,6 +2549,8 @@ async function salvarLancamento(event) {
             tipoGasto = 'Reserva de Emergência';
         } else if (descLower.includes('resgate') || tipoLower.includes('resgate')) {
             tipoGasto = 'Resgate de Reserva';
+        } else if (tipoLower.includes('renda extra')) {
+            tipoGasto = 'Planejamento Renda Extra';
         }
 
         const valorOrcado = desformatarMoedaInput(document.getElementById('inputValor').value);
@@ -2474,7 +2561,11 @@ async function salvarLancamento(event) {
             document.getElementById('inputValor').focus();
             return;
         }
-        const data = document.getElementById('inputData').value;
+        let data = (document.getElementById('inputData') ? document.getElementById('inputData').value : '').trim();
+        if (data && /^\d{1,2}[\/\-\.]\d{1,2}[\/\-\.]\d{4}$/.test(data)) {
+            const p = data.split(/[\/\-\.]/);
+            data = `${p[2]}-${p[1].padStart(2, '0')}-${p[0].padStart(2, '0')}`;
+        }
         const status = document.getElementById('inputStatus').value || 'Pendente';
         if (status === 'Pago' && valorRealizado <= 0) {
             valorRealizado = valorOrcado;
@@ -2794,12 +2885,14 @@ async function salvarLancamento(event) {
             }
         }
         
+        // FECHAMENTO E ATUALIZAÇÃO INSTANTÂNEA DA TELA (ZERO DELAY)
         fecharModalLancamento();
         carregarPlanejamento();
         if(typeof carregarContasAPagar === 'function') carregarContasAPagar();
         if(typeof carregarListaDesejos === 'function') carregarListaDesejos();
         if(typeof carregarCartoesEContas === 'function') carregarCartoesEContas();
-        if(typeof syncFinanceWithServer === 'function') syncFinanceWithServer();
+        if(typeof carregarPlanejamentoRendaExtra === 'function') carregarPlanejamentoRendaExtra();
+        if(typeof renderizarExtratoCompleto === 'function') renderizarExtratoCompleto();
 
         const modCred = document.getElementById('modalExtratoFaturaCartao');
         if (modCred && modCred.style.display === 'flex' && modCred.dataset.cartaoId && typeof abrirModalExtratoFaturaCartao === 'function') {
@@ -2819,9 +2912,20 @@ async function salvarLancamento(event) {
         } else {
             switchFinanceTab('Lancamentos');
         }
+
+        // Sincroniza em segundo plano sem bloquear o usuário
+        if(typeof syncFinanceWithServer === 'function') {
+            setTimeout(syncFinanceWithServer, 50);
+        }
     } catch (err) {
         console.error('Erro crítico ao salvar lançamento:', err);
         alert('Erro ao salvar lançamento: ' + err.message);
+    } finally {
+        isSalvandoLancamentoGlobal = false;
+        if (btnSalvarModal) {
+            btnSalvarModal.disabled = false;
+            btnSalvarModal.innerText = txtBtnOriginal;
+        }
     }
 }
 window.salvarLancamento = salvarLancamento;
@@ -4047,7 +4151,7 @@ async function carregarPlanejamentoRendaExtra() {
 
     const movs = await dbLocal.movimentacoes.toArray();
     const rendas = movs
-        .filter(m => m.tipo_gasto === 'Planejamento Renda Extra' && Number(m.deleted || 0) !== 1)
+        .filter(m => (m.tipo_gasto === 'Planejamento Renda Extra' || m.tipo_gasto === 'Renda Extra') && Number(m.deleted || 0) !== 1)
         .sort((a, b) => Number(b.updated_at || 0) - Number(a.updated_at || 0));
 
     container.innerHTML = '';
@@ -5053,10 +5157,12 @@ function renderizarExtratoCompleto() {
     
     // Os gastos do Cartão Alimentação e do Cartão de Crédito são gerenciados exclusivamente pelos cards dedicados
     let itens = (window.currentMesItens || []).filter(i => i.tipo_gasto !== 'Cartão Alimentação' && i.tipo_gasto !== 'Cartão de Crédito');
+    const isReceitaItem = (i) => (i.tipo_gasto === 'Receita' || isTipoResgateReserva(i) || i.tipo_gasto === 'Planejamento Renda Extra' || i.tipo_gasto === 'Renda Extra');
+
     if (window.extratoFiltroAtual === 'receitas') {
-        itens = itens.filter(i => i.tipo_gasto === 'Receita' || i.tipo_gasto === 'Resgate de Reserva');
+        itens = itens.filter(isReceitaItem);
     } else if (window.extratoFiltroAtual === 'despesas') {
-        itens = itens.filter(i => i.tipo_gasto !== 'Receita' && i.tipo_gasto !== 'Resgate de Reserva' && i.tipo_gasto !== 'Transferência Interna');
+        itens = itens.filter(i => !isReceitaItem(i) && i.tipo_gasto !== 'Transferência Interna');
     } else if (window.extratoFiltroAtual === 'investimentos') {
         itens = itens.filter(i => i.tipo_gasto === 'Investimento');
     } else if (window.extratoFiltroAtual === 'reserva') {
@@ -5111,7 +5217,7 @@ function renderizarExtratoCompleto() {
         return vr > 0 ? vr : vo;
     };
 
-    const isReceita = (i) => (i.tipo_gasto === 'Receita' || isTipoResgateReserva(i));
+    const isReceita = isReceitaItem;
 
     // Separar Receitas e Despesas/Saídas
     const listaReceitas = itens.filter(isReceita);

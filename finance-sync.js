@@ -158,14 +158,18 @@ async function syncFinanceWithServer() {
                 }
             }
 
-            // 3. Aplica atualizações recebidas do servidor no IndexedDB local (protegendo edições locais mais recentes)
+            // 3. Aplica atualizações recebidas do servidor no IndexedDB local (protegendo edições e exclusões locais mais recentes)
             let houveAlteracaoLocal = false;
             await dbLocal.transaction('rw', dbLocal.origens_renda, dbLocal.contas_bancarias, dbLocal.movimentacoes, async () => {
                 for (let item of (updates.origens_renda || [])) {
                     item.id = String(item.id);
                     const localItem = localRendaMap.get(item.id);
-                    if (localItem && localItem.sync_status !== 'synced' && Number(localItem.updated_at || 0) > Number(item.updated_at || 0)) {
-                        continue;
+                    if (localItem) {
+                        if (Number(localItem.deleted || 0) === 1 && localItem.sync_status !== 'synced') continue;
+                        if (localItem.sync_status !== 'synced' && Number(localItem.updated_at || 0) >= Number(item.updated_at || 0)) continue;
+                    }
+                    if (!isNaN(item.id)) {
+                        try { await dbLocal.origens_renda.delete(Number(item.id)); } catch(e) {}
                     }
                     const mudou = !localItem || Number(localItem.updated_at || 0) !== Number(item.updated_at || 0) || Number(localItem.deleted || 0) !== Number(item.deleted || 0);
                     item.sync_status = 'synced';
@@ -177,8 +181,12 @@ async function syncFinanceWithServer() {
                 for (let item of (updates.contas_bancarias || [])) {
                     item.id = String(item.id);
                     const localItem = localContasMap.get(item.id);
-                    if (localItem && localItem.sync_status !== 'synced' && Number(localItem.updated_at || 0) > Number(item.updated_at || 0)) {
-                        continue;
+                    if (localItem) {
+                        if (Number(localItem.deleted || 0) === 1 && localItem.sync_status !== 'synced') continue;
+                        if (localItem.sync_status !== 'synced' && Number(localItem.updated_at || 0) >= Number(item.updated_at || 0)) continue;
+                    }
+                    if (!isNaN(item.id)) {
+                        try { await dbLocal.contas_bancarias.delete(Number(item.id)); } catch(e) {}
                     }
                     const mudou = !localItem || Number(localItem.updated_at || 0) !== Number(item.updated_at || 0) || Number(localItem.deleted || 0) !== Number(item.deleted || 0);
                     item.sync_status = 'synced';
@@ -190,8 +198,15 @@ async function syncFinanceWithServer() {
                 for (let item of (updates.movimentacoes || [])) {
                     item.id = String(item.id);
                     const localItem = localMovsMap.get(item.id);
-                    if (localItem && localItem.sync_status !== 'synced' && Number(localItem.updated_at || 0) > Number(item.updated_at || 0)) {
-                        continue;
+                    if (localItem) {
+                        // Se foi excluído localmente e ainda está pendente de subir pro servidor, NUNCA ressuscitar!
+                        if (Number(localItem.deleted || 0) === 1 && localItem.sync_status !== 'synced') continue;
+                        // Se tem edição local pendente mais recente, preservar local!
+                        if (localItem.sync_status !== 'synced' && Number(localItem.updated_at || 0) >= Number(item.updated_at || 0)) continue;
+                    }
+                    // Remove chave numérica legada para não manter duplicata de chave no IndexedDB
+                    if (!isNaN(item.id)) {
+                        try { await dbLocal.movimentacoes.delete(Number(item.id)); } catch(e) {}
                     }
                     const mudou = !localItem ||
                         Number(localItem.updated_at || 0) !== Number(item.updated_at || 0) ||
