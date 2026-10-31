@@ -1,5 +1,5 @@
-// Service Worker - APP Finanças Pessoais v1.8.49
-const CACHE_NAME = 'financas-pessoais-v1.8.49';
+// Service Worker - APP Finanças Pessoais v1.8.50
+const CACHE_NAME = 'financas-pessoais-v1.8.50';
 const ASSETS_TO_CACHE = [
     '/',
     '/index.html',
@@ -24,7 +24,11 @@ const ASSETS_TO_CACHE = [
     '/manifest.json',
     '/icon-192.png',
     '/icon-512.png',
-    '/favicon.png'
+    '/favicon.png',
+    '/ocr/worker.min.js',
+    '/ocr/tesseract-core-simd-lstm.wasm.js',
+    '/ocr/tesseract-core-lstm.wasm.js',
+    '/ocr/por.traineddata.gz'
 ];
 
 self.addEventListener('install', event => {

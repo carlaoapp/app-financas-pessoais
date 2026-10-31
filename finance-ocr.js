@@ -137,6 +137,21 @@ async function obterWorkerOcrRapido() {
         }
         if (typeof Tesseract === 'undefined') return null;
         try {
+            // 1º: motor OCR 100% local (funciona offline, sem depender de CDN nem do Render)
+            const base = window.location.origin + '/ocr';
+            const worker = await Tesseract.createWorker('por', 1, {
+                workerPath: base + '/worker.min.js',
+                corePath: base,
+                langPath: base,
+                gzip: true,
+                cacheMethod: 'write'
+            });
+            _tesseractWorkerCache = worker;
+            return worker;
+        } catch (eLocal) {
+            console.warn("OCR local indisponível, tentando CDN:", eLocal);
+        }
+        try {
             const worker = await Tesseract.createWorker('por', 1, {
                 cacheMethod: 'write',
                 gzip: true

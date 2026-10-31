@@ -2,6 +2,8 @@
 
 const AUTH_TOKEN_KEY = 'financas_auth_token';
 const AUTH_USER_KEY = 'financas_auth_user';
+const AUTH_LAST_USER_KEY = 'financas_auth_last_user';
+const AUTH_OFFLINE_HASH_KEY = 'financas_auth_offline_cred';
 
 function getAuthToken() {
     return localStorage.getItem(AUTH_TOKEN_KEY) || sessionStorage.getItem(AUTH_TOKEN_KEY);
@@ -17,6 +19,47 @@ function saveAuthSession(token, user, remember = true) {
     const storage = remember ? localStorage : sessionStorage;
     storage.setItem(AUTH_TOKEN_KEY, token);
     storage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+    // Guarda o último usuário no aparelho para permitir entrada offline (se o servidor estiver fora do ar)
+    try {
+        if (token !== 'token_offline') localStorage.setItem(AUTH_LAST_USER_KEY, JSON.stringify(user));
+    } catch (e) {}
+}
+
+// ==========================================
+// ENTRADA OFFLINE (servidor fora do ar / sem créditos / sem internet)
+// Guarda apenas um hash SHA-256 salgado da senha, nunca a senha em si.
+// ==========================================
+async function hashSenhaOffline(email, password) {
+    if (!window.crypto || !window.crypto.subtle) return null;
+    const data = new TextEncoder().encode('financas-offline|' + String(email).toLowerCase() + '|' + password);
+    const buf = await window.crypto.subtle.digest('SHA-256', data);
+    return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+async function salvarCredencialOffline(email, password) {
+    try {
+        const h = await hashSenhaOffline(email, password);
+        if (h) localStorage.setItem(AUTH_OFFLINE_HASH_KEY, JSON.stringify({ email: String(email).toLowerCase(), hash: h }));
+    } catch (e) {}
+}
+
+async function tentarEntradaOffline(email, password, remember) {
+    try {
+        const lastUser = JSON.parse(localStorage.getItem(AUTH_LAST_USER_KEY) || 'null');
+        const cred = JSON.parse(localStorage.getItem(AUTH_OFFLINE_HASH_KEY) || 'null');
+        if (!lastUser || !cred) return false;
+        if (String(email).toLowerCase() !== cred.email) return false;
+        const h = await hashSenhaOffline(email, password);
+        if (!h || h !== cred.hash) return false;
+        saveAuthSession('token_offline', lastUser, remember);
+        hideAuthScreen();
+        if (typeof showToast === 'function') {
+            showToast('Modo offline: dados deste aparelho. Sincroniza sozinho quando o servidor voltar.');
+        }
+        return true;
+    } catch (e) {
+        return false;
+    }
 }
 
 function logout() {
@@ -164,6 +207,7 @@ async function handleAuthSubmit() {
         const res = await fetch(endpoint, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
+            signal: (typeof AbortSignal !== 'undefined' && AbortSignal.timeout) ? AbortSignal.timeout(15000) : undefined,
             body: JSON.stringify(payload)
         });
 
@@ -180,6 +224,7 @@ async function handleAuthSubmit() {
         }
 
         saveAuthSession(data.token, data.user, remember);
+        salvarCredencialOffline(email, password);
         hideAuthScreen();
         if (typeof showToast === 'function') {
             showToast('Bem-vindo, ' + (data.user.name || 'ao Finanças Pessoais!'));
@@ -190,8 +235,12 @@ async function handleAuthSubmit() {
     } catch (err) {
         btnSubmit.disabled = false;
         btnSubmit.innerText = currentAuthTab === 'register' ? 'Criar Minha Conta' : 'Entrar no Finanças';
+        // Servidor fora do ar / sem internet: tenta entrar com os dados já salvos neste aparelho
+        if (currentAuthTab === 'login' && await tentarEntradaOffline(email, password, remember)) {
+            return;
+        }
         if (errorBox) {
-            errorBox.innerText = 'Erro ao conectar ao servidor. Verifique sua conexão e tente novamente.';
+            errorBox.innerText = 'Não foi possível conectar ao servidor. Se você já entrou neste aparelho antes, digite o mesmo e-mail e senha para usar o app offline.';
             errorBox.style.display = 'block';
         }
     }
